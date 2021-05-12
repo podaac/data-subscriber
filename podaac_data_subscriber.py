@@ -299,8 +299,6 @@ if __name__ == '__main__':
 
 
     # Get a new timestamp that represents the UTC time of the search. Then download the records in `umm_json` format for granules that match our search parameters:
-
-
     with urlopen(url) as f:
         results = loads(f.read().decode())
 

@@ -41,7 +41,10 @@ The Script will login to CMR and the PO.DAAC Archive using a netrc file. See Not
 
 Every time the script runs successfully (that is, no errors), a `.update` file is created in your download directory with the last run timestamp. This timestamp will be used the next time the script is run. It will look for data between the timestamp in that file and the current time to determine new files to download.
 
-## Note 1: netrc file
+## Note: CMR times
+There are numerous 'times' available to query on in CMR. For the default subscriber, we look at the 'created at' field, which will look for when a granule file was ingested into the archive. This means as PO.DAAC gets data, your subscriber will also get data, regardelss of the time range within the granule itself.
+
+## Note: netrc file
 The netrc used within the script  will allow Python scripts to log into any Earthdata Login without being prompted for
 credentials every time you run. The netrc file should be placed in your HOME directory.
 To find the location of your HOME directory
@@ -121,7 +124,7 @@ python podaac_data_subscriber.py -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -m 10
 
 ### Data since flag
 
-The first time you run the script, or if you want to download data since a particular day, you can use the -ds flag. This flag will ignore the .update file in the output directory location. Running the same command multiple times will download all data over and over, so this is best used on one-off circumstances, and not in a cron job.
+The first time you run the script, or if you want to download data from a particular day onward, you can use the -ds flag. This flag will ignore the .update file in the output directory location. Running the same command multiple times will download all data over and over, so this is best used on one-off circumstances, and not in a cron job. The `-ds` flag looks at the start and stop times of the granules to determine what to download.
 
 ```
 -ds DATASINCE, --data-since DATASINCE
@@ -129,7 +132,7 @@ The first time you run the script, or if you want to download data since a parti
 ```
 
 
-## Note 2: Downloading all or specific files for a collection
+## Note: Downloading all or specific files for a collection
 The code is meant to be generic – for some data products, there is more than one file that can be a data files.
 To get just the raw data file as defined by the metadata swap out
 ```
