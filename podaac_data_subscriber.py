@@ -51,8 +51,6 @@ hostname = socket.gethostname()
 IPAddr = "127.0.0.1" #socket.gethostbyname(hostname)
 ######################################
 
-print("Running PO.DAAC Data Subscriber " + __version__)
-
 # ## Before you start
 #
 # Before you beginning this tutorial, make sure you have an Earthdata account: [https://urs.earthdata.nasa.gov].
@@ -168,7 +166,7 @@ def create_parser():
     parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True,  help = "The directory where data products will be downloaded.")
 
     #Optional Arguments
-    parser.add_argument("-m", "--minutes", dest="minutes", help = "How often, in minutes, should the script run (default: 60 minutes).", type=int, default=60)
+    parser.add_argument("-m", "--minutes", dest="minutes", help = "How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).", type=int, default=60)
     parser.add_argument("-b", "--bounds", dest="bbox", help = "The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\.", default="-180,-90,180,90")
     parser.add_argument("-e", "--extensions", dest="extensions", help = "The extensions of products to download. Default is [.nc, .h5]", default=[".nc", ".h5"], nargs='*')
 
@@ -177,6 +175,7 @@ def create_parser():
     # Format for the above has to be as follows "%Y-%m-%dT%H:%M:%SZ"
     parser.add_argument("-ds", "--data-since", dest="dataSince", help = "The ISO date time from which data should be retrieved. For Example, --data-since 2021-01-14T00:00:00Z", default=False)
     parser.add_argument("--version", dest="version", action="store_true",help = "Display script version information and exit.")
+    parser.add_argument("--verbose", dest="verbose", action="store_true",help = "Verbose mode.")
     return parser
 
 from os import makedirs
@@ -272,6 +271,7 @@ if __name__ == '__main__':
         'scroll': "true",
         'page_size': 2000,
         'sort_key': "-start_date",
+        'provider': 'POCLOUD',
         'ShortName': Short_Name,
         'created_at': timestamp,
          'token': token,
@@ -283,6 +283,7 @@ if __name__ == '__main__':
         'scroll': "true",
         'page_size': 2000,
         'sort_key': "-start_date",
+        'provider': 'POCLOUD',
         'ShortName': Short_Name,
         'temporal':temporal_range,
         'token': token,
@@ -293,7 +294,8 @@ if __name__ == '__main__':
 
     query = urlencode(params)
     url = "https://"+cmr+"/search/granules.umm_json?"+query
-    print(url)
+    if args.verbose:
+        print(url)
 
 
     # Get a new timestamp that represents the UTC time of the search. Then download the records in `umm_json` format for granules that match our search parameters:
@@ -302,15 +304,15 @@ if __name__ == '__main__':
     with urlopen(url) as f:
         results = loads(f.read().decode())
 
-    print(str(results['hits'])+" new granules ingested for "+Short_Name+" since "+timestamp)
+    if args.verbose:
+        print(str(results['hits'])+" new granules ingested for "+Short_Name+" since "+timestamp)
 
     timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
     # Neatly print the first granule record (if one was returned):
-
-    if len(results['items'])>0:
-        print(dumps(results['items'][0], indent=2))
+    #if len(results['items'])>0:
+    #    print(dumps(results['items'][0], indent=2))
 
 
     # The link for http access can be retrieved from each granule record's `RelatedUrls` field.
@@ -327,7 +329,8 @@ if __name__ == '__main__':
 
     downloads = [item for sublist in downloads_all for item in sublist]
 
-    print("Found "+str(len(downloads))+" files to download")
+    if args.verbose:
+        print("Found "+str(len(downloads))+" files to download")
     # Finish by downloading the files to the data directory in a loop. Overwrite `.update` with a new timestamp on success.
 
     success_cnt=failure_cnt=0
@@ -337,12 +340,10 @@ if __name__ == '__main__':
             for extension in extensions:
                 if f.lower().endswith((extension)):
                     urlretrieve(f, data+"/"+basename(f))
-                    print(datetime.now())
-                    print("SUCCESS: "+f+"\n\n")
+                    print(str(datetime.now()) + " SUCCESS: "+f+"\n")
                     success_cnt=success_cnt+1
         except Exception as e:
-            print(datetime.now())
-            print("FAILURE: "+f+"\n\n")
+            print(str(datetime.now()) + " FAILURE: "+f+"\n")
             failure_cnt=failure_cnt+1
             print(e)
     # If there were updates to the local time series during this run and no exceptions were raised during the download loop, then overwrite the timestamp file that tracks updates to the data folder (`resources/nrt/.update`):

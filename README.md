@@ -39,6 +39,8 @@ To run the script, the following parameters are required:
 
 The Script will login to CMR and the PO.DAAC Archive using a netrc file. See Note 1 for more information on setting this up.
 
+Every time the script runs successfully (that is, no errors), a `.update` file is created in your download directory with the last run timestamp. This timestamp will be used the next time the script is run. It will look for data between the timestamp in that file and the current time to determine new files to download.
+
 ## Note 1: netrc file
 The netrc used within the script  will allow Python scripts to log into any Earthdata Login without being prompted for
 credentials every time you run. The netrc file should be placed in your HOME directory.
@@ -90,16 +92,29 @@ python podaac_data_subscriber.py -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e .nc .h
 ```
 
 
-### Changing how often the script runs
+### Changing how far back the script looks for data
+
+Each time the script runs, the script takes the current time and looks -m minutes ago to determine what files it needs to download. the Default is 60 minutes. So it looks at files ingested within the last hour. This works well fi you run a cron job every 60 minutes.
+
+**If the .update file exists in the output directory, that timestamp will override the -m flag.**
 
 ```
 -m MINUTES, --minutes MINUTES
-                       How often, in minutes, should the script run (default: 60 minutes).
+                       How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).
 
 ```
 An example of the -m flag:
 ```
 python podaac_data_subscriber.py -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -m 10
+```
+
+### Data since flag
+
+The first time you run the script, or if you want to download data since a particular day, you can use the -ds flag. This flag will ignore the .update file in the output directory location. Running the same command multiple times will download all data over and over, so this is best used on one-off circumstances, and not in a cron job.
+
+```
+-ds DATASINCE, --data-since DATASINCE
+                       The ISO date time from which data should be retrieved. For Example, --data-since 2021-01-14T00:00:00Z
 ```
 
 
