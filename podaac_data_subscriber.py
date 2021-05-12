@@ -331,6 +331,7 @@ if __name__ == '__main__':
 
     if args.verbose:
         print("Found "+str(len(downloads))+" files to download")
+        print("Downloading files with extensions: " + str(extensions))
     # Finish by downloading the files to the data directory in a loop. Overwrite `.update` with a new timestamp on success.
 
     success_cnt=failure_cnt=0
