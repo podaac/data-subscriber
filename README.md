@@ -57,9 +57,20 @@ echo %HOMEDRIVE%%HOMEPATH%
 
 The output location from the command above should be the location of the `.netrc` (`_netrc` on Windows) file.
 
-**If the script cannot find the netrc file, you will be prompted to enter the username and passowrd and the script wont be able to generate the CMR token**
+**If the script cannot find the netrc file, you will be prompted to enter the username and password and the script wont be able to generate the CMR token**
 
 ## Advanced Usage
+
+### Running as a Cron job
+
+To automatically run and update a local file system with data files from a collection, one can use a syntax like the following:
+
+```
+10 * * * * $PATH/python /path/to/data-subscriber/podaac_data_subscriber.py -c VIIRS_N20-OSPO-L2P-v2.61 -d /path/to/data/VIIRS_N20-OSPO-L2P-v2.61 -e .nc .h5 -m 60 -b="-180,-90,180,90" --verbose >> ~/.subscriber.log
+
+```
+
+This will run every hour at ten minutes passed, and output will be appended to a local file called ~/.subscriber.log
 
 ### Setting a bounding rectangle for filtering results
 
