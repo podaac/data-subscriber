@@ -340,10 +340,10 @@ if __name__ == '__main__':
             for extension in extensions:
                 if f.lower().endswith((extension)):
                     urlretrieve(f, data+"/"+basename(f))
-                    print(str(datetime.now()) + " SUCCESS: "+f+"\n")
+                    print(str(datetime.now()) + " SUCCESS: "+f)
                     success_cnt=success_cnt+1
         except Exception as e:
-            print(str(datetime.now()) + " FAILURE: "+f+"\n")
+            print(str(datetime.now()) + " FAILURE: "+f)
             failure_cnt=failure_cnt+1
             print(e)
     # If there were updates to the local time series during this run and no exceptions were raised during the download loop, then overwrite the timestamp file that tracks updates to the data folder (`resources/nrt/.update`):
