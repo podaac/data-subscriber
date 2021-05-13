@@ -12,7 +12,7 @@ The example script is to download data given a PO.DAAC collection shortname.
 
 ## Installation
 
-While the scubscriber is not available in the python repository, it can still be isntalled via pip:
+While the scubscriber is not available in the python repository, it can still be installed via pip:
 
 ```
 python -m pip install git+https://github.com/podaac/data-subscriber.git
