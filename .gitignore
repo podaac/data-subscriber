@@ -1,3 +1,6 @@
 __pycache__
 data/
 .DS_Store
+build/
+dist/
+podaac_data_subscriber.egg-info/
