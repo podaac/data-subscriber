@@ -10,6 +10,58 @@ The example script is to download data given a PO.DAAC collection shortname.
   - PO.DAAC is providing this script as “starter” script for download -- advanced features can be added and it would be great if you can contribute these code back to PO.DAAC.
   - The search and download relies on an API as defined at https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html
 
+## Installation
+
+While the scubscriber is not available in the python repository, it can still be isntalled via pip:
+
+```
+python -m pip install git+https://github.com/podaac/data-subscriber.git
+```
+
+you should now have access to the subscriber CLI:
+
+```
+$> podaac-data-subscriber -h
+usage: podaac-data-subscriber [-h] -c COLLECTION -d OUTPUTDIRECTORY [-m MINUTES] [-b BBOX] [-e [EXTENSIONS [EXTENSIONS ...]]] [-ds DATASINCE] [--version] [--verbose]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c COLLECTION, --collection-shortname COLLECTION
+                        The collection shortname for which you want to retrieve data.
+  -d OUTPUTDIRECTORY, --data-dir OUTPUTDIRECTORY
+                        The directory where data products will be downloaded.
+  -m MINUTES, --minutes MINUTES
+                        How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your
+                        cron runs (default: 60 minutes).
+  -b BBOX, --bounds BBOX
+                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use
+                        this command, please use the -b="-180,-90,180,90" syntax when calling from the command line. Default: "-180,-90,180,90\.
+  -e [EXTENSIONS [EXTENSIONS ...]], --extensions [EXTENSIONS [EXTENSIONS ...]]
+                        The extensions of products to download. Default is [.nc, .h5]
+  -ds DATASINCE, --data-since DATASINCE
+                        The ISO date time from which data should be retrieved. For Example, --data-since 2021-01-14T00:00:00Z
+  --version             Display script version information and exit.
+  --verbose             Verbose mode.
+
+```
+
+One can also call the python package directly:
+
+```
+git clone https://github.com/podaac/data-subscriber.git
+
+Cloning into 'data-subscriber'...
+remote: Enumerating objects: 35, done.
+remote: Counting objects: 100% (35/35), done.
+remote: Compressing objects: 100% (25/25), done.
+remote: Total 35 (delta 14), reused 28 (delta 7), pack-reused 0
+Receiving objects: 100% (35/35), 1.19 MiB | 704.00 KiB/s, done.
+Resolving deltas: 100% (14/14), done.
+$ cd data-subscriber/
+$ python subscriber/podaac_data_subscriber.py -h
+....
+```
+
 ## Step 1:  Get Earthdata Login     
 This step is needed only if you dont have an Earthdata login already.
 https://urs.earthdata.nasa.gov/
@@ -21,7 +73,7 @@ https://urs.earthdata.nasa.gov/
 
 Usage:
 ```
-usage: podaac_data_subscriber.py [-h] -c COLLECTION -d OUTPUTDIRECTORY [-m MINUTES] [-b BBOX] [-e [EXTENSIONS [EXTENSIONS ...]]] [-ds DATASINCE] [--version]
+usage: podaac-data-subscriber [-h] -c COLLECTION -d OUTPUTDIRECTORY [-m MINUTES] [-b BBOX] [-e [EXTENSIONS [EXTENSIONS ...]]] [-ds DATASINCE] [--version]
 ```
 
 To run the script, the following parameters are required:
@@ -69,7 +121,7 @@ The output location from the command above should be the location of the `.netrc
 To automatically run and update a local file system with data files from a collection, one can use a syntax like the following:
 
 ```
-10 * * * * $PATH/python /path/to/data-subscriber/podaac_data_subscriber.py -c VIIRS_N20-OSPO-L2P-v2.61 -d /path/to/data/VIIRS_N20-OSPO-L2P-v2.61 -e .nc .h5 -m 60 -b="-180,-90,180,90" --verbose >> ~/.subscriber.log
+10 * * * * podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d /path/to/data/VIIRS_N20-OSPO-L2P-v2.61 -e .nc .h5 -m 60 -b="-180,-90,180,90" --verbose >> ~/.subscriber.log
 
 ```
 
@@ -88,7 +140,7 @@ If you're interested in a specific region, you can set the bounds parameter on y
 An example of the -b usage:
 
 ```
-python podaac_data_subscriber.py -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -b="-180,-90,180,90"
+podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -b="-180,-90,180,90"
 ```
 
 ### Setting extensions
@@ -102,7 +154,7 @@ Some collections have many files. To download a specific set of files, you can s
 
 An example of the -e usage:
 ```
-python podaac_data_subscriber.py -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e .nc .h5
+podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e .nc .h5
 ```
 
 
@@ -119,7 +171,7 @@ Each time the script runs, the script takes the current time and looks -m minute
 ```
 An example of the -m flag:
 ```
-python podaac_data_subscriber.py -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -m 10
+podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -m 10
 ```
 
 ### Data since flag
