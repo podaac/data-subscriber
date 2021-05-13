@@ -1,4 +1,4 @@
-import podaac_data_subscriber as pds
+from subscriber import podaac_data_subscriber as pds
 import pytest
 
 
