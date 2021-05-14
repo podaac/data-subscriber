@@ -67,6 +67,8 @@ This step is needed only if you dont have an Earthdata login already.
 https://urs.earthdata.nasa.gov/
 > The Earthdata Login provides a single mechanism for user registration and profile  management for all EOSDIS system components (DAACs, Tools, Services). Your Earthdata login   also helps the EOSDIS program better understand the usage of EOSDIS services to improve  user experience through customization of tools and improvement of services. EOSDIS data are  openly available to all and free of charge except where governed by international  agreements.
 
+For setting up your authentication, see the notes on the `netrc` file below.
+
 
 
 ## Step 2:  Run the Script
@@ -111,6 +113,14 @@ echo %HOMEDRIVE%%HOMEPATH%
 ```
 
 The output location from the command above should be the location of the `.netrc` (`_netrc` on Windows) file.
+
+The format of the `netrc` file is as follows:
+
+```
+machine urs.earthdata.nasa.gov
+    login <your username>
+    password <your password>
+```
 
 **If the script cannot find the netrc file, you will be prompted to enter the username and password and the script wont be able to generate the CMR token**
 
