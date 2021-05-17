@@ -10,6 +10,14 @@ The example script is to download data given a PO.DAAC collection shortname.
   - PO.DAAC is providing this script as “starter” script for download -- advanced features can be added and it would be great if you can contribute these code back to PO.DAAC.
   - The search and download relies on an API as defined at https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html
 
+## Dependencies
+
+The only dependency is the python 'requests' module, which can be installed via pip.
+
+```
+python -m pip install requests
+```
+
 ## Installation
 
 While the scubscriber is not available in the python repository, it can still be installed via pip:
