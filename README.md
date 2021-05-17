@@ -141,6 +141,8 @@ This will run every hour at ten minutes passed, and output will be appended to a
 
 If you're interested in a specific region, you can set the bounds parameter on your request to filter data that passes through a certain area. This is useful in particular for non-global datasets (such as swath datasets) with non-global coverage per file.
 
+***Note: This does not subset the data, it just uses file metadata to see if any part of the datafile passes through your region. This will download the entire file, including data outside of the region specified.***
+
 ```
 -b BBOX, --bounds BBOX
                       The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b="-180,-90,180,90" syntax when calling from
