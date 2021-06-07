@@ -18,7 +18,7 @@ import sys
 import argparse
 import datetime
 
-__version__ = "1.1"
+__version__ = "1.1.1"
 
 
 ## TODO: ???
