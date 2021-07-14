@@ -12,7 +12,7 @@ The example script is to download data given a PO.DAAC collection shortname.
 
 ## Dependencies
 
-The only dependency is the python 'requests' module, which can be installed via pip.
+Aside from **python 3**, the only dependency is the python 'requests' module, which can be installed via pip.
 
 ```
 python -m pip install requests
