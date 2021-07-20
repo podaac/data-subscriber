@@ -164,7 +164,10 @@ def create_parser():
 
     # Adding Required arguments
     parser.add_argument("-c", "--collection-shortname", dest="collection",required=True, help = "The collection shortname for which you want to retrieve data.")
-    parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True,  help = "The directory where data products will be downloaded.")
+    parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True, help = "The directory where data products will be downloaded.")
+    parser.add_argument("-dc", dest="cycle", action="store_true", help = "Flag to use cycle number for directory where data products will be downloaded.")
+    parser.add_argument("-dydoy", dest="dydoy", action="store_true", help = "Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.")
+    parser.add_argument("-dymd", dest="dymd", action="store_true", help = "Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.")
 
     #Optional Arguments
     parser.add_argument("-m", "--minutes", dest="minutes", help = "How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).", type=int, default=60)
@@ -180,7 +183,7 @@ def create_parser():
     return parser
 
 from os import makedirs
-from os.path import isdir, basename
+from os.path import isdir, basename, join, splitext
 from urllib.parse import urlencode
 from urllib.request import urlopen, urlretrieve
 from datetime import datetime, timedelta
@@ -191,7 +194,7 @@ def run():
     args = parser.parse_args()
 
     if args.version:
-        print ("PO.DAAC Data Subscriber v" + __version__)
+        print("PO.DAAC Data Subscriber v" + __version__)
         exit()
     try:
         validate(args)
@@ -199,20 +202,20 @@ def run():
         print(v)
         exit()
 
-    edl="urs.earthdata.nasa.gov"
-    cmr="cmr.earthdata.nasa.gov"
+    edl = "urs.earthdata.nasa.gov"
+    cmr = "cmr.earthdata.nasa.gov"
 
     setup_earthdata_login_auth(edl)
-    token_url="https://"+cmr+"/legacy-services/rest/tokens"
-    token=get_token(token_url,'podaac-subscriber', IPAddr,edl)
+    token_url = "https://"+cmr+"/legacy-services/rest/tokens"
+    token = get_token(token_url,'podaac-subscriber', IPAddr,edl)
     mins = args.minutes # In this case download files ingested in the last 60 minutes -- change this to whatever setting is needed
-    data_since=args.dataSince
+    data_since = args.dataSince
     #data_since="2021-01-14T00:00:00Z"
     #Uncomment the above line if you want data from a particular date onwards.In this example you will get data from 2021-01-14 UTC time 00:00:00 onwards.
     # Format for the above has to be as follows "%Y-%m-%dT%H:%M:%SZ"
 
 
-    Short_Name=args.collection
+    Short_Name = args.collection
     #This is the Short Name of the product you want to download
     # See Finding_shortname.pdf file
 
@@ -221,36 +224,36 @@ def run():
     ## Sentinel-6 MF datasets also have *.bufr.bin, *.DBL, *.rnx, *.dat
     extensions = args.extensions
 
-    data = args.outputDirectory
-    #You should change `data` to a suitable download path on your file system.
+    data_path = args.outputDirectory
+    #You should change `data_path` to a suitable download path on your file system.
 
+    #Error catching for output directory specifications
+    #Must specify -d output path or one time-based output directory flag
 
-    bounding_extent=args.bbox
-    #Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
-
-
+    if sum([args.cycle, args.dydoy, args.dymd]) > 1:
+        parser.error('Too many output directory flags specified, '
+                     'Please specify exactly one flag '
+                     'from -dc, -dydoy, or -dymd')
 
     # **The search retrieves granules ingested during the last `n` minutes.** A file in your local data dir  file that tracks updates to your data directory, if one file exists.
-
-
     timestamp = (datetime.utcnow()-timedelta(minutes=mins)).strftime("%Y-%m-%dT%H:%M:%SZ")
-
 
     # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
 
-
-    if not isdir(data):
-        print("NOTE: Making new data directory at "+data+"(This is the first run.)")
-        makedirs(data)
+    if not isdir(data_path):
+        print("NOTE: Making new data directory at "+data_path+"(This is the first run.)")
+        makedirs(data_path)
     else:
         try:
-            with open(data+"/.update", "r") as f:
+            with open(data_path+"/.update", "r") as f:
                 timestamp = f.read()
         except FileNotFoundError:
             print("WARN: No .update in the data directory. (Is this the first run?)")
         else:
             print("NOTE: .update found in the data directory. (The last run was at "+timestamp+".)")
 
+    #Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
+    bounding_extent = args.bbox
 
     # There are several ways to query for CMR updates that occured during a given timeframe. Read on in the CMR Search documentation:
     # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#c-with-new-granules (Collections)
@@ -259,13 +262,10 @@ def run():
     # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-created-at (Granules)
     # The `created_at` parameter works for our purposes. It's a granule search parameter that returns the records ingested since the input timestamp.
 
-
     if(data_since):
-    	timestamp=data_since
+        timestamp = data_since
 
-
-    temporal_range=timestamp+","+datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-
+    temporal_range = timestamp+","+datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     params = {
         'scroll': "true",
@@ -274,24 +274,23 @@ def run():
         'provider': 'POCLOUD',
         'ShortName': Short_Name,
         'created_at': timestamp,
-         'token': token,
+        'token': token,
         'bounding_box': bounding_extent,
     }
 
-    if(data_since):
-    	params = {
-        'scroll': "true",
-        'page_size': 2000,
-        'sort_key': "-start_date",
-        'provider': 'POCLOUD',
-        'ShortName': Short_Name,
-        'temporal':temporal_range,
-        'token': token,
-        'bounding_box': bounding_extent ,
-    	}
+    if data_since:
+        params = {
+            'scroll': "true",
+            'page_size': 2000,
+            'sort_key': "-start_date",
+            'provider': 'POCLOUD',
+            'ShortName': Short_Name,
+            'temporal': temporal_range,
+            'token': token,
+            'bounding_box': bounding_extent,
+        }
 
     # Get the query parameters as a string and then the complete search url:
-
     query = urlencode(params)
     url = "https://"+cmr+"/search/granules.umm_json?"+query
     if args.verbose:
@@ -305,18 +304,28 @@ def run():
     if args.verbose:
         print(str(results['hits'])+" new granules ingested for "+Short_Name+" since "+timestamp)
 
-    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    if args.dydoy or args.dymd:
+        try:
+            file_start_times = [(r['meta']['native-id'], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']), "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]
+        except:
+            raise ValueError('Could not locate start time for data.')
+    elif args.cycle:
+        try:
+            cycles = [(splitext(r['meta']['native-id'])[0], str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in results['items']]
+        except:
+            parser.error('No cycles found within collection granules. '
+                         'Specify an output directory or '
+                         'choose another output directory flag other than -dc.')
 
+    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Neatly print the first granule record (if one was returned):
     #if len(results['items'])>0:
     #    print(dumps(results['items'][0], indent=2))
 
-
     # The link for http access can be retrieved from each granule record's `RelatedUrls` field.
     # The download link is identified by `"Type": "GET DATA"` but there are other data files in EXTENDED METADATA" field.
     # Select the download URL for each of the granule records:
-
 
     downloads_all=[]
     downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type']=="GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results['items']]
@@ -330,32 +339,105 @@ def run():
     if args.verbose:
         print("Found "+str(len(downloads))+" files to download")
         print("Downloading files with extensions: " + str(extensions))
-    # Finish by downloading the files to the data directory in a loop. Overwrite `.update` with a new timestamp on success.
 
-    success_cnt=failure_cnt=0
+    # Finish by downloading the files to the data directory in a loop. Overwrite `.update` with a new timestamp on success.
+    success_cnt = failure_cnt = 0
+
+    def check_dir(path):
+        if not isdir(path):
+            makedirs(path)
+
+    def prepare_time_output(times, prefix, file):
+        """"
+        Create output directory using using SHORTNAME/YEAR/DAY_OF_YEAR/ or SHORTNAME/YEAR/MONTH/DAY
+        .update stored in /DIR/SHORTNAME/
+
+        Parameters
+        ----------
+        times : list
+            list of tuples consisting of granule names and start times
+        prefix : string
+            prefix for output path, either custom output -d or short name
+        file : string
+            granule file name
+
+        Returns
+        -------
+        write_path
+            string path to where granules will be written
+        """
+        time_match = [dt for dt in times if dt[0] == splitext(basename(file))[0]][0][1]
+        year = time_match.strftime('%Y')
+        month = time_match.strftime('%m')
+        day = time_match.strftime('%d')
+        day_of_year = time_match.strftime('%j')
+
+        if args.dydoy:
+            time_dir = join(year, day_of_year)
+        elif args.dymd:
+            time_dir = join(year, month, day)
+        else:
+            raise ValueError('Temporal output flag not recognized.')
+        check_dir(join(prefix, time_dir))
+        write_path = join(prefix, time_dir, basename(file))
+        return write_path
+
+    def prepare_cycles_output(data_cycles, prefix,  file):
+        """"
+        Create output directory using SHORTNAME/CYCLE_NUMBER
+        .update stored in /DIR/SHORTNAME/
+
+        Parameters
+        ----------
+        data_cycles : list
+            list of tuples consisting of granule names and cycle numbers
+        prefix : string
+            prefix for output path, either custom output -d or short name
+        file : string
+            granule file name
+
+        Returns
+        -------
+        write_path : string
+            string path to where granules will be written
+        """
+        cycle_match = [cycle for cycle in data_cycles if cycle[0] == splitext(basename(file))[0]][0]
+        cycle_dir = "c"+cycle_match[1].zfill(4)
+        check_dir(join(prefix, cycle_dir))
+        write_path = join(prefix, cycle_dir, basename(file))
+        return write_path
 
     for f in downloads:
         try:
             for extension in extensions:
-                if f.lower().endswith((extension)):
-                    urlretrieve(f, data+"/"+basename(f))
+                if f.lower().endswith(extension):
+                    # -d flag, args.outputDirectory
+                    output_path = join(data_path, basename(f))
+                    # -dydoy, args.dydoy and -dymd, args.dymd flags
+                    if args.dydoy or args.dymd:
+                        output_path = prepare_time_output(file_start_times, data_path, f)
+                    # -dc flag
+                    if args.cycle:
+                        output_path = prepare_cycles_output(cycles, data_path, f)
+                    urlretrieve(f, output_path)
                     print(str(datetime.now()) + " SUCCESS: "+f)
-                    success_cnt=success_cnt+1
+                    success_cnt = success_cnt + 1
         except Exception as e:
             print(str(datetime.now()) + " FAILURE: "+f)
-            failure_cnt=failure_cnt+1
+            failure_cnt = failure_cnt+1
             print(e)
-    # If there were updates to the local time series during this run and no exceptions were raised during the download loop, then overwrite the timestamp file that tracks updates to the data folder (`resources/nrt/.update`):
 
-    if len(results['items'])>0:
-    	if not failure_cnt>0:
-       	 	with open(data+"/.update", "w") as f:
-            		f.write(timestamp)
+    # If there were updates to the local time series during this run and no exceptions were raised during the download loop, then overwrite the timestamp file that tracks updates to the data folder (`resources/nrt/.update`):
+    if len(results['items']) > 0:
+        if not failure_cnt > 0:
+            with open(data_path+"/.update", "w") as f:
+                f.write(timestamp)
 
     print("Downloaded: "+str(success_cnt)+" files\n")
     print("Files Failed to download:"+str(failure_cnt)+"\n")
     delete_token(token_url,token)
     print("END \n\n")
+
 
 if __name__ == '__main__':
     run()

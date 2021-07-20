@@ -1,6 +1,8 @@
 __pycache__
 data/
+data-sub/
 .DS_Store
 build/
 dist/
 podaac_data_subscriber.egg-info/
+.idea/
