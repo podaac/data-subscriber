@@ -38,6 +38,10 @@ optional arguments:
                         The collection shortname for which you want to retrieve data.
   -d OUTPUTDIRECTORY, --data-dir OUTPUTDIRECTORY
                         The directory where data products will be downloaded.
+  -dc                   Flag to use cycle number for directory where data products will be downloaded.
+  -dydoy                Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.
+  -dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.
+
   -m MINUTES, --minutes MINUTES
                         How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your
                         cron runs (default: 60 minutes).
@@ -133,6 +137,15 @@ machine urs.earthdata.nasa.gov
 **If the script cannot find the netrc file, you will be prompted to enter the username and password and the script wont be able to generate the CMR token**
 
 ## Advanced Usage
+
+### Controlling output directories
+
+The subscriber allows the placement of downloaded files into one of several directory structures based on the flags used to run the subscriber.
+
+* -d - required, specifies the directory to which data is downloaded. If this is the only flag specified, all files will be downloaded to this single directory.
+* -dc - optional, if 'cycle' information exists in the product metadata, download it to the data directory and use a relative c<CYCLE> path to store granules. The relative path is 0 padded to 4 total digits (e.g. c0001)
+* -dydoy - optional, relative paths use the start time of a granule to layout data in a YEAR/DAY-OF-YEAR path
+* -dymd  - optional, relative paths use the start time of a granule to layout data in a YEAR/MONTH/DAY path
 
 ### Running as a Cron job
 
