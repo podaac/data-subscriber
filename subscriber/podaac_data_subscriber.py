@@ -244,7 +244,43 @@ def run():
                      'Please specify exactly one flag '
                      'from -dc, -dydoy, or -dymd')
 
+    # **The search retrieves granules ingested during the last `n` minutes.** A file in your local data dir  file that tracks updates to your data directory, if one file exists.
     timestamp = (datetime.utcnow()-timedelta(minutes=mins)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    time_now = datetime.utcnow()
+    year = time_now.strftime('%Y')
+    month = time_now.strftime('%m')
+    day = time_now.strftime('%d')
+    day_of_year = time_now.strftime('%j')
+
+    #You should change `data` to a suitable download path on your file system.
+    #Or select an output directory start time flag
+    if args.outputDirectory:
+        data = args.outputDirectory
+    #Create output directory using YEAR/DAY_OF_YEAR/
+    elif args.dydoy:
+        data = join(year, day_of_year)
+    #Create output directory using YEAR/MONTH/DAY
+    elif args.dymd:
+        data = join(year, month, day)
+    #Create output directory using SHORTNAME/CYCLE_NUMBER, .update stored in parent dir
+    elif args.cycle:
+        data = Short_Name+"/"
+    else:
+        raise ValueError('Could not locate output directory, specify output directory flag.')
+
+    # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
+    if not isdir(data):
+        print("NOTE: Making new data directory at "+data+"(This is the first run.)")
+        makedirs(data)
+    else:
+        try:
+            with open(data+"/.update", "r") as f:
+                timestamp = f.read()
+        except FileNotFoundError:
+            print("WARN: No .update in the data directory. (Is this the first run?)")
+        else:
+            print("NOTE: .update found in the data directory. (The last run was at "+timestamp+".)")
 
     #Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
     bounding_extent = args.bbox
@@ -255,7 +291,6 @@ def run():
     # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-production-date (Granules)
     # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-created-at (Granules)
     # The `created_at` parameter works for our purposes. It's a granule search parameter that returns the records ingested since the input timestamp.
-
 
     if(data_since):
         timestamp = data_since
@@ -286,7 +321,6 @@ def run():
         }
 
     # Get the query parameters as a string and then the complete search url:
-
     query = urlencode(params)
     url = "https://"+cmr+"/search/granules.umm_json?"+query
     if args.verbose:
@@ -320,53 +354,12 @@ def run():
     for f in downloads_metadata: downloads_all.append(f)
 
     downloads = [item for sublist in downloads_all for item in sublist]
-    print("DOWNLOADS: ", downloads)
 
     if args.verbose:
         print("Found "+str(len(downloads))+" files to download")
         print("Downloading files with extensions: " + str(extensions))
+
     # Finish by downloading the files to the data directory in a loop. Overwrite `.update` with a new timestamp on success.
-
-    # **The search retrieves granules ingested during the last `n` minutes.** A file in your local data dir  file that tracks updates to your data directory, if one file exists.
-    # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
-    def create_dirs(output_dir):
-        if not isdir(output_dir):
-            print("NOTE: Making new data directory at "+output_dir+"(This is the first run.)")
-            makedirs(output_dir)
-        else:
-            try:
-                with open(output_dir+"/.update", "r") as file:
-                    timestamp = file.read()
-            except FileNotFoundError:
-                print("WARN: No .update in the data directory. (Is this the first run?)")
-            else:
-                print("NOTE: .update found in the data directory. "
-                      "(The last run was at "+timestamp+".)")
-
-    time_now = datetime.utcnow()
-    year = time_now.strftime('%Y')
-    month = time_now.strftime('%m')
-    day = time_now.strftime('%d')
-    day_of_year = time_now.strftime('%j')
-
-    #You should change `data` to a suitable download path on your file system.
-    #Or select an output directory start time flag
-    if args.outputDirectory:
-        data = args.outputDirectory
-        create_dirs(data)
-    elif args.dydoy:
-        data = join(year, day_of_year)
-        create_dirs(data)
-    elif args.dymd:
-        data = join(year, month, day)
-        create_dirs(data)
-    elif args.cycle:
-        cycles = [(splitext(r['meta']['native-id'])[0], str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in results['items']]
-        if not cycles:
-            parser.error('No cycles found within collection granules. '
-                         'Specify an output directory or '
-                         'choose another output directory flag other than -dc.')
-
     success_cnt = failure_cnt = 0
 
     for f in downloads:
@@ -374,10 +367,19 @@ def run():
             for extension in extensions:
                 if f.lower().endswith(extension):
                     if args.cycle:
+                        try:
+                            cycles = [(splitext(r['meta']['native-id'])[0], str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in results['items']]
+                        except:
+                            parser.error('No cycles found within collection granules. '
+                                         'Specify an output directory or '
+                                         'choose another output directory flag other than -dc.')
                         match = [cycle for cycle in cycles if cycle[0] == splitext(basename(f))[0]][0]
                         data = Short_Name+"/"+"c"+match[1].zfill(4)
-                        create_dirs(data)
+                        if not isdir(data):
+                            makedirs(data)
                         output_path = data+"/"+basename(f)
+                        # use parent dir for cycles so .update is easier to locate
+                        data = Short_Name+"/"
                     else:
                         output_path = data+"/"+basename(f)
                     urlretrieve(f, output_path)
@@ -389,8 +391,8 @@ def run():
             print(e)
 
     # If there were updates to the local time series during this run and no exceptions were raised during the download loop, then overwrite the timestamp file that tracks updates to the data folder (`resources/nrt/.update`):
-    if len(results['items'])>0:
-        if not failure_cnt>0:
+    if len(results['items']) > 0:
+        if not failure_cnt > 0:
             with open(data+"/.update", "w") as f:
                 f.write(timestamp)
 
