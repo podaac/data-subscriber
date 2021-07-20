@@ -164,9 +164,7 @@ def create_parser():
 
     # Adding Required arguments
     parser.add_argument("-c", "--collection-shortname", dest="collection",required=True, help = "The collection shortname for which you want to retrieve data.")
-
-    # One of the following 4 is required
-    parser.add_argument("-d", "--data-dir", dest="outputDirectory", help = "The directory where data products will be downloaded.")
+    parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True, help = "The folder where data products will be downloaded.")
     parser.add_argument("-dc", dest="cycle", action="store_true", help = "Flag to use cycle number for directory where data products will be downloaded.")
     parser.add_argument("-dydoy", dest="dydoy", action="store_true", help = "Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.")
     parser.add_argument("-dymd", dest="dymd", action="store_true", help = "Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.")
@@ -226,20 +224,13 @@ def run():
     ## Sentinel-6 MF datasets also have *.bufr.bin, *.DBL, *.rnx, *.dat
     extensions = args.extensions
 
+    data_path = args.outputDirectory
+    #You should change `data_path` to a suitable download path on your file system.
+
     #Error catching for output directory specifications
     #Must specify -d output path or one time-based output directory flag
-    if not args.outputDirectory and not any([args.cycle, args.dydoy, args.dymd]):
-        parser.error('No output directory specified, '
-                     'specify output directory with -d, '
-                     'or use one of the following flags: -dc, -dydoy, -dymd')
 
-    if args.outputDirectory and \
-            sum(map(bool, [args.cycle, args.dydoy, args.dymd])) == 1:
-        parser.error('Too many output directory options specified, '
-                     'Please specify -d or one flag '
-                     'from -dc, -dydoy, or -dymd')
-
-    if not args.outputDirectory and sum(map(bool, [args.cycle, args.dydoy, args.dymd])) != 1:
+    if sum([args.cycle, args.dydoy, args.dymd]) > 1:
         parser.error('Too many output directory flags specified, '
                      'Please specify exactly one flag '
                      'from -dc, -dydoy, or -dymd')
@@ -247,35 +238,14 @@ def run():
     # **The search retrieves granules ingested during the last `n` minutes.** A file in your local data dir  file that tracks updates to your data directory, if one file exists.
     timestamp = (datetime.utcnow()-timedelta(minutes=mins)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    time_now = datetime.utcnow()
-    year = time_now.strftime('%Y')
-    month = time_now.strftime('%m')
-    day = time_now.strftime('%d')
-    day_of_year = time_now.strftime('%j')
-
-    #You should change `data` to a suitable download path on your file system.
-    #Or select an output directory start time flag
-    if args.outputDirectory:
-        data = args.outputDirectory
-    #Create output directory using YEAR/DAY_OF_YEAR/
-    elif args.dydoy:
-        data = join(year, day_of_year)
-    #Create output directory using YEAR/MONTH/DAY
-    elif args.dymd:
-        data = join(year, month, day)
-    #Create output directory using SHORTNAME/CYCLE_NUMBER, .update stored in parent dir
-    elif args.cycle:
-        data = Short_Name+"/"
-    else:
-        raise ValueError('Could not locate output directory, specify output directory flag.')
-
     # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
-    if not isdir(data):
-        print("NOTE: Making new data directory at "+data+"(This is the first run.)")
-        makedirs(data)
+
+    if not isdir(data_path):
+        print("NOTE: Making new data directory at "+data_path+"(This is the first run.)")
+        makedirs(data_path)
     else:
         try:
-            with open(data+"/.update", "r") as f:
+            with open(join(data_path)+"/.update", "r") as f:
                 timestamp = f.read()
         except FileNotFoundError:
             print("WARN: No .update in the data directory. (Is this the first run?)")
@@ -334,17 +304,30 @@ def run():
     if args.verbose:
         print(str(results['hits'])+" new granules ingested for "+Short_Name+" since "+timestamp)
 
+    if args.dydoy or args.dymd:
+        try:
+            # file_start_times = [(splitext(r['meta']['native-id'])[0], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime'])), "%Y-%m-%dT%H:%M:%SZ") for r in results['items']]
+            file_start_times = [(r['meta']['native-id'], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']), "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]
+            print(file_start_times)
+        except:
+            raise ValueError('Could not locate start time for data.')
+    elif args.cycle:
+        try:
+            cycles = [(splitext(r['meta']['native-id'])[0], str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in results['items']]
+        except:
+            parser.error('No cycles found within collection granules. '
+                         'Specify an output directory or '
+                         'choose another output directory flag other than -dc.')
+
     timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Neatly print the first granule record (if one was returned):
     #if len(results['items'])>0:
     #    print(dumps(results['items'][0], indent=2))
 
-
     # The link for http access can be retrieved from each granule record's `RelatedUrls` field.
     # The download link is identified by `"Type": "GET DATA"` but there are other data files in EXTENDED METADATA" field.
     # Select the download URL for each of the granule records:
-
 
     downloads_all=[]
     downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type']=="GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results['items']]
@@ -362,26 +345,83 @@ def run():
     # Finish by downloading the files to the data directory in a loop. Overwrite `.update` with a new timestamp on success.
     success_cnt = failure_cnt = 0
 
+    def check_dir(path):
+        if not isdir(path):
+            makedirs(path)
+
+    def prepare_time_output(times, prefix, file):
+        """"
+        Create output directory using using SHORTNAME/YEAR/DAY_OF_YEAR/ or SHORTNAME/YEAR/MONTH/DAY
+        .update stored in /DIR/SHORTNAME/
+
+        Parameters
+        ----------
+        times : list
+            list of tuples consisting of granule names and start times
+        prefix : string
+            prefix for output path, either custom output -d or short name
+        file : string
+            granule file name
+
+        Returns
+        -------
+        write_path
+            string path to where granules will be written
+        """
+        time_match = [dt for dt in times if dt[0] == splitext(basename(file))[0]][0][1]
+        year = time_match.strftime('%Y')
+        month = time_match.strftime('%m')
+        day = time_match.strftime('%d')
+        day_of_year = time_match.strftime('%j')
+
+        if args.dydoy:
+            time_dir = join(year, day_of_year)
+        elif args.dymd:
+            time_dir = join(year, month, day)
+        else:
+            raise ValueError('Temporal output flag not recognized.')
+        check_dir(join(prefix, time_dir))
+        write_path = join(prefix, time_dir, basename(file))
+        return write_path
+
+    def prepare_cycles_output(data_cycles, prefix,  file):
+        """"
+        Create output directory using SHORTNAME/CYCLE_NUMBER
+        .update stored in /DIR/SHORTNAME/
+
+        Parameters
+        ----------
+        data_cycles : list
+            list of tuples consisting of granule names and cycle numbers
+        prefix : string
+            prefix for output path, either custom output -d or short name
+        file : string
+            granule file name
+
+        Returns
+        -------
+        write_path : string
+            string path to where granules will be written
+        """
+        print("DATA CYCLES: ", data_cycles)
+        cycle_match = [cycle for cycle in data_cycles if cycle[0] == splitext(basename(file))[0]][0]
+        cycle_dir = Short_Name+"/"+"c"+cycle_match[1].zfill(4)
+        check_dir(join(prefix, cycle_dir))
+        write_path = join(prefix, cycle_dir, basename(file))
+        return write_path
+
     for f in downloads:
         try:
             for extension in extensions:
                 if f.lower().endswith(extension):
+                    # -d flag, args.outputDirectory
+                    output_path = join(data_path, basename(f))
+                    # -dydoy, args.dydoy and -dymd, args.dymd flags
+                    if args.dydoy or args.dymd:
+                        output_path = prepare_time_output(file_start_times, data_path, f)
+                    # -dc flag
                     if args.cycle:
-                        try:
-                            cycles = [(splitext(r['meta']['native-id'])[0], str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in results['items']]
-                        except:
-                            parser.error('No cycles found within collection granules. '
-                                         'Specify an output directory or '
-                                         'choose another output directory flag other than -dc.')
-                        match = [cycle for cycle in cycles if cycle[0] == splitext(basename(f))[0]][0]
-                        data = Short_Name+"/"+"c"+match[1].zfill(4)
-                        if not isdir(data):
-                            makedirs(data)
-                        output_path = data+"/"+basename(f)
-                        # use parent dir for cycles so .update is easier to locate
-                        data = Short_Name+"/"
-                    else:
-                        output_path = data+"/"+basename(f)
+                        output_path = prepare_cycles_output(cycles, data_path, f)
                     urlretrieve(f, output_path)
                     print(str(datetime.now()) + " SUCCESS: "+f)
                     success_cnt = success_cnt + 1
@@ -393,7 +433,7 @@ def run():
     # If there were updates to the local time series during this run and no exceptions were raised during the download loop, then overwrite the timestamp file that tracks updates to the data folder (`resources/nrt/.update`):
     if len(results['items']) > 0:
         if not failure_cnt > 0:
-            with open(data+"/.update", "w") as f:
+            with open(data_path+"/.update", "w") as f:
                 f.write(timestamp)
 
     print("Downloaded: "+str(success_cnt)+" files\n")

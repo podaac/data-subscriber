@@ -25,9 +25,18 @@ def test_validate():
     assert ".txt" in a.extensions
     assert ".nc" in a.extensions
 
-    a = validate(["-c", "viirs", "-dydoy", "-e", ".nc", "-m", "60", "-b=-180,-90,180,90"])
-    assert a.outputDirectory is None
+    a = validate(["-c", "viirs", "-d", "/data", "-dydoy", "-e", ".nc", "-m", "60", "-b=-180,-90,180,90"])
+    assert a.outputDirectory == "/data"
     assert a.dydoy is True
+
+    a = validate(["-c", "viirs", "-d", "/data", "-dymd", "-e", ".nc", "-m", "60", "-b=-180,-90,180,90"])
+    assert a.outputDirectory == "/data"
+    assert a.dymd is True
+
+    a = validate(["-c", "JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F", "-d", "/data", "-dc", "-e", ".nc", "-m", "60", "-b=-180,-90,180,90"])
+    assert a.collection == "JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F"
+    assert a.outputDirectory == "/data"
+    assert a.cycle is True
 
     # #don't work
     # with pytest.raises(SystemExit):
