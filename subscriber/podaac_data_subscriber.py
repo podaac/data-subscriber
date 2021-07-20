@@ -245,7 +245,7 @@ def run():
         makedirs(data_path)
     else:
         try:
-            with open(join(data_path)+"/.update", "r") as f:
+            with open(data_path+"/.update", "r") as f:
                 timestamp = f.read()
         except FileNotFoundError:
             print("WARN: No .update in the data directory. (Is this the first run?)")
@@ -306,9 +306,7 @@ def run():
 
     if args.dydoy or args.dymd:
         try:
-            # file_start_times = [(splitext(r['meta']['native-id'])[0], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime'])), "%Y-%m-%dT%H:%M:%SZ") for r in results['items']]
             file_start_times = [(r['meta']['native-id'], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']), "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]
-            print(file_start_times)
         except:
             raise ValueError('Could not locate start time for data.')
     elif args.cycle:
@@ -403,9 +401,8 @@ def run():
         write_path : string
             string path to where granules will be written
         """
-        print("DATA CYCLES: ", data_cycles)
         cycle_match = [cycle for cycle in data_cycles if cycle[0] == splitext(basename(file))[0]][0]
-        cycle_dir = Short_Name+"/"+"c"+cycle_match[1].zfill(4)
+        cycle_dir = "c"+cycle_match[1].zfill(4)
         check_dir(join(prefix, cycle_dir))
         write_path = join(prefix, cycle_dir, basename(file))
         return write_path
