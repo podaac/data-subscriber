@@ -146,8 +146,6 @@ The first time you run the subscriber, there a few things to be aware of:
 
 2. If you use the -ds flag, this will override any 'last run' time options. It will look for any data with a start time later than -ds, and download it.
 
-Take the following example
-
 Take for example a collection that was last updated in February of 2021.
 
 ```
