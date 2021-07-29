@@ -138,7 +138,7 @@ machine urs.earthdata.nasa.gov
 
 **If the script cannot find the netrc file, you will be prompted to enter the username and password and the script wont be able to generate the CMR token**
 
-## Your First Run <a name="yfr"></a>
+## Your First Run<a name="yfr"></a>
 
 The first time you run the subscriber, there a few things to be aware of:
 
