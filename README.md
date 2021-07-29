@@ -10,6 +10,8 @@ The example script is to download data given a PO.DAAC collection shortname.
   - PO.DAAC is providing this script as “starter” script for download -- advanced features can be added and it would be great if you can contribute these code back to PO.DAAC.
   - The search and download relies on an API as defined at https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html
 
+If this is your first time running the subscriber, please checkout information on ["your first run"!](#your-first-run)
+
 ## Dependencies
 
 Aside from **python 3**, the only dependency is the python 'requests' module, which can be installed via pip.
@@ -135,6 +137,43 @@ machine urs.earthdata.nasa.gov
 ```
 
 **If the script cannot find the netrc file, you will be prompted to enter the username and password and the script wont be able to generate the CMR token**
+
+## Your First Run <a name="yfr"></a>
+
+The first time you run the subscriber, there a few things to be aware of:
+
+1. If no other flags are specified (aside from the required -d and -c), the subscriber looks 60 minutes (the default for the -m option) ago for new data for your data product. If no new data has been ingested in the last 60 minutes, you won't get any results. The next time you run this command, however, it will look for data *since the last run*, so if it's been an hour or 10 days since the last run, it will find any data since that time. This 'last run' time is stored in a file in the -d data download directory. If you change data directories, there will be no 'last run' time, and it will act like your first time.
+
+2. If you use the -ds flag, this will override any 'last run' time options. It will look for any data with a start time later than -ds, and download it.
+
+Take the following example
+
+Take for example a collection that was last updated in February of 2021.
+
+```
+podaac-data-subscriber -c CYGNSS_L1_CDR_V1.0 -d myData
+NOTE: Making new data directory at myData(This is the first run.)
+Downloaded: 0 files
+
+Files Failed to download:0
+
+CMR token successfully deleted
+```
+
+No data! What gives?! oh... because i'm not using any flags, I'm only looking back 60 minutes.
+
+```
+podaac-data-subscriber -c CYGNSS_L1_CDR_V1.0 -d myData -ds 2021-02-25T00:00:00Z
+2021-07-29 14:33:11.249343 SUCCESS: https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-protected/CYGNSS_L1_CDR_V1.0/cyg03.ddmi.s20210228-000000-e20210228-235959.l1.power-brcs-cdr.a10.d10.nc
+...
+```
+
+Now we're getting data, great!
+
+If you run this command again, you'll download the same exact data- the script is not checking to see if you have already downloaded that data, it's simply downloading "data with a start time later than -ds".
+
+But now that you've recieved the older data (the -ds data since flag), you can run a normal subscriber command: `podaac-data-subscriber -c CYGNSS_L1_CDR_V1.0 -d myData` to retrieve any new data products.
+
 
 ## Advanced Usage
 
