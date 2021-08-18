@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [1.1.2] - 2021-06-20
 ### Added
 - added default layouts for non-flat output directories - (resolves https://github.com/podaac/data-subscriber/issues/6)
+- Added logging capability using the SUBSCRIBER_LOGLEVEL environment variable
 ### Changed
 ### Deprecated
 ### Removed
