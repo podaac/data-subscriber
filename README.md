@@ -175,6 +175,16 @@ But now that you've recieved the older data (the -ds data since flag), you can r
 
 ## Advanced Usage
 
+### Logging
+
+For error troubleshooting, one can set an environment variable to gain more insight into errors:
+
+```
+export SUBSCRIBER_LOGLEVEL=DEBUG
+```
+
+And then run the script. This should give you more verbose output on URL requests to CMR, tokens, etc.
+
 ### Controlling output directories
 
 The subscriber allows the placement of downloaded files into one of several directory structures based on the flags used to run the subscriber.

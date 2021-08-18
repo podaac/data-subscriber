@@ -17,9 +17,15 @@ import socket
 import sys
 import argparse
 import datetime
+import logging
+import os
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
+LOGLEVEL = os.environ.get('SUBSCRIBER_LOGLEVEL', 'WARNING').upper()
+logging.basicConfig(level=LOGLEVEL)
+
+logging.debug("Log level set to " + LOGLEVEL)
 
 ## TODO: ???
 def validate(args):
