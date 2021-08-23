@@ -52,8 +52,10 @@ optional arguments:
                         this command, please use the -b="-180,-90,180,90" syntax when calling from the command line. Default: "-180,-90,180,90\.
   -e [EXTENSIONS [EXTENSIONS ...]], --extensions [EXTENSIONS [EXTENSIONS ...]]
                         The extensions of products to download. Default is [.nc, .h5]
-  -ds DATASINCE, --data-since DATASINCE
-                        The ISO date time from which data should be retrieved. For Example, --data-since 2021-01-14T00:00:00Z
+  -sd STARTDATE, --start-date STARTDATE
+                        The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z
+  -ed ENDDATE, --end-date ENDDATE
+                        The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z
   --version             Display script version information and exit.
   --verbose             Verbose mode.
 
@@ -144,8 +146,6 @@ The first time you run the subscriber, there a few things to be aware of:
 
 1. If no other flags are specified (aside from the required -d and -c), the subscriber looks 60 minutes (the default for the -m option) ago for new data for your data product. If no new data has been ingested in the last 60 minutes, you won't get any results. The next time you run this command, however, it will look for data *since the last run*, so if it's been an hour or 10 days since the last run, it will find any data since that time. This 'last run' time is stored in a file in the -d data download directory. If you change data directories, there will be no 'last run' time, and it will act like your first time.
 
-2. If you use the -ds flag, this will override any 'last run' time options. It will look for any data with a start time later than -ds, and download it.
-
 Take for example a collection that was last updated in February of 2021.
 
 ```
@@ -161,17 +161,12 @@ CMR token successfully deleted
 No data! What gives?! oh... because i'm not using any flags, I'm only looking back 60 minutes.
 
 ```
-podaac-data-subscriber -c CYGNSS_L1_CDR_V1.0 -d myData -ds 2021-02-25T00:00:00Z
+podaac-data-subscriber -c CYGNSS_L1_CDR_V1.0 -d myData -start-date 2021-02-25T00:00:00Z
 2021-07-29 14:33:11.249343 SUCCESS: https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-protected/CYGNSS_L1_CDR_V1.0/cyg03.ddmi.s20210228-000000-e20210228-235959.l1.power-brcs-cdr.a10.d10.nc
 ...
 ```
 
 Now we're getting data, great!
-
-If you run this command again, you'll download the same exact data- the script is not checking to see if you have already downloaded that data, it's simply downloading "data with a start time later than -ds".
-
-But now that you've recieved the older data (the -ds data since flag), you can run a normal subscriber command: `podaac-data-subscriber -c CYGNSS_L1_CDR_V1.0 -d myData` to retrieve any new data products.
-
 
 ## Advanced Usage
 
@@ -252,15 +247,6 @@ Each time the script runs, the script takes the current time and looks -m minute
 An example of the -m flag:
 ```
 podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -m 10
-```
-
-### Data since flag
-
-The first time you run the script, or if you want to download data from a particular day onward, you can use the -ds flag. This flag will ignore the .update file in the output directory location. Running the same command multiple times will download all data over and over, so this is best used on one-off circumstances, and not in a cron job. The `-ds` flag looks at the start and stop times of the granules to determine what to download.
-
-```
--ds DATASINCE, --data-since DATASINCE
-                       The ISO date time from which data should be retrieved. For Example, --data-since 2021-01-14T00:00:00Z
 ```
 
 
