@@ -159,8 +159,8 @@ def get_token(url: str, client_id: str, user_ip: str, endpoint: str) -> str:
         response_content: Dict = json.loads(resp.content)
         token = response_content['token']['id']
 
-    # What error is thrown here? Value Error? Requeest Errors?
-    except:
+    # What error is thrown here? Value Error? Request Errors?
+    except:  # noqa E722
         print("Error getting the token - check user name and password")
     return token
 
@@ -177,31 +177,10 @@ def delete_token(url: str, token: str) -> None:
             print("CMR token successfully deleted")
         else:
             print("CMR token deleting failed.")
-    except:
+    except:  # noqa E722
         print("Error deleting the token")
     exit(0)
-###############################################################################
-# Downloading the file
-###############################################################################
 
-# ## Hands-off workflow
-#
-# This workflow/notebook can be run routinely to maintain a time series of  data, downloading new granules as they become available at PO.DAAC.
-#
-# The script creates a file `.update` to the target data directory with each successful run. The file tracks to date and time of the most recent update to the time series of  granules using a timestamp in the format `yyyy-mm-ddThh:mm:ssZ`.
-#
-# The timestamp matches the value used for the [`created_at`](https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-created-at) parameter in the last successful run. This parameter finds the granules created within a range of datetimes. This workflow leverages the `created_at` parameter to search backwards in time for new granules ingested between the time of our timestamp and now.
-#
-# * `mins`: Initialize a new local time series by starting with the granules ingested since ___ minutes ago.
-# * `shortname`: The unique Shortname  of the desired dataset.
-# * `data`: The path to a local directory in which to download/maintain a copy of the NRT granule time series.
-
-
-# These variables should be set before the first run, then they
-#  should be left alone. All subsequent runs expect the values
-#  for cmr, ccid, data to be unchanged. The mins value has no
-#  impact on subsequent runs.
-#
 
 def create_parser():
     # Initialize parser
