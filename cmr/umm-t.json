@@ -1,0 +1,66 @@
+{
+  "Name": "PO.DAAC Data Subscriber",
+  "LongName": "PO.DAAC Data Subscriber",
+  "Version": "1.2",
+  "Type": "Downloadable Tool",
+  "LastUpdatedDate": "2021-08-23T00:00:00.000Z",
+  "Description": "Tool to allow continuous download of data products from the PO.DAAC Cloud archive",
+  "URL": {
+    "Description": "Subscriber Download URL",
+    "URLContentType": "DistributionURL",
+    "Type": "DOWNLOAD SOFTWARE",
+    "URLValue": "https://github.com/podaac/data-subscriber"
+  },
+  "MetadataSpecification": {
+    "URL": "https://cdn.earthdata.nasa.gov/umm/tool/v1.0",
+    "Name": "UMM-T",
+    "Version": "1.0"
+  },
+  "RelatedURLs": [
+    {
+      "URLContentType": "PublicationURL",
+      "Type": "VIEW RELATED INFORMATION",
+      "Subtype": "HOW-TO",
+      "URL": "https://github.com/podaac/data-subscriber"
+    }
+  ],
+  "ToolKeywords": [
+    {
+      "ToolCategory": "EARTH SCIENCE SERVICES",
+      "ToolTopic": "DATA MANAGEMENT/DATA HANDLING",
+      "ToolTerm": "DATA ACCESS/RETRIEVAL"
+    }
+  ],
+  "Organizations": [
+    {
+      "Roles": [
+        "AUTHOR",
+        "DEVELOPER",
+        "ORIGINATOR",
+        "SERVICE PROVIDER"
+      ],
+      "ShortName": "NASA/JPL/PODAAC",
+      "LongName": "Physical Oceanography Distributed Active Archive Center, Jet Propulsion Laboratory, NASA",
+      "URLValue": "https://podaac.jpl.nasa.gov/"
+    }
+  ],
+  "ContactGroups": [
+    {
+      "Roles": [
+        "SERVICE PROVIDER"
+      ],
+      "GroupName": "PO.DAAC Help Desk",
+      "ContactInformation": {
+        "ContactMechanisms": [
+          {
+            "Type": "Email",
+            "Value": "podaac@jpl.nasa.gov"
+          }
+        ]
+      }
+    }
+  ],
+  "SearchAction": {
+    "SearchActionElement": "-c {COLLECTION_SHORTNAME} -d ./data/{COLLECTION_SHORTNAME}"
+  }
+}
