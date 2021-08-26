@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 - added default layouts for non-flat output directories - (resolves https://github.com/podaac/data-subscriber/issues/6)
 - Added logging capability using the SUBSCRIBER_LOGLEVEL environment variable
+- added additional non-flat output directory option of -dy - (resolves https://github.com/podaac/data-subscriber/issues/13)
 ### Changed
 ### Deprecated
 ### Removed

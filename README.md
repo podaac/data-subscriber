@@ -32,7 +32,8 @@ you should now have access to the subscriber CLI:
 
 ```
 $> podaac-data-subscriber -h
-usage: podaac-data-subscriber [-h] -c COLLECTION -d OUTPUTDIRECTORY [-m MINUTES] [-b BBOX] [-e [EXTENSIONS [EXTENSIONS ...]]] [-ds DATASINCE] [--version] [--verbose]
+usage: podaac_data_subscriber.py [-h] -c COLLECTION -d OUTPUTDIRECTORY [-dc] [-dydoy] [-dymd] [-dy] [-m MINUTES] [-b BBOX]
+                                 [-e [EXTENSIONS [EXTENSIONS ...]]] [-sd STARTDATE] [-ed ENDDATE] [--version] [--verbose]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -42,14 +43,16 @@ optional arguments:
                         The directory where data products will be downloaded.
   -dc                   Flag to use cycle number for directory where data products will be downloaded.
   -dydoy                Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.
-  -dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.
-
+  -dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be
+                        downloaded.
+  -dy                   Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.
   -m MINUTES, --minutes MINUTES
-                        How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your
-                        cron runs (default: 60 minutes).
+                        How far back in time, in minutes, should the script look for data. If running this script as a cron, this
+                        value should be equal to or greater than how often your cron runs (default: 60 minutes).
   -b BBOX, --bounds BBOX
-                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use
-                        this command, please use the -b="-180,-90,180,90" syntax when calling from the command line. Default: "-180,-90,180,90\.
+                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without
+                        spaces. Due to an issue with parsing arguments, to use this command, please use the -b="-180,-90,180,90"
+                        syntax when calling from the command line. Default: "-180,-90,180,90".
   -e [EXTENSIONS [EXTENSIONS ...]], --extensions [EXTENSIONS [EXTENSIONS ...]]
                         The extensions of products to download. Default is [.nc, .h5]
   -sd STARTDATE, --start-date STARTDATE
