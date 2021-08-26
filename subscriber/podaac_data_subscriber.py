@@ -389,8 +389,10 @@ def run():
 
     def prepare_time_output(times, prefix, file):
         """"
-        Create output directory using using OUTPUT_DIR/YEAR/DAY_OF_YEAR/
-        or OUTPUT_DIR/YEAR/MONTH/DAY
+        Create output directory using using:
+            OUTPUT_DIR/YEAR/DAY_OF_YEAR/
+            OUTPUT_DIR/YEAR/MONTH/DAY
+            OUTPUT_DIR/YEAR
         .update stored in OUTPUT_DIR/
 
         Parameters
