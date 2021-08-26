@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
+## [1.3.0] - 2021-08-26
+### Added
+- added additional non-flat output directory option of -dy - (resolves https://github.com/podaac/data-subscriber/issues/13)
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+## [1.2.0] - 2021-08-15
+### Added
+- Added logging capability using the SUBSCRIBER_LOGLEVEL environment variable
+- Added -st and -ed flags and respect the .update flag
+### Changed
+### Deprecated
+### Removed
+- removed the -ds flag as it caused confusion.
+### Fixed
+### Security
+
 ## [1.1.2] - 2021-06-20
 ### Added
 - added default layouts for non-flat output directories - (resolves https://github.com/podaac/data-subscriber/issues/6)
