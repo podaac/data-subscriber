@@ -192,6 +192,7 @@ def create_parser():
     parser.add_argument("-dc", dest="cycle", action="store_true", help = "Flag to use cycle number for directory where data products will be downloaded.")  # noqa E501
     parser.add_argument("-dydoy", dest="dydoy", action="store_true", help = "Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.")  # noqa E501
     parser.add_argument("-dymd", dest="dymd", action="store_true", help = "Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.")  # noqa E501
+    parser.add_argument("-dy", dest="dy", action="store_true", help = "Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.")  # noqa E501
 
     # Optional Arguments
     parser.add_argument("-m", "--minutes", dest="minutes", help = "How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).", type=int, default=60)  # noqa E501
@@ -248,10 +249,10 @@ def run():
     # Error catching for output directory specifications
     # Must specify -d output path or one time-based output directory flag
 
-    if sum([args.cycle, args.dydoy, args.dymd]) > 1:
+    if sum([args.cycle, args.dydoy, args.dymd, args.dy]) > 1:
         parser.error('Too many output directory flags specified, '
                      'Please specify exactly one flag '
-                     'from -dc, -dydoy, or -dymd')
+                     'from -dc, -dy, -dydoy, or -dymd')
 
     # **The search retrieves granules ingested during the last `n` minutes.
     # ** A file in your local data dir  file that tracks updates to your data directory,
@@ -337,7 +338,7 @@ def run():
     if args.verbose:
         print(str(results['hits'])+" new granules ingested for "+short_name+" since "+data_within_last_timestamp)   # noqa E501
 
-    if args.dydoy or args.dymd:
+    if any([args.dy, args.dydoy, args.dymd]):
         try:
             file_start_times = [(r['meta']['native-id'], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']), "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]  # noqa E501
         except KeyError:
@@ -417,6 +418,8 @@ def run():
             time_dir = join(year, day_of_year)
         elif args.dymd:
             time_dir = join(year, month, day)
+        elif args.dy:
+            time_dir = year
         else:
             raise ValueError('Temporal output flag not recognized.')
         check_dir(join(prefix, time_dir))
@@ -442,7 +445,9 @@ def run():
         write_path : string
             string path to where granules will be written
         """
-        cycle_match = [cycle for cycle in data_cycles if cycle[0] == splitext(basename(file))[0]][0]
+        cycle_match = [
+            cycle for cycle in data_cycles if cycle[0] == splitext(basename(file))[0]
+        ][0]
         cycle_dir = "c" + cycle_match[1].zfill(4)
         check_dir(join(prefix, cycle_dir))
         write_path = join(prefix, cycle_dir, basename(file))
@@ -454,8 +459,8 @@ def run():
                 if f.lower().endswith(extension):
                     # -d flag, args.outputDirectory
                     output_path = join(data_path, basename(f))
-                    # -dydoy, args.dydoy and -dymd, args.dymd flags
-                    if args.dydoy or args.dymd:
+                    # -dy, args.dy, -dydoy, args.dydoy and -dymd, args.dymd
+                    if any([args.dy, args.dydoy, args.dymd]):
                         output_path = prepare_time_output(
                             file_start_times, data_path, f)
                     # -dc flag
