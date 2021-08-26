@@ -389,9 +389,9 @@ def run():
 
     def prepare_time_output(times, prefix, file):
         """"
-        Create output directory using using SHORTNAME/YEAR/DAY_OF_YEAR/
-        or SHORTNAME/YEAR/MONTH/DAY
-        .update stored in /DIR/SHORTNAME/
+        Create output directory using using OUTPUT_DIR/YEAR/DAY_OF_YEAR/
+        or OUTPUT_DIR/YEAR/MONTH/DAY
+        .update stored in OUTPUT_DIR/
 
         Parameters
         ----------
@@ -428,8 +428,8 @@ def run():
 
     def prepare_cycles_output(data_cycles, prefix, file):
         """"
-        Create output directory using SHORTNAME/CYCLE_NUMBER
-        .update stored in /DIR/SHORTNAME/
+        Create output directory using OUTPUT_DIR/CYCLE_NUMBER
+        .update stored in OUTPUT_DIR/
 
         Parameters
         ----------
