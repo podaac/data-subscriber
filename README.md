@@ -43,6 +43,7 @@ optional arguments:
   -dc                   Flag to use cycle number for directory where data products will be downloaded.
   -dydoy                Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.
   -dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.
+  -dy                   Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.
 
   -m MINUTES, --minutes MINUTES
                         How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your
