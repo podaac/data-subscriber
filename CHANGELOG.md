@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Added logging capability using the SUBSCRIBER_LOGLEVEL environment variable
 - added additional non-flat output directory option of -dy - (resolves https://github.com/podaac/data-subscriber/issues/13)
 ### Changed
+- changed changing created_at to updated_since to allow for re-download of updated granules based on collection redeliveries - (resolves https://github.com/podaac/data-subscriber/issues/18)
 ### Deprecated
 ### Removed
 ### Fixed
