@@ -301,7 +301,7 @@ def run():
         'sort_key': "-start_date",
         'provider': 'POCLOUD',
         'ShortName': short_name,
-        'created_at': data_within_last_timestamp,
+        'updated_since': data_within_last_timestamp,
         'token': token,
         'bounding_box': bounding_extent,
     }
@@ -312,7 +312,7 @@ def run():
             'page_size': 2000,
             'sort_key': "-start_date",
             'provider': 'POCLOUD',
-            'created_at': data_within_last_timestamp,
+            'updated_since': data_within_last_timestamp,
             'ShortName': short_name,
             'temporal': temporal_range,
             'token': token,
