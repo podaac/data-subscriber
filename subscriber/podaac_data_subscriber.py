@@ -29,7 +29,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, urlretrieve
 from datetime import datetime, timedelta
 
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 
 LOGLEVEL = os.environ.get('SUBSCRIBER_LOGLEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOGLEVEL)
@@ -264,8 +264,6 @@ def run():
         data_within_last_timestamp = start_date_time
     else:
         data_within_last_timestamp = (datetime.utcnow() - timedelta(minutes=mins)).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
 
     # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
 
