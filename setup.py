@@ -1,9 +1,14 @@
 from setuptools import setup
 
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
 setup(name='podaac-data-subscriber',
       version='1.4.1',
       description='PO.DAAC Data Susbcriber Command Line Tool',
       url='https://github.com/podaac/data-subscriber',
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       author='PO.DAAC',
       author_email='podaac@podaac.jpl.nasa.gov',
       license='apache-2',
