@@ -265,8 +265,6 @@ def run():
     else:
         data_within_last_timestamp = (datetime.utcnow() - timedelta(minutes=mins)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-
-
     # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
 
     if not isdir(data_path):
