@@ -3,15 +3,16 @@ import pytest
 
 
 def test_temporal_range():
-    assert pds.get_temporal_range(None,'2021-01-01T00:00:00Z',"2021-08-20T13:30:38Z") == "1900-01-01T00:00:00Z,2021-01-01T00:00:00Z"
-    assert pds.get_temporal_range('2021-01-01T00:00:00Z','2022-01-01T00:00:00Z',"2021-08-20T13:30:38Z") == "2021-01-01T00:00:00Z,2022-01-01T00:00:00Z"
-    assert pds.get_temporal_range('2021-01-01T00:00:00Z',None,"2021-08-20T13:30:38Z") == "2021-01-01T00:00:00Z,2021-08-20T13:30:38Z"
+
+    assert pds.get_temporal_range(None, '2021-01-01T00:00:00Z', "2021-08-20T13:30:38Z") == "1900-01-01T00:00:00Z,2021-01-01T00:00:00Z"
+    assert pds.get_temporal_range('2021-01-01T00:00:00Z', '2022-01-01T00:00:00Z', "2021-08-20T13:30:38Z") == "2021-01-01T00:00:00Z,2022-01-01T00:00:00Z"
+    assert pds.get_temporal_range('2021-01-01T00:00:00Z', None, "2021-08-20T13:30:38Z") == "2021-01-01T00:00:00Z,2021-08-20T13:30:38Z"
     with pytest.raises(ValueError):
-        pds.get_temporal_range(None,None,None) == "2021-01-01T00:00:00Z,2021-08-20T13:30:38Z"
+        pds.get_temporal_range(None, None, None) == "2021-01-01T00:00:00Z,2021-08-20T13:30:38Z"
 
 
 def test_validate():
-    #work
+    # work
     a = validate(["-c", "viirs", "-d", "/data"])
     assert a.collection == "viirs"
     assert a.outputDirectory == "/data"
@@ -22,7 +23,7 @@ def test_validate():
     a = validate(["-c", "viirs", "-d", "/data", "-b=-170,-80,170,20"])
     assert a.bbox == "-170,-80,170,20"
 
-    a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180,90", "-m","100"])
+    a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180,90", "-m", "100"])
     assert a.minutes == 100, "should equal 100"
 
     a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180,90", "-e", ".txt", ".nc"])
@@ -57,13 +58,13 @@ def test_validate():
         a = validate(["-c", "dataset", "-d", "/data", "-sd", "2020-01-01T00:00:00Z", "-ed", "2021-01-01"])
 
     with pytest.raises(ValueError):
-        a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180,90anc", "-m","100"])
+        a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180,90anc", "-m", "100"])
 
     with pytest.raises(ValueError):
-        a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180,90,100", "-m","100"])
+        a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180,90,100", "-m", "100"])
 
     with pytest.raises(ValueError):
-        a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180", "-m","100"])
+        a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180", "-m", "100"])
 
     # #don't work
     # with pytest.raises(SystemExit):
