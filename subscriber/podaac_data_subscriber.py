@@ -29,7 +29,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, urlretrieve
 from datetime import datetime, timedelta
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 
 LOGLEVEL = os.environ.get('SUBSCRIBER_LOGLEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOGLEVEL)
@@ -301,7 +301,7 @@ def run():
         'sort_key': "-start_date",
         'provider': 'POCLOUD',
         'ShortName': short_name,
-        'created_at': data_within_last_timestamp,
+        'updated_since': data_within_last_timestamp,
         'token': token,
         'bounding_box': bounding_extent,
     }
@@ -312,7 +312,7 @@ def run():
             'page_size': 2000,
             'sort_key': "-start_date",
             'provider': 'POCLOUD',
-            'created_at': data_within_last_timestamp,
+            'updated_since': data_within_last_timestamp,
             'ShortName': short_name,
             'temporal': temporal_range,
             'token': token,
