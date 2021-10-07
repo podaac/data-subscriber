@@ -59,6 +59,8 @@ optional arguments:
                         The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z
   --version             Display script version information and exit.
   --verbose             Verbose mode.
+  -p PROVIDER, --provider PROVIDER
+                        Specify a provider for collection search. Default is POCLOUD.
 
 ```
 
@@ -170,6 +172,14 @@ podaac-data-subscriber -c CYGNSS_L1_CDR_V1.0 -d myData -start-date 2021-02-25T00
 Now we're getting data, great!
 
 ## Advanced Usage
+
+### Request data from another DAAC...
+
+Use the 'provider' flag to point at a non-PO.DAAC provider. Be aware, the default data types (--extensions) may need to be specified if the desired data are not in the defaults.
+
+```
+podaac-data-subscriber -c SENTINEL-1A_SLC -d myData  -p ASF -sd 2014-06-01T00:46:02Z
+```
 
 ### Logging
 
