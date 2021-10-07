@@ -1,3 +1,4 @@
+[![Python Build](https://github.com/podaac/data-subscriber/actions/workflows/python-app.yml/badge.svg?branch=main)](https://github.com/podaac/data-subscriber/actions/workflows/python-app.yml)
 
 # Scripted Access to PODAAC data
 
