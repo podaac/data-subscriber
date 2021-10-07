@@ -39,7 +39,6 @@ edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + cmr + "/legacy-services/rest/tokens"
 
-
 def get_temporal_range(start, end, now):
     start = start if start is not False else None
     end = end if end is not False else None
@@ -189,29 +188,27 @@ def create_parser():
     # Adding Required arguments
     parser.add_argument("-c", "--collection-shortname", dest="collection",required=True, help = "The collection shortname for which you want to retrieve data.")  # noqa E501
     parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True, help = "The directory where data products will be downloaded.")  # noqa E501
+
+    # Adding optional arguments
+
+    # spatiotemporal arguments
+    parser.add_argument("-sd", "--start-date", dest="startDate", help = "The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z", default=False)  # noqa E501
+    parser.add_argument("-ed", "--end-date", dest="endDate", help = "The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z", default=False)   # noqa E501
+    parser.add_argument("-b", "--bounds", dest="bbox", help = "The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".", default="-180,-90,180,90")  # noqa E501
+
+    # Arguments for how data are stored locally - much processing is based on
+    # the underlying directory structure (e.g. year/Day-of-year)
     parser.add_argument("-dc", dest="cycle", action="store_true", help = "Flag to use cycle number for directory where data products will be downloaded.")  # noqa E501
     parser.add_argument("-dydoy", dest="dydoy", action="store_true", help = "Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.")  # noqa E501
     parser.add_argument("-dymd", dest="dymd", action="store_true", help = "Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.")  # noqa E501
     parser.add_argument("-dy", dest="dy", action="store_true", help = "Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.")  # noqa E501
 
-    # Optional Arguments
     parser.add_argument("-m", "--minutes", dest="minutes", help = "How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).", type=int, default=60)  # noqa E501
-    parser.add_argument("-b", "--bounds", dest="bbox", help = "The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".", default="-180,-90,180,90")  # noqa E501
-    parser.add_argument("-e", "--extensions", dest="extensions", help = "The extensions of products to download. Default is [.nc, .h5]", default=[".nc", ".h5"], nargs='*')  # noqa E501
-
-    # Data Since: get data since a past time.
-    # In this example you will get data
-    # from 2021-01-14 UTC time 00:00:00 onwards.
-
-    # Format for the above has to be as follows "%Y-%m-%dT%H:%M:%SZ"
-
-    # Deprecate!
-
-    parser.add_argument("-sd", "--start-date", dest="startDate", help = "The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z", default=False)  # noqa E501
-    parser.add_argument("-ed", "--end-date", dest="endDate", help = "The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z", default=False)   # noqa E501
+    parser.add_argument("-e", "--extensions", dest="extensions", help = "The extensions of products to download. Default is [.nc, .h5]", default=[".nc", ".h5", ".zip"], nargs='*')  # noqa E501
 
     parser.add_argument("--version", dest="version", action="store_true",help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true",help="Verbose mode.")    # noqa E501
+    parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD', help="Verbose mode.")    # noqa E501
     return parser
 
 
@@ -233,6 +230,8 @@ def run():
     mins = args.minutes  # In this case download files ingested in the last 60 minutes -- change this to whatever setting is needed
 
     defined_time_range = False
+
+    provider = args.provider
 
     start_date_time = args.startDate
     end_date_time = args.endDate
@@ -297,7 +296,7 @@ def run():
         'scroll': "true",
         'page_size': 2000,
         'sort_key': "-start_date",
-        'provider': 'POCLOUD',
+        'provider': provider,
         'ShortName': short_name,
         'updated_since': data_within_last_timestamp,
         'token': token,
@@ -309,7 +308,7 @@ def run():
             'scroll': "true",
             'page_size': 2000,
             'sort_key': "-start_date",
-            'provider': 'POCLOUD',
+            'provider': provider,
             'updated_since': data_within_last_timestamp,
             'ShortName': short_name,
             'temporal': temporal_range,
@@ -317,9 +316,12 @@ def run():
             'bounding_box': bounding_extent,
         }
 
+        if args.verbose:
+            print("Temporal Range: " + temporal_range)
+
     if args.verbose:
-        print("Temporal Range: " + temporal_range)
-        print("Created At: " + data_within_last_timestamp)
+        print("Provider: " + provider)
+        print("Updated Since: " + data_within_last_timestamp)
 
     # Get the query parameters as a string and then the complete search url:
     query = urlencode(params)
