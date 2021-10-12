@@ -50,6 +50,10 @@ def test_validate():
     a = validate(["-c", "dataset", "-d", "/data", "-sd", "2020-01-01T00:00:00Z", "-ed", "2021-01-01T00:00:00Z"])
     assert a.startDate == '2020-01-01T00:00:00Z'
     assert a.endDate == '2021-01-01T00:00:00Z'
+    assert a.provider == "POCLOUD"
+
+    a = validate(["-c", "dataset", "-d", "/data", "-p", "ANEWCLOUD"])
+    assert a.provider == 'ANEWCLOUD'
 
     with pytest.raises(ValueError):
         a = validate(["-c", "dataset", "-d", "/data", "-sd", "2020-01-01", "-ed", "2021-01-01T00:00:00Z"])
