@@ -29,7 +29,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, urlretrieve
 from datetime import datetime, timedelta
 
-__version__ = "1.5.0"
+__version__ = "1.6.0"
 
 LOGLEVEL = os.environ.get('SUBSCRIBER_LOGLEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOGLEVEL)
@@ -202,6 +202,7 @@ def create_parser():
     parser.add_argument("-dydoy", dest="dydoy", action="store_true", help = "Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.")  # noqa E501
     parser.add_argument("-dymd", dest="dymd", action="store_true", help = "Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.")  # noqa E501
     parser.add_argument("-dy", dest="dy", action="store_true", help = "Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.")  # noqa E501
+    parser.add_argument("-o", "--offset", dest="offset", help = "Flag used to shift timestamp")  # noqa E501
 
     parser.add_argument("-m", "--minutes", dest="minutes", help = "How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).", type=int, default=60)  # noqa E501
     parser.add_argument("-e", "--extensions", dest="extensions", help = "The extensions of products to download. Default is [.nc, .h5, .zip]", default=[".nc", ".h5", ".zip"], nargs='*')  # noqa E501
@@ -244,6 +245,9 @@ def run():
 
     data_path = args.outputDirectory
     # You should change `data_path` to a suitable download path on your file system.
+
+    if args.offset:
+        ts_shift = timedelta(hours=int(args.offset))
 
     # Error catching for output directory specifications
     # Must specify -d output path or one time-based output directory flag
@@ -411,6 +415,11 @@ def run():
         """
         time_match = [dt for dt in
                       times if dt[0] == splitext(basename(file))[0]][0][1]
+
+        # offset timestamp for output paths
+        if args.offset:
+            time_match = time_match + ts_shift
+
         year = time_match.strftime('%Y')
         month = time_match.strftime('%m')
         day = time_match.strftime('%d')
