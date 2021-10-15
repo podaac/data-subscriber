@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 ### Added
+- added --offset flag for timestamp shift when creating DOY folder - (resolves https://github.com/podaac/data-subscriber/issues/23)
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+## [1.5.0] - 2021-10-12
+### Added
 - added ability to change the provider using the -p/--provider flag. Default is 'POCLOUD'
 - added pyproject info and setup.py fixes to enable pypi pushes
 ### Changed
