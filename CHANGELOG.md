@@ -2,7 +2,18 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
-## [Unreleased]
+
+## [1.6.1]
+### Added
+- added warning for more than 2k granules
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- strip newline characters from .update to fix https://github.com/podaac/data-subscriber/issues/25
+### Security
+
+## [1.6.0]
 ### Added
 - added --offset flag for timestamp shift when creating DOY folder - (resolves https://github.com/podaac/data-subscriber/issues/23)
 ### Changed
