@@ -29,7 +29,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, urlretrieve
 from datetime import datetime, timedelta
 
-__version__ = "1.6.0"
+__version__ = "1.6.1"
 
 LOGLEVEL = os.environ.get('SUBSCRIBER_LOGLEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOGLEVEL)
@@ -276,7 +276,7 @@ def run():
     else:
         try:
             with open(data_path + "/.update", "r") as f:
-                data_within_last_timestamp = f.read()
+                data_within_last_timestamp = f.read().strip()
         except FileNotFoundError:
             print("WARN: No .update in the data directory. (Is this the first run?)")
         else:
@@ -382,6 +382,9 @@ def run():
     if args.verbose:
         print("Found " + str(len(downloads)) + " files to download")
         print("Downloading files with extensions: " + str(extensions))
+
+    if len(downloads) > 2000:
+        print("Warning: only the most recent 2000 files will be downloaded; Please update your start/stop time ranges to ensure you download all granules for your collections.")
 
     # Finish by downloading the files to the data directory in a loop.
     # Overwrite `.update` with a new timestamp on success.
