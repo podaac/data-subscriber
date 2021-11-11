@@ -29,11 +29,13 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, urlretrieve
 from datetime import datetime, timedelta
 
-__version__ = "1.6.0"
+__version__ = "1.6.1"
 
 LOGLEVEL = os.environ.get('SUBSCRIBER_LOGLEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOGLEVEL)
 logging.debug("Log level set to " + LOGLEVEL)
+
+page_size = 2000
 
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
@@ -276,7 +278,7 @@ def run():
     else:
         try:
             with open(data_path + "/.update", "r") as f:
-                data_within_last_timestamp = f.read()
+                data_within_last_timestamp = f.read().strip()
         except FileNotFoundError:
             print("WARN: No .update in the data directory. (Is this the first run?)")
         else:
@@ -298,7 +300,7 @@ def run():
 
     params = {
         'scroll': "true",
-        'page_size': 2000,
+        'page_size': page_size,
         'sort_key': "-start_date",
         'provider': provider,
         'ShortName': short_name,
@@ -310,7 +312,7 @@ def run():
     if defined_time_range:
         params = {
             'scroll': "true",
-            'page_size': 2000,
+            'page_size': page_size,
             'sort_key': "-start_date",
             'provider': provider,
             'updated_since': data_within_last_timestamp,
@@ -340,7 +342,7 @@ def run():
         results = json.loads(f.read().decode())
 
     if args.verbose:
-        print(str(results['hits'])+" new granules ingested for "+short_name+" since "+data_within_last_timestamp)   # noqa E501
+        print(str(results['hits'])+" new granules found for "+short_name+" since "+data_within_last_timestamp)   # noqa E501
 
     if any([args.dy, args.dydoy, args.dymd]):
         try:
@@ -379,9 +381,23 @@ def run():
 
     downloads = [item for sublist in downloads_all for item in sublist]
 
+    if len(downloads) >= page_size:
+        print("Warning: only the most recent "+ str(page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
+
+
+    #filter list based on extension
+    filtered_downloads = []
+    for f in downloads:
+        for extension in extensions:
+            if f.lower().endswith(extension):
+                filtered_downloads.append(f)
+
+    downloads = filtered_downloads
+
     if args.verbose:
-        print("Found " + str(len(downloads)) + " files to download")
+        print("Found " + str(len(downloads)) + " total files to download")
         print("Downloading files with extensions: " + str(extensions))
+
 
     # Finish by downloading the files to the data directory in a loop.
     # Overwrite `.update` with a new timestamp on success.
