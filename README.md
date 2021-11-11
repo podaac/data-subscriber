@@ -165,7 +165,7 @@ CMR token successfully deleted
 No data! What gives?! oh... because i'm not using any flags, I'm only looking back 60 minutes.
 
 ```
-podaac-data-subscriber -c CYGNSS_L1_CDR_V1.0 -d myData -start-date 2021-02-25T00:00:00Z
+podaac-data-subscriber -c CYGNSS_L1_CDR_V1.0 -d myData --start-date 2021-02-25T00:00:00Z
 2021-07-29 14:33:11.249343 SUCCESS: https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-protected/CYGNSS_L1_CDR_V1.0/cyg03.ddmi.s20210228-000000-e20210228-235959.l1.power-brcs-cdr.a10.d10.nc
 ...
 ```
