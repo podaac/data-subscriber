@@ -357,6 +357,7 @@ def run():
                          'Specify an output directory or '
                          'choose another output directory flag other than -dc.')  # noqa E501
 
+
     timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Neatly print the first granule record (if one was returned):
@@ -429,8 +430,18 @@ def run():
         write_path
             string path to where granules will be written
         """
+
         time_match = [dt for dt in
-                      times if dt[0] == splitext(basename(file))[0]][0][1]
+                      times if dt[0] == splitext(basename(file))[0]]
+
+        # Found on 11/11/21
+        # https://github.com/podaac/data-subscriber/issues/28
+        # if we don't find the time match array, try again using the
+        # filename AND its suffix (above removes it...)
+        if len(time_match) == 0:
+            time_match = [dt for dt in
+                          times if dt[0] == basename(file)]
+        time_match = time_match[0][1]
 
         # offset timestamp for output paths
         if args.offset:
