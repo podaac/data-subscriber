@@ -33,7 +33,8 @@ you should now have access to the subscriber CLI:
 
 ```
 $> podaac-data-subscriber -h
-usage: podaac-data-subscriber [-h] -c COLLECTION -d OUTPUTDIRECTORY [-m MINUTES] [-b BBOX] [-e [EXTENSIONS [EXTENSIONS ...]]] [-ds DATASINCE] [--version] [--verbose]
+usage: podaac_data_subscriber.py [-h] -c COLLECTION -d OUTPUTDIRECTORY [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET]
+                                 [-m MINUTES] [-e EXTENSIONS] [--version] [--verbose] [-p PROVIDER]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -41,28 +42,28 @@ optional arguments:
                         The collection shortname for which you want to retrieve data.
   -d OUTPUTDIRECTORY, --data-dir OUTPUTDIRECTORY
                         The directory where data products will be downloaded.
-  -dc                   Flag to use cycle number for directory where data products will be downloaded.
-  -dydoy                Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.
-  -dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.
-  -dy                   Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.
-
-  -m MINUTES, --minutes MINUTES
-                        How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your
-                        cron runs (default: 60 minutes).
-  -b BBOX, --bounds BBOX
-                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use
-                        this command, please use the -b="-180,-90,180,90" syntax when calling from the command line. Default: "-180,-90,180,90\.
-  -e [EXTENSIONS [EXTENSIONS ...]], --extensions [EXTENSIONS [EXTENSIONS ...]]
-                        The extensions of products to download. Default is [.nc, .h5]
   -sd STARTDATE, --start-date STARTDATE
                         The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z
   -ed ENDDATE, --end-date ENDDATE
                         The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z
+  -b BBOX, --bounds BBOX
+                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with
+                        parsing arguments, to use this command, please use the -b="-180,-90,180,90" syntax when calling from the command line. Default:
+                        "-180,-90,180,90".
+  -dc                   Flag to use cycle number for directory where data products will be downloaded.
+  -dydoy                Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.
+  -dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.
+  -dy                   Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.
+  --offset OFFSET       Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.
+  -m MINUTES, --minutes MINUTES
+                        How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or
+                        greater than how often your cron runs (default: 60 minutes).
+  -e EXTENSIONS, --extensions EXTENSIONS
+                        The extensions of products to download. Default is [.nc, .h5, .zip]
   --version             Display script version information and exit.
   --verbose             Verbose mode.
   -p PROVIDER, --provider PROVIDER
                         Specify a provider for collection search. Default is POCLOUD.
-
 ```
 
 One can also call the python package directly:
@@ -95,7 +96,8 @@ For setting up your authentication, see the notes on the `netrc` file below.
 
 Usage:
 ```
-usage: podaac-data-subscriber [-h] -c COLLECTION -d OUTPUTDIRECTORY [-m MINUTES] [-b BBOX] [-e [EXTENSIONS [EXTENSIONS ...]]] [-ds DATASINCE] [--version]
+usage: podaac_data_subscriber.py [-h] -c COLLECTION -d OUTPUTDIRECTORY [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET]
+                                 [-m MINUTES] [-e EXTENSIONS] [--version] [--verbose] [-p PROVIDER]
 ```
 
 To run the script, the following parameters are required:
@@ -206,7 +208,7 @@ The subscriber allows the placement of downloaded files into one of several dire
 To automatically run and update a local file system with data files from a collection, one can use a syntax like the following:
 
 ```
-10 * * * * podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d /path/to/data/VIIRS_N20-OSPO-L2P-v2.61 -e .nc .h5 -m 60 -b="-180,-90,180,90" --verbose >> ~/.subscriber.log
+10 * * * * podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d /path/to/data/VIIRS_N20-OSPO-L2P-v2.61 -e .nc -e .h5 -m 60 -b="-180,-90,180,90" --verbose >> ~/.subscriber.log
 
 ```
 
@@ -232,16 +234,16 @@ podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -b="-180,-90,180,90
 
 ### Setting extensions
 
-Some collections have many files. To download a specific set of files, you can set the extensions on which downloads are filtered. By default, ".nc" and ".h5" files are downloaded by default.
+Some collections have many files. To download a specific set of files, you can set the extensions on which downloads are filtered. By default, ".nc", ".h5", and ".zip" files are downloaded by default.
 
 ```
--e [EXTENSIONS [EXTENSIONS ...]], --extensions [EXTENSIONS [EXTENSIONS ...]]
-                      The extensions of products to download. Default is [.nc, .h5]
+-e EXTENSIONS, --extensions EXTENSIONS
+                       The extensions of products to download. Default is [.nc, .h5, .zip]
 ```
 
-An example of the -e usage:
+An example of the -e usage- note the -e option is additive:
 ```
-podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e .nc .h5
+podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e .nc -e .h5
 ```
 
 
