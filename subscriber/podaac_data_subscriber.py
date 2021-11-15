@@ -208,8 +208,9 @@ def create_parser():
     parser.add_argument("--offset", dest="offset", help = "Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.")  # noqa E501
 
     parser.add_argument("-m", "--minutes", dest="minutes", help = "How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).", type=int, default=60)  # noqa E501
-    parser.add_argument("-e", "--extensions", dest="extensions", help = "The extensions of products to download. Default is [.nc, .h5, .zip]", default=[".nc", ".h5", ".zip"], nargs='*')  # noqa E501
+    parser.add_argument("-e", "--extensions", dest="extensions", help = "The extensions of products to download. Default is [.nc, .h5, .zip]", default=None, action='append')  # noqa E501
     parser.add_argument("--process", dest="process_cmd", help = "Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.", action='append')
+
 
     parser.add_argument("--version", dest="version", action="store_true",help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true",help="Verbose mode.")    # noqa E501
@@ -389,6 +390,8 @@ def run():
 
 
     #filter list based on extension
+    if not extensions:
+        extensions = [".nc", ".h5", ".zip"]
     filtered_downloads = []
     for f in downloads:
         for extension in extensions:
