@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.7.0]
+### Added
+- Added ability to call a process on downlaoded files. [Thank to Joe Sapp](https://github.com/sappjw).
+### Changed
+- Turned -e option into 'additive' mode (multiple -e options allowed.) [Thanks to Joe Sapp](https://github.com/sappjw)
+### Deprecated
+### Removed
+### Fixed
+- issue not being able to find granuleUR [#28](https://github.com/podaac/data-subscriber/issues/28)
+### Security
+
 ## [1.6.1]
 ### Added
 - added warning for more than 2k granules

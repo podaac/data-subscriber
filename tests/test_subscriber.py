@@ -26,7 +26,7 @@ def test_validate():
     a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180,90", "-m", "100"])
     assert a.minutes == 100, "should equal 100"
 
-    a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180,90", "-e", ".txt", ".nc"])
+    a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180,90", "-e", ".txt", "-e", ".nc"])
     assert ".txt" in a.extensions
     assert ".nc" in a.extensions
 
