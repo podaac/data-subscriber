@@ -1,7 +1,7 @@
 [![Python Build](https://github.com/podaac/data-subscriber/actions/workflows/python-app.yml/badge.svg?branch=main)](https://github.com/podaac/data-subscriber/actions/workflows/python-app.yml)
 
 # Scripted Access to PODAAC data
- 
+
  ----
 
 ![N|Solid](https://podaac.jpl.nasa.gov/sites/default/files/image/custom_thumbs/podaac_logo.png)
@@ -33,8 +33,8 @@ you should now have access to the subscriber CLI:
 
 ```
 $> podaac-data-subscriber -h
-usage: podaac_data_subscriber.py [-h] -c COLLECTION -d OUTPUTDIRECTORY [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET]
-                                 [-m MINUTES] [-e EXTENSIONS] [--version] [--verbose] [-p PROVIDER]
+usage: podaac_data_subscriber.py [-h] -c COLLECTION -d OUTPUTDIRECTORY [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-m MINUTES]
+                                 [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -47,19 +47,20 @@ optional arguments:
   -ed ENDDATE, --end-date ENDDATE
                         The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z
   -b BBOX, --bounds BBOX
-                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with
-                        parsing arguments, to use this command, please use the -b="-180,-90,180,90" syntax when calling from the command line. Default:
-                        "-180,-90,180,90".
+                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing
+                        arguments, to use this command, please use the -b="-180,-90,180,90" syntax when calling from the command line. Default: "-180,-90,180,90".
   -dc                   Flag to use cycle number for directory where data products will be downloaded.
   -dydoy                Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.
   -dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.
   -dy                   Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.
   --offset OFFSET       Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.
   -m MINUTES, --minutes MINUTES
-                        How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or
-                        greater than how often your cron runs (default: 60 minutes).
+                        How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how
+                        often your cron runs (default: 60 minutes).
   -e EXTENSIONS, --extensions EXTENSIONS
                         The extensions of products to download. Default is [.nc, .h5, .zip]
+  --process PROCESS_CMD
+                        Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.
   --version             Display script version information and exit.
   --verbose             Verbose mode.
   -p PROVIDER, --provider PROVIDER
@@ -245,6 +246,9 @@ An example of the -e usage- note the -e option is additive:
 ```
 podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e .nc -e .h5
 ```
+### run a post download process
+
+Using the `--process` option, you can run a simple command agaisnt the "just" downloaded file. This will take the format of "<command> <path/to/file>". This means you can run a command like `--process gzip` to gzip all downloaded files. We do not support more advanced processes at this time (piping, running a process on a directory, etc).
 
 
 ### Changing how far back the script looks for data
