@@ -401,8 +401,11 @@ def run():
 
     downloads = filtered_downloads
 
+    # https://github.com/podaac/data-subscriber/issues/33
+    # Make this a non-verbose message
+    #if args.verbose:
+    print("Found " + str(len(downloads)) + " total files to download")
     if args.verbose:
-        print("Found " + str(len(downloads)) + " total files to download")
         print("Downloading files with extensions: " + str(extensions))
 
 
