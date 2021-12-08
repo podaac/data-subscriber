@@ -14,21 +14,23 @@
 # Accounts are free to create and take just a moment to set up.
 
 
-from urllib import request
-from http.cookiejar import CookieJar
-import netrc
-import requests
-import json
-import socket
 import argparse
+import json
 import logging
+import netrc
 import os
+import socket
+import subprocess
+from datetime import datetime, timedelta
+from http.cookiejar import CookieJar
 from os import makedirs
 from os.path import isdir, basename, join, splitext
-import subprocess
+from urllib import request
 from urllib.parse import urlencode
 from urllib.request import urlopen, urlretrieve
-from datetime import datetime, timedelta
+
+import boto3
+import requests
 
 __version__ = "1.7.0"
 
@@ -41,6 +43,7 @@ page_size = 2000
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + cmr + "/legacy-services/rest/tokens"
+
 
 def get_temporal_range(start, end, now):
     start = start if start is not False else None
@@ -59,24 +62,28 @@ def get_temporal_range(start, end, now):
 def validate(args):
     bounds = args.bbox.split(',')
     if len(bounds) != 4:
-        raise ValueError("Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")   # noqa E501
+        raise ValueError(
+            "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
     for b in bounds:
         try:
             float(b)
         except ValueError:
-            raise ValueError("Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")   # noqa E501
+            raise ValueError(
+                "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
 
     if args.startDate:
         try:
             datetime.strptime(args.startDate, '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
-            raise ValueError("Error parsing '--start-date' date: " + args.startDate + ". Format must be like 2021-01-14T00:00:00Z")   # noqa E501
+            raise ValueError(
+                "Error parsing '--start-date' date: " + args.startDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
 
     if args.endDate:
         try:
             datetime.strptime(args.endDate, '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
-            raise ValueError("Error parsing '--end-date' date: " + args.endDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
+            raise ValueError(
+                "Error parsing '--end-date' date: " + args.endDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
 
     if args.minutes:
         try:
@@ -155,8 +162,8 @@ def get_token(url: str, client_id: str, user_ip: str, endpoint: str) -> str:
         username, _, password = netrc.netrc().authenticators(endpoint)
         xml: str = """<?xml version='1.0' encoding='utf-8'?>
         <token><username>{}</username><password>{}</password><client_id>{}</client_id>
-        <user_ip_address>{}</user_ip_address></token>""".format(username, password, client_id, user_ip)   # noqa E501
-        headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}   # noqa E501
+        <user_ip_address>{}</user_ip_address></token>""".format(username, password, client_id, user_ip)  # noqa E501
+        headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}  # noqa E501
         resp = requests.post(url, headers=headers, data=xml)
         response_content: Dict = json.loads(resp.content)
         token = response_content['token']['id']
@@ -172,7 +179,7 @@ def get_token(url: str, client_id: str, user_ip: str, endpoint: str) -> str:
 ###############################################################################
 def delete_token(url: str, token: str) -> None:
     try:
-        headers: Dict = {'Content-Type': 'application/xml','Accept': 'application/json'}   # noqa E501
+        headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}  # noqa E501
         url = '{}/{}'.format(url, token)
         resp = requests.request('DELETE', url, headers=headers)
         if resp.status_code == 204:
@@ -189,33 +196,169 @@ def create_parser():
     parser = argparse.ArgumentParser()
 
     # Adding Required arguments
-    parser.add_argument("-c", "--collection-shortname", dest="collection",required=True, help = "The collection shortname for which you want to retrieve data.")  # noqa E501
-    parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True, help = "The directory where data products will be downloaded.")  # noqa E501
+    parser.add_argument("-c", "--collection-shortname", dest="collection", required=True,
+                        help="The collection shortname for which you want to retrieve data.")  # noqa E501
+    parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True,
+                        help="The directory where data products will be downloaded.")  # noqa E501
 
     # Adding optional arguments
 
     # spatiotemporal arguments
-    parser.add_argument("-sd", "--start-date", dest="startDate", help = "The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z", default=False)  # noqa E501
-    parser.add_argument("-ed", "--end-date", dest="endDate", help = "The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z", default=False)   # noqa E501
-    parser.add_argument("-b", "--bounds", dest="bbox", help = "The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".", default="-180,-90,180,90")  # noqa E501
+    parser.add_argument("-sd", "--start-date", dest="startDate",
+                        help="The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z",
+                        default=False)  # noqa E501
+    parser.add_argument("-ed", "--end-date", dest="endDate",
+                        help="The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z",
+                        default=False)  # noqa E501
+    parser.add_argument("-b", "--bounds", dest="bbox",
+                        help="The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".",
+                        default="-180,-90,180,90")  # noqa E501
 
     # Arguments for how data are stored locally - much processing is based on
     # the underlying directory structure (e.g. year/Day-of-year)
-    parser.add_argument("-dc", dest="cycle", action="store_true", help = "Flag to use cycle number for directory where data products will be downloaded.")  # noqa E501
-    parser.add_argument("-dydoy", dest="dydoy", action="store_true", help = "Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.")  # noqa E501
-    parser.add_argument("-dymd", dest="dymd", action="store_true", help = "Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.")  # noqa E501
-    parser.add_argument("-dy", dest="dy", action="store_true", help = "Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.")  # noqa E501
-    parser.add_argument("--offset", dest="offset", help = "Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.")  # noqa E501
+    parser.add_argument("-dc", dest="cycle", action="store_true",
+                        help="Flag to use cycle number for directory where data products will be downloaded.")  # noqa E501
+    parser.add_argument("-dydoy", dest="dydoy", action="store_true",
+                        help="Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.")  # noqa E501
+    parser.add_argument("-dymd", dest="dymd", action="store_true",
+                        help="Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.")  # noqa E501
+    parser.add_argument("-dy", dest="dy", action="store_true",
+                        help="Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.")  # noqa E501
+    parser.add_argument("--offset", dest="offset",
+                        help="Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.")  # noqa E501
 
-    parser.add_argument("-m", "--minutes", dest="minutes", help = "How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).", type=int, default=60)  # noqa E501
-    parser.add_argument("-e", "--extensions", dest="extensions", help = "The extensions of products to download. Default is [.nc, .h5, .zip]", default=None, action='append')  # noqa E501
-    parser.add_argument("--process", dest="process_cmd", help = "Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.", action='append')
+    parser.add_argument("-m", "--minutes", dest="minutes",
+                        help="How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).",
+                        type=int, default=60)  # noqa E501
+    parser.add_argument("-e", "--extensions", dest="extensions",
+                        help="The extensions of products to download. Default is [.nc, .h5, .zip]", default=None,
+                        action='append')  # noqa E501
+    parser.add_argument("--process", dest="process_cmd",
+                        help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.",
+                        action='append')
 
-
-    parser.add_argument("--version", dest="version", action="store_true",help="Display script version information and exit.")  # noqa E501
-    parser.add_argument("--verbose", dest="verbose", action="store_true",help="Verbose mode.")    # noqa E501
-    parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD', help="Specify a provider for collection search. Default is POCLOUD.")    # noqa E501
+    parser.add_argument("--version", dest="version", action="store_true",
+                        help="Display script version information and exit.")  # noqa E501
+    parser.add_argument("--verbose", dest="verbose", action="store_true", help="Verbose mode.")  # noqa E501
+    parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD',
+                        help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
+    parser.add_argument("-s3", "--s3_bucket", dest="s3_bucket", help="Specify a target s3 bucket to download files to.")
     return parser
+
+
+def check_dir(path):
+    if not isdir(path):
+        makedirs(path)
+
+
+def prepare_time_output(args, times, prefix, file, ts_shift):
+    """"
+    Create output directory using using:
+        OUTPUT_DIR/YEAR/DAY_OF_YEAR/
+        OUTPUT_DIR/YEAR/MONTH/DAY
+        OUTPUT_DIR/YEAR
+    .update stored in OUTPUT_DIR/
+
+    Parameters
+    ----------
+    times : list
+        list of tuples consisting of granule names and start times
+    prefix : string
+        prefix for output path, either custom output -d or short name
+    file : string
+        granule file name
+
+    Returns
+    -------
+    write_path
+        string path to where granules will be written
+    """
+
+    time_match = [dt for dt in
+                  times if dt[0] == splitext(basename(file))[0]]
+
+    # Found on 11/11/21
+    # https://github.com/podaac/data-subscriber/issues/28
+    # if we don't find the time match array, try again using the
+    # filename AND its suffix (above removes it...)
+    if len(time_match) == 0:
+        time_match = [dt for dt in
+                      times if dt[0] == basename(file)]
+    time_match = time_match[0][1]
+
+    # offset timestamp for output paths
+    if args.offset:
+        time_match = time_match + ts_shift
+
+    year = time_match.strftime('%Y')
+    month = time_match.strftime('%m')
+    day = time_match.strftime('%d')
+    day_of_year = time_match.strftime('%j')
+
+    if args.dydoy:
+        time_dir = join(year, day_of_year)
+    elif args.dymd:
+        time_dir = join(year, month, day)
+    elif args.dy:
+        time_dir = year
+    else:
+        raise ValueError('Temporal output flag not recognized.')
+    check_dir(join(prefix, time_dir))
+    write_path = join(prefix, time_dir, basename(file))
+    return write_path
+
+
+def prepare_cycles_output(data_cycles, prefix, file):
+    """"
+    Create output directory using OUTPUT_DIR/CYCLE_NUMBER
+    .update stored in OUTPUT_DIR/
+
+    Parameters
+    ----------
+    data_cycles : list
+        list of tuples consisting of granule names and cycle numbers
+        prefix : string
+        prefix for output path, either custom output -d or short name
+    file : string
+        granule file name
+
+    Returns
+    -------
+    write_path : string
+        string path to where granules will be written
+    """
+    cycle_match = [
+        cycle for cycle in data_cycles if cycle[0] == splitext(basename(file))[0]
+    ][0]
+    cycle_dir = "c" + cycle_match[1].zfill(4)
+    check_dir(join(prefix, cycle_dir))
+    write_path = join(prefix, cycle_dir, basename(file))
+    return write_path
+
+
+def process_file(args, process_cmd, output_path):
+    if not process_cmd:
+        return
+    else:
+        for cmd in process_cmd:
+            if args.verbose:
+                print(f'Running: {cmd} {output_path}')
+            subprocess.run(cmd.split() + [output_path],
+                           check=True)
+
+
+def s3_to_s3_cp(s3, target_file_path, destination_directory_path):
+    target_str_parts = target_file_path[len("s3://"):].split('/')
+    destination_bucket = destination_directory_path[len("s3://"):] if destination_directory_path.startswith(
+        "s3://") else destination_directory_path
+
+    copy_source = {
+        'Bucket': target_str_parts[0],
+        'Key': '/'.join(target_str_parts[1:])
+    }
+
+    #print(f"Pretending to copy s3://{copy_source['Bucket']}/{copy_source['Key']} to s3://{destination_bucket}/{copy_source['Key']}...")
+    s3.meta.client.copy(copy_source, destination_bucket, copy_source['Key'])
 
 
 def run():
@@ -286,7 +429,8 @@ def run():
         except FileNotFoundError:
             print("WARN: No .update in the data directory. (Is this the first run?)")
         else:
-            print("NOTE: .update found in the data directory. (The last run was at " + data_within_last_timestamp + ".)")
+            print(
+                "NOTE: .update found in the data directory. (The last run was at " + data_within_last_timestamp + ".)")
 
     # Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
     bounding_extent = args.bbox
@@ -297,10 +441,6 @@ def run():
     # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-production-date (Granules)
     # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-created-at (Granules)
     # The `created_at` parameter works for our purposes. It's a granule search parameter that returns the records ingested since the input timestamp.
-
-    if defined_time_range:
-        # if(data_since):
-        temporal_range = get_temporal_range(start_date_time, end_date_time, datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
 
     params = {
         'scroll': "true",
@@ -314,18 +454,9 @@ def run():
     }
 
     if defined_time_range:
-        params = {
-            'scroll': "true",
-            'page_size': page_size,
-            'sort_key': "-start_date",
-            'provider': provider,
-            'updated_since': data_within_last_timestamp,
-            'ShortName': short_name,
-            'temporal': temporal_range,
-            'token': token,
-            'bounding_box': bounding_extent,
-        }
-
+        temporal_range = get_temporal_range(start_date_time, end_date_time,
+                                            datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
+        params['temporal'] = temporal_range
         if args.verbose:
             print("Temporal Range: " + temporal_range)
 
@@ -336,6 +467,7 @@ def run():
     # Get the query parameters as a string and then the complete search url:
     query = urlencode(params)
     url = "https://" + cmr + "/search/granules.umm_json?" + query
+
     if args.verbose:
         print(url)
 
@@ -346,21 +478,25 @@ def run():
         results = json.loads(f.read().decode())
 
     if args.verbose:
-        print(str(results['hits'])+" new granules found for "+short_name+" since "+data_within_last_timestamp)   # noqa E501
+        print(str(results[
+                      'hits']) + " new granules found for " + short_name + " since " + data_within_last_timestamp)  # noqa E501
 
     if any([args.dy, args.dydoy, args.dymd]):
         try:
-            file_start_times = [(r['meta']['native-id'], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']), "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]  # noqa E501
+            file_start_times = [(r['meta']['native-id'],
+                                 datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']),
+                                                   "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]  # noqa E501
         except KeyError:
             raise ValueError('Could not locate start time for data.')
     elif args.cycle:
         try:
-            cycles = [(splitext(r['meta']['native-id'])[0],str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in results['items']]  # noqa E501
+            cycles = [(splitext(r['meta']['native-id'])[0],
+                       str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in
+                      results['items']]  # noqa E501
         except KeyError:
             parser.error('No cycles found within collection granules. '
                          'Specify an output directory or '
                          'choose another output directory flag other than -dc.')  # noqa E501
-
 
     timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -375,9 +511,19 @@ def run():
     # Select the download URL for each of the granule records:
 
     downloads_all = []
-    downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results['items']]
 
-    downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in results['items']]
+    if args.s3_bucket:
+        downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA VIA DIRECT ACCESS"
+                           and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results['items']]
+        downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA VIA DIRECT ACCESS"
+                               and ('Subtype' not in u or u['Subtype'] != "EXTENDED METADATA")] for r in
+                              results['items']]
+    else:
+        downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if
+                           u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in
+                          results['items']]
+        downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in
+                              results['items']]
 
     for f in downloads_data:
         downloads_all.append(f)
@@ -387,10 +533,10 @@ def run():
     downloads = [item for sublist in downloads_all for item in sublist]
 
     if len(downloads) >= page_size:
-        print("Warning: only the most recent "+ str(page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
+        print("Warning: only the most recent " + str(
+            page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
 
-
-    #filter list based on extension
+    # filter list based on extension
     if not extensions:
         extensions = [".nc", ".h5", ".zip"]
     filtered_downloads = []
@@ -405,130 +551,45 @@ def run():
         print("Found " + str(len(downloads)) + " total files to download")
         print("Downloading files with extensions: " + str(extensions))
 
-
     # Finish by downloading the files to the data directory in a loop.
     # Overwrite `.update` with a new timestamp on success.
     success_cnt = failure_cnt = 0
 
-    def check_dir(path):
-        if not isdir(path):
-            makedirs(path)
+    if args.s3_bucket:
+        s3 = boto3.resource('s3')
 
-    def prepare_time_output(times, prefix, file):
-        """"
-        Create output directory using using:
-            OUTPUT_DIR/YEAR/DAY_OF_YEAR/
-            OUTPUT_DIR/YEAR/MONTH/DAY
-            OUTPUT_DIR/YEAR
-        .update stored in OUTPUT_DIR/
-
-        Parameters
-        ----------
-        times : list
-            list of tuples consisting of granule names and start times
-        prefix : string
-            prefix for output path, either custom output -d or short name
-        file : string
-            granule file name
-
-        Returns
-        -------
-        write_path
-            string path to where granules will be written
-        """
-
-        time_match = [dt for dt in
-                      times if dt[0] == splitext(basename(file))[0]]
-
-        # Found on 11/11/21
-        # https://github.com/podaac/data-subscriber/issues/28
-        # if we don't find the time match array, try again using the
-        # filename AND its suffix (above removes it...)
-        if len(time_match) == 0:
-            time_match = [dt for dt in
-                          times if dt[0] == basename(file)]
-        time_match = time_match[0][1]
-
-        # offset timestamp for output paths
-        if args.offset:
-            time_match = time_match + ts_shift
-
-        year = time_match.strftime('%Y')
-        month = time_match.strftime('%m')
-        day = time_match.strftime('%d')
-        day_of_year = time_match.strftime('%j')
-
-        if args.dydoy:
-            time_dir = join(year, day_of_year)
-        elif args.dymd:
-            time_dir = join(year, month, day)
-        elif args.dy:
-            time_dir = year
-        else:
-            raise ValueError('Temporal output flag not recognized.')
-        check_dir(join(prefix, time_dir))
-        write_path = join(prefix, time_dir, basename(file))
-        return write_path
-
-    def prepare_cycles_output(data_cycles, prefix, file):
-        """"
-        Create output directory using OUTPUT_DIR/CYCLE_NUMBER
-        .update stored in OUTPUT_DIR/
-
-        Parameters
-        ----------
-        data_cycles : list
-            list of tuples consisting of granule names and cycle numbers
-            prefix : string
-            prefix for output path, either custom output -d or short name
-        file : string
-            granule file name
-
-        Returns
-        -------
-        write_path : string
-            string path to where granules will be written
-        """
-        cycle_match = [
-            cycle for cycle in data_cycles if cycle[0] == splitext(basename(file))[0]
-        ][0]
-        cycle_dir = "c" + cycle_match[1].zfill(4)
-        check_dir(join(prefix, cycle_dir))
-        write_path = join(prefix, cycle_dir, basename(file))
-        return write_path
-
-    def process_file(output_path):
-        if not process_cmd:
-            return
-        else:
-            for cmd in process_cmd:
-                if args.verbose:
-                    print(f'Running: {cmd} {output_path}')
-                subprocess.run(cmd.split() + [output_path],
-                               check=True)
-
-    for f in downloads:
-        try:
-            for extension in extensions:
-                if f.lower().endswith(extension):
-                    # -d flag, args.outputDirectory
-                    output_path = join(data_path, basename(f))
-                    # -dy, args.dy, -dydoy, args.dydoy and -dymd, args.dymd
-                    if any([args.dy, args.dydoy, args.dymd]):
-                        output_path = prepare_time_output(
-                            file_start_times, data_path, f)
-                    # -dc flag
-                    if args.cycle:
-                        output_path = prepare_cycles_output(
-                            cycles, data_path, f)
-                    urlretrieve(f, output_path)
-                    process_file(output_path)
-                    print(str(datetime.now()) + " SUCCESS: " + f)
-                    success_cnt = success_cnt + 1
-        except Exception as e:
-            print(str(datetime.now()) + " FAILURE: " + f)
-            failure_cnt = failure_cnt + 1
-            print(e)
+        for f in downloads:
+            try:
+                for extension in extensions:
+                    if f.lower().endswith(extension):
+                        s3_to_s3_cp(s3, f, args.s3_bucket)
+                        print(str(datetime.now()) + " SUCCESS: " + f)
+                        success_cnt = success_cnt + 1
+            except Exception as e:
+                print(str(datetime.now()) + " FAILURE: " + f)
+                failure_cnt = failure_cnt + 1
+                print(e)
+    else:
+        for f in downloads:
+            try:
+                for extension in extensions:
+                    if f.lower().endswith(extension):
+                        # -d flag, args.outputDirectory
+                        output_path = join(data_path, basename(f))
+                        # -dy, args.dy, -dydoy, args.dydoy and -dymd, args.dymd
+                        if any([args.dy, args.dydoy, args.dymd]):
+                            output_path = prepare_time_output(args, file_start_times, data_path, f, ts_shift)
+                        # -dc flag
+                        if args.cycle:
+                            output_path = prepare_cycles_output(cycles, data_path, f)
+                        urlretrieve(f, output_path)
+                        process_file(args, process_cmd, output_path)
+                        print(str(datetime.now()) + " SUCCESS: " + f)
+                        success_cnt = success_cnt + 1
+            except Exception as e:
+                print(str(datetime.now()) + " FAILURE: " + f)
+                failure_cnt = failure_cnt + 1
+                print(e)
 
     # If there were updates to the local time series during this run and no
     # exceptions were raised during the download loop, then overwrite the
