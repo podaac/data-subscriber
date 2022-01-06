@@ -20,14 +20,13 @@ import logging
 import netrc
 import os
 import socket
-import subprocess
 from datetime import datetime, timedelta
 from http.cookiejar import CookieJar
 from os import makedirs
-from os.path import isdir, basename, join, splitext
+from os.path import isdir, splitext
 from urllib import request
-from urllib.parse import urlencode
-from urllib.request import urlopen, urlretrieve
+from urllib.parse import urlencode, urlparse
+from urllib.request import urlopen
 
 import boto3
 import requests
@@ -44,31 +43,6 @@ page_size = 2000
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + cmr + "/legacy-services/rest/tokens"
-
-
-class SessionWithHeaderRedirection(requests.Session):
-    """
-    Borrowed from https://wiki.earthdata.nasa.gov/display/EL/How+To+Access+Data+With+Python
-    """
-
-    def __init__(self, username, password):
-        super().__init__()
-        self.auth = (username, password)
-
-    # Overrides from the library to keep headers when redirected to or from
-    # the NASA auth host.
-    def rebuild_auth(self, prepared_request, response):
-        headers = prepared_request.headers
-        url = prepared_request.url
-
-        if 'Authorization' in headers:
-            original_parsed = requests.utils.urlparse(response.request.url)
-            redirect_parsed = requests.utils.urlparse(url)
-            if (original_parsed.hostname != redirect_parsed.hostname) and \
-                    redirect_parsed.hostname != AUTH_HOST and \
-                    original_parsed.hostname != AUTH_HOST:
-                del headers['Authorization']
-        return
 
 
 def get_temporal_range(start, end, now):
@@ -150,7 +124,7 @@ IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
 # notebook client in your browser.*
 
 
-def setup_earthdata_login_auth(endpoint):
+def setup_earthdata_login_auth(endpoint, username, password):
     """
     Set up the request library so that it authenticates against the given
     Earthdata Login endpoint and is able to track cookies between requests.
@@ -160,13 +134,6 @@ def setup_earthdata_login_auth(endpoint):
     Valid endpoints include:
         urs.earthdata.nasa.gov - Earthdata Login production
     """
-    try:
-        username, _, password = netrc.netrc().authenticators(endpoint)
-    except (FileNotFoundError, TypeError):
-        # FileNotFound = There's no .netrc file
-        # TypeError = The endpoint isn't in the netrc file,
-        #  causing the above to try unpacking None
-        print("There's no .netrc file or the The endpoint isn't in the netrc file")  # noqa E501
 
     manager = request.HTTPPasswordMgrWithDefaultRealm()
     manager.add_password(None, endpoint, username, password)
@@ -178,7 +145,30 @@ def setup_earthdata_login_auth(endpoint):
     opener.addheaders = [('User-agent', 'podaac-subscriber-' + __version__)]
     request.install_opener(opener)
 
-    return username, password
+
+class SessionWithHeaderRedirection(requests.Session):
+    """
+    Borrowed from https://wiki.earthdata.nasa.gov/display/EL/How+To+Access+Data+With+Python
+    """
+
+    def __init__(self, username, password):
+        super().__init__()
+        self.auth = (username, password)
+
+    # Overrides from the library to keep headers when redirected to or from
+    # the NASA auth host.
+    def rebuild_auth(self, prepared_request, response):
+        headers = prepared_request.headers
+        url = prepared_request.url
+
+        if 'Authorization' in headers:
+            original_parsed = requests.utils.urlparse(response.request.url)
+            redirect_parsed = requests.utils.urlparse(url)
+            if (original_parsed.hostname != redirect_parsed.hostname) and \
+                    redirect_parsed.hostname != AUTH_HOST and \
+                    original_parsed.hostname != AUTH_HOST:
+                del headers['Authorization']
+        return
 
 
 ###############################################################################
@@ -259,133 +249,22 @@ def create_parser():
                         help="How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).",
                         type=int, default=60)  # noqa E501
     parser.add_argument("-e", "--extensions", dest="extensions",
-                        help="The extensions of products to download. Default is [.nc, .h5, .zip]",
-                        default=[".nc", ".h5", ".zip"], action='append')  # noqa E501
+                        help="The extensions of products to download. Default is [.nc, .h5, .zip]", default=None,
+                        action='append')  # noqa E501
     parser.add_argument("--process", dest="process_cmd",
                         help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.",
                         action='append')
+
     parser.add_argument("--version", dest="version", action="store_true",
                         help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true", help="Verbose mode.")  # noqa E501
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD',
                         help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
     parser.add_argument("-s3", "--s3_bucket", dest="s3_bucket", help="Specify a target s3 bucket to download files to.")
+    parser.add_argument("-dm", "--down_mode", dest="download_mode", help="Download mode. valid values: s3 or http.")
+    parser.add_argument("-u", "--username", dest="username")
+    parser.add_argument("-pw", "--password", dest="password")
     return parser
-
-
-def check_dir(path):
-    if not isdir(path):
-        makedirs(path)
-
-
-def prepare_time_output(args, times, prefix, file, ts_shift):
-    """"
-    Create output directory using using:
-        OUTPUT_DIR/YEAR/DAY_OF_YEAR/
-        OUTPUT_DIR/YEAR/MONTH/DAY
-        OUTPUT_DIR/YEAR
-    .update stored in OUTPUT_DIR/
-
-    Parameters
-    ----------
-    times : list
-        list of tuples consisting of granule names and start times
-    prefix : string
-        prefix for output path, either custom output -d or short name
-    file : string
-        granule file name
-
-    Returns
-    -------
-    write_path
-        string path to where granules will be written
-    """
-
-    time_match = [dt for dt in
-                  times if dt[0] == splitext(basename(file))[0]]
-
-    # Found on 11/11/21
-    # https://github.com/podaac/data-subscriber/issues/28
-    # if we don't find the time match array, try again using the
-    # filename AND its suffix (above removes it...)
-    if len(time_match) == 0:
-        time_match = [dt for dt in
-                      times if dt[0] == basename(file)]
-    time_match = time_match[0][1]
-
-    # offset timestamp for output paths
-    if args.offset:
-        time_match = time_match + ts_shift
-
-    year = time_match.strftime('%Y')
-    month = time_match.strftime('%m')
-    day = time_match.strftime('%d')
-    day_of_year = time_match.strftime('%j')
-
-    if args.dydoy:
-        time_dir = join(year, day_of_year)
-    elif args.dymd:
-        time_dir = join(year, month, day)
-    elif args.dy:
-        time_dir = year
-    else:
-        raise ValueError('Temporal output flag not recognized.')
-    check_dir(join(prefix, time_dir))
-    write_path = join(prefix, time_dir, basename(file))
-    return write_path
-
-
-def prepare_cycles_output(data_cycles, prefix, file):
-    """"
-    Create output directory using OUTPUT_DIR/CYCLE_NUMBER
-    .update stored in OUTPUT_DIR/
-
-    Parameters
-    ----------
-    data_cycles : list
-        list of tuples consisting of granule names and cycle numbers
-        prefix : string
-        prefix for output path, either custom output -d or short name
-    file : string
-        granule file name
-
-    Returns
-    -------
-    write_path : string
-        string path to where granules will be written
-    """
-    cycle_match = [
-        cycle for cycle in data_cycles if cycle[0] == splitext(basename(file))[0]
-    ][0]
-    cycle_dir = "c" + cycle_match[1].zfill(4)
-    check_dir(join(prefix, cycle_dir))
-    write_path = join(prefix, cycle_dir, basename(file))
-    return write_path
-
-
-def process_file(args, process_cmd, output_path):
-    if not process_cmd:
-        return
-    else:
-        for cmd in process_cmd:
-            if args.verbose:
-                print(f'Running: {cmd} {output_path}')
-            subprocess.run(cmd.split() + [output_path],
-                           check=True)
-
-
-def s3_to_s3_cp(s3, target_file_path, destination_directory_path):
-    target_str_parts = target_file_path[len("s3://"):].split('/')
-    destination_bucket = destination_directory_path[len("s3://"):] if destination_directory_path.startswith(
-        "s3://") else destination_directory_path
-
-    copy_source = {
-        'Bucket': target_str_parts[0],
-        'Key': '/'.join(target_str_parts[1:])
-    }
-
-    # print(f"Pretending to copy s3://{copy_source['Bucket']}/{copy_source['Key']} to s3://{destination_bucket}/{copy_source['Key']}...")
-    s3.meta.client.copy(copy_source, destination_bucket, copy_source['Key'])
 
 
 def run():
@@ -401,7 +280,12 @@ def run():
         print(v)
         exit()
 
-    username, password = setup_earthdata_login_auth(edl)
+    username = args.username
+    password = args.password
+
+    print("username = " + str(username) + "   edl = " + str(edl))
+
+    setup_earthdata_login_auth(edl, username, password)
     token = get_token(token_url, 'podaac-subscriber', IPAddr, edl)
     mins = args.minutes  # In this case download files ingested in the last 60 minutes -- change this to whatever setting is needed
 
@@ -447,7 +331,7 @@ def run():
     # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
 
     if not isdir(data_path):
-        print("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
+        print("NOTE: Making new data directory at " + data_path + " (This is the first run.)")
         makedirs(data_path)
     else:
         try:
@@ -494,9 +378,11 @@ def run():
     # Get the query parameters as a string and then the complete search url:
     query = urlencode(params)
     url = "https://" + cmr + "/search/granules.umm_json?" + query
-
     if args.verbose:
         print(url)
+
+    download_mode = args.download_mode
+    print("Download mode: " + download_mode)
 
     # Get a new timestamp that represents the UTC time of the search.
     # Then download the records in `umm_json` format for granules
@@ -538,17 +424,15 @@ def run():
     # Select the download URL for each of the granule records:
 
     downloads_all = []
+    if (download_mode == 's3'):
+        # to get from S3 location
+        downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA VIA DIRECT ACCESS"] for r
+                          in results['items']]
+    else:
+        downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if
+                           u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in
+                          results['items']]
 
-    # if args.s3_bucket:
-    # downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA VIA DIRECT ACCESS"
-    # and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results['items']]
-    # downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA VIA DIRECT ACCESS"
-    # and ('Subtype' not in u or u['Subtype'] != "EXTENDED METADATA")] for r in
-    # results['items']]
-    # else:
-    downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if
-                       u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in
-                      results['items']]
     downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in
                           results['items']]
 
@@ -582,42 +466,14 @@ def run():
     # Overwrite `.update` with a new timestamp on success.
     success_cnt = failure_cnt = 0
 
-    if args.s3_bucket:
-        s3 = boto3.resource('s3')
+    parsed_url = urlparse("https://urs.earthdata.nasa.gov")
+    global AUTH_HOST
+    AUTH_HOST = parsed_url.netloc
+    session = SessionWithHeaderRedirection(username, password)
 
-        for f in downloads:
-            try:
-                for extension in extensions:
-                    if f.lower().endswith(extension):
-                        # s3_to_s3_cp(s3, f, args.s3_bucket)
-                        upload(f, SessionWithHeaderRedirection(username, password), token, args.s3_bucket)
-                        print(str(datetime.now()) + " SUCCESS: " + f)
-                        success_cnt = success_cnt + 1
-            except Exception as e:
-                print(str(datetime.now()) + " FAILURE: " + f)
-                failure_cnt = failure_cnt + 1
-                print(e)
-    else:
-        for f in downloads:
-            try:
-                for extension in extensions:
-                    if f.lower().endswith(extension):
-                        # -d flag, args.outputDirectory
-                        output_path = join(data_path, basename(f))
-                        # -dy, args.dy, -dydoy, args.dydoy and -dymd, args.dymd
-                        if any([args.dy, args.dydoy, args.dymd]):
-                            output_path = prepare_time_output(args, file_start_times, data_path, f, ts_shift)
-                        # -dc flag
-                        if args.cycle:
-                            output_path = prepare_cycles_output(cycles, data_path, f)
-                        urlretrieve(f, output_path)
-                        process_file(args, process_cmd, output_path)
-                        print(str(datetime.now()) + " SUCCESS: " + f)
-                        success_cnt = success_cnt + 1
-            except Exception as e:
-                print(str(datetime.now()) + " FAILURE: " + f)
-                failure_cnt = failure_cnt + 1
-                print(e)
+    data_url = "https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/HLSS30.020/HLS.S30.T53HPV.2021274T004709.v2.0/HLS.S30.T53HPV.2021274T004709.v2.0.B08.tif"
+    # data_url = "https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/HLSS30.020/HLS.S30.T55MCN.2021274T004709.v2.0/HLS.S30.T55MCN.2021274T004709.v2.0.B07.tif"
+    upload(data_url, session, token, "opera-dev-isl-fwd-hyunlee")
 
     # If there were updates to the local time series during this run and no
     # exceptions were raised during the download loop, then overwrite the
@@ -634,13 +490,7 @@ def run():
     print("END \n\n")
 
 
-def convert_datetime(datetime_obj, strformat="%Y-%m-%dT%H:%M:%S.%fZ"):
-    if isinstance(datetime_obj, datetime):
-        return datetime_obj.strftime(strformat)
-    return datetime.strptime(str(datetime_obj), strformat)
-
-
-def product_exists(bucket, key):
+def does_product_exist(bucket, key):
     s3 = boto3.client('s3')
     try:
         s3.head_object(Bucket=bucket, Key=key)
@@ -649,54 +499,88 @@ def product_exists(bucket, key):
         return False
 
 
-def upload(url, session, token, bucket_name, staging_area=None, chunk_size=25600):
+def convert_datetime(datetime_obj, strformat="%Y-%m-%dT%H:%M:%S.%fZ"):
+    if isinstance(datetime_obj, datetime):
+        return datetime_obj.strftime(strformat)
+    return datetime.strptime(str(datetime_obj), strformat)
+
+
+def upload(file_url, session, token, bucket_name, staging_area=None, chunk_size=25600, force_upload=False,
+           retry=True):
     """
     This will basically transfer the file contents of the given url to an S3 bucket
 
-    :param url: url to the file.
+    :param dataset: The dataset associated with the given url.
+    :param file_url: url to the file.
     :param session: SessionWithHeaderRedirection object.
     :param token: token.
     :param bucket_name: The S3 bucket name to transfer the file url contents to.
     :param staging_area: A staging area where the file url contents will go to. If none, contents will be found
      in the top level of the bucket.
     :param chunk_size: the number of bytes to stream at a time.
+    :param force_upload: Set to true to overwrite existing file in s3.
+    :param retry: Flag to attempt a retry
 
     :return:
     """
-    file_name = os.path.basename(url)
-    bucket = bucket_name[len("s3://"):] if bucket_name.startswith("s3://") else bucket_name
+    file_name = os.path.basename(file_url)
 
-    key = os.path.join(staging_area, file_name)
+    # For now we put all files for all datsets in same directory. It will be chnaged after ISL lambda update
+    # Also it should be in "met_required" directory
+    '''
+    if staging_area:
+        key = os.path.join(staging_area, dataset, file_name)
+    else:
+        key = os.path.join(dataset, file_name)
+    '''
+
+    print("file_name=" + str(file_name))
+    # key = os.path.join(staging_area, file_name)
+    key = file_name
+    print("key = " + str(key))
     upload_start_time = datetime.utcnow()
     headers = {"Echo-Token": token}
     try:
         try:
-            with session.get(url, headers=headers, stream=True) as r:
-                if r.status_code != 200:
-                    r.raise_for_status()
-                # logger.info("Uploading {} to Bucket={}, Key={}".format(file_name, bucket_name, key))
-                total_bytes = 0
-                with open("s3://{}/{}".format(bucket, key), "wb") as out:
-                    for chunk in r.iter_content(chunk_size=chunk_size):
-                        # logger.debug("Uploading {} byte(s)".format(len(chunk)))
-                        out.write(chunk)
-                        total_bytes += len(chunk)
-            upload_end_time = datetime.utcnow()
-            upload_duration = upload_end_time - upload_start_time
-            upload_stats = {
-                "file_name": file_name,
-                "file_size (in bytes)": total_bytes,
-                "upload_duration (in seconds)": upload_duration.total_seconds(),
-                "upload_start_time": convert_datetime(upload_start_time),
-                "upload_end_time": convert_datetime(upload_end_time)
-            }
+            if force_upload is False:
+                file_exists = does_product_exist(bucket_name, key)
+                if file_exists is True:
+                    print("SKIP: File exists in S3 already: Bucket=" + str(bucket_name) + " Key= " + str(key))
+                    return {}
+                else:
+                    print("File does NOT exists in S3: Bucket = " + str(bucket_name) + " Key = " + str(key))
+
+            print("before calling session.get url = " + str(file_url))
+
+            # this part is from pcm_commons.upload_utils
+            # getting error with FileNotFound???
+            #with session.get(file_url, headers=headers, stream=True) as r:
+            #    print("r.status_code = " + str(r.status_code))
+            #    if r.status_code != 200:
+            #        r.raise_for_status()
+            #logger.info("Uploading {} to Bucket={}, Key={}".format(file_name, bucket_name, key))
+            #    total_bytes = 0
+            #    with open("s3://{}/{}".format(bucket_name, key), "wb") as out:
+            #        for chunk in r.iter_content(chunk_size=chunk_size):
+            #            out.write(chunk)
+            #            total_bytes += len(chunk)
+            #for chunk in r.iter_content(chunk_size=chunk_size):
+            #logger.debug("Uploading {} byte(s)".format(len(chunk)))
+            #print("Uploading {} byte(s)".format(len(chunk)))
+            #out.write(chunk)
+            #    bucket.put(Body=chunk)
+            #    total_bytes += len(chunk)
             return upload_stats
         except ConnectionResetError as ce:
             raise Exception(str(ce))
         except requests.exceptions.HTTPError as he:
             raise Exception(str(he))
     except Exception as e:
-        return {"failed_download": {"url": url}}
+        if retry is True:
+            return upload(file_url, session, token, bucket_name,
+                          staging_area=staging_area, chunk_size=chunk_size, retry=False)
+        else:
+            return {"failed_download": {file_url}}
 
 
 if __name__ == '__main__':
