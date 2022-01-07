@@ -583,13 +583,10 @@ def run():
     success_cnt = failure_cnt = 0
 
     if args.s3_bucket:
-        s3 = boto3.resource('s3')
-
         for f in downloads:
             try:
                 for extension in extensions:
                     if f.lower().endswith(extension):
-                        # s3_to_s3_cp(s3, f, args.s3_bucket)
                         upload(f, SessionWithHeaderRedirection(username, password), token, args.s3_bucket)
                         print(str(datetime.now()) + " SUCCESS: " + f)
                         success_cnt = success_cnt + 1
@@ -649,7 +646,7 @@ def product_exists(bucket, key):
         return False
 
 
-def upload(url, session, token, bucket_name, staging_area=None, chunk_size=25600):
+def upload(url, session, token, bucket_name, staging_area="", chunk_size=25600):
     """
     This will basically transfer the file contents of the given url to an S3 bucket
 
