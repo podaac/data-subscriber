@@ -26,7 +26,7 @@ from http.cookiejar import CookieJar
 from os import makedirs
 from os.path import isdir, basename, join, splitext
 from urllib import request
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from urllib.request import urlopen, urlretrieve
 
 import boto3
@@ -44,6 +44,7 @@ page_size = 2000
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + cmr + "/legacy-services/rest/tokens"
+parsed_url = urlparse("https://urs.earthdata.nasa.gov")
 
 
 class SessionWithHeaderRedirection(requests.Session):
@@ -51,9 +52,10 @@ class SessionWithHeaderRedirection(requests.Session):
     Borrowed from https://wiki.earthdata.nasa.gov/display/EL/How+To+Access+Data+With+Python
     """
 
-    def __init__(self, username, password):
+    def __init__(self, username, password, auth_host):
         super().__init__()
         self.auth = (username, password)
+        self.auth_host = auth_host
 
     # Overrides from the library to keep headers when redirected to or from
     # the NASA auth host.
@@ -65,8 +67,8 @@ class SessionWithHeaderRedirection(requests.Session):
             original_parsed = requests.utils.urlparse(response.request.url)
             redirect_parsed = requests.utils.urlparse(url)
             if (original_parsed.hostname != redirect_parsed.hostname) and \
-                    redirect_parsed.hostname != AUTH_HOST and \
-                    original_parsed.hostname != AUTH_HOST:
+                    redirect_parsed.hostname != self.auth_host and \
+                    original_parsed.hostname != self.auth_host:
                 del headers['Authorization']
         return
 
@@ -587,7 +589,9 @@ def run():
             try:
                 for extension in extensions:
                     if f.lower().endswith(extension):
-                        upload(f, SessionWithHeaderRedirection(username, password), token, args.s3_bucket)
+                        upload_return = upload(f, SessionWithHeaderRedirection(username, password, parsed_url), token, args.s3_bucket)
+                        if "failed_download" in upload_return:
+                            raise Exception(upload_return["failed_download"])
                         print(str(datetime.now()) + " SUCCESS: " + f)
                         success_cnt = success_cnt + 1
             except Exception as e:
@@ -693,7 +697,7 @@ def upload(url, session, token, bucket_name, staging_area="", chunk_size=25600):
         except requests.exceptions.HTTPError as he:
             raise Exception(str(he))
     except Exception as e:
-        return {"failed_download": {"url": url}}
+        return {"failed_download": e}
 
 
 if __name__ == '__main__':
