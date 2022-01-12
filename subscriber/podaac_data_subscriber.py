@@ -261,7 +261,7 @@ def create_parser():
     parser.add_argument("--verbose", dest="verbose", action="store_true", help="Verbose mode.")  # noqa E501
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD',
                         help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
-    parser.add_argument("-s3", "--s3_bucket", dest="s3_bucket", help="Specify a target s3 bucket to download files to.")
+    parser.add_argument("-s3", dest="s3_bucket", help="Enable S3 bucket as download target.", action="store_true")
     return parser
 
 
@@ -432,18 +432,19 @@ def run():
 
     # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
 
-    if not isdir(data_path):
-        logging.info("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
-        makedirs(data_path)
-    else:
-        try:
-            with open(data_path + "/.update", "r") as f:
-                data_within_last_timestamp = f.read().strip()
-        except FileNotFoundError:
-            logging.error("WARN: No .update in the data directory. (Is this the first run?)")
+    if not args.s3_bucket:
+        if not isdir(data_path):
+            logging.info("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
+            makedirs(data_path)
         else:
-            logging.info(
-                "NOTE: .update found in the data directory. (The last run was at " + data_within_last_timestamp + ".)")
+            try:
+                with open(data_path + "/.update", "r") as f:
+                    data_within_last_timestamp = f.read().strip()
+            except FileNotFoundError:
+                logging.error("WARN: No .update in the data directory. (Is this the first run?)")
+            else:
+                logging.info(
+                    "NOTE: .update found in the data directory. (The last run was at " + data_within_last_timestamp + ".)")
 
     # Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
     bounding_extent = args.bbox
