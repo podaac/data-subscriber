@@ -32,19 +32,9 @@ from urllib.request import urlopen, urlretrieve
 import boto3
 import requests
 from botocore.exceptions import ClientError
+from smart_open import open
 
 __version__ = "1.7.0"
-
-LOGLEVEL = os.environ.get('SUBSCRIBER_LOGLEVEL', 'WARNING').upper()
-logging.basicConfig(level=LOGLEVEL)
-logging.debug("Log level set to " + LOGLEVEL)
-
-page_size = 2000
-
-edl = "urs.earthdata.nasa.gov"
-cmr = "cmr.earthdata.nasa.gov"
-token_url = "https://" + cmr + "/legacy-services/rest/tokens"
-parsed_url = urlparse("https://urs.earthdata.nasa.gov")
 
 
 class SessionWithHeaderRedirection(requests.Session):
@@ -168,7 +158,7 @@ def setup_earthdata_login_auth(endpoint):
         # FileNotFound = There's no .netrc file
         # TypeError = The endpoint isn't in the netrc file,
         #  causing the above to try unpacking None
-        print("There's no .netrc file or the The endpoint isn't in the netrc file")  # noqa E501
+        logging.error("There's no .netrc file or the The endpoint isn't in the netrc file")  # noqa E501
 
     manager = request.HTTPPasswordMgrWithDefaultRealm()
     manager.add_password(None, endpoint, username, password)
@@ -200,7 +190,7 @@ def get_token(url: str, client_id: str, user_ip: str, endpoint: str) -> str:
 
     # What error is thrown here? Value Error? Request Errors?
     except:  # noqa E722
-        print("Error getting the token - check user name and password")
+        logging.error("Error getting the token - check user name and password")
     return token
 
 
@@ -213,11 +203,11 @@ def delete_token(url: str, token: str) -> None:
         url = '{}/{}'.format(url, token)
         resp = requests.request('DELETE', url, headers=headers)
         if resp.status_code == 204:
-            print("CMR token successfully deleted")
+            logging.info("CMR token successfully deleted")
         else:
-            print("CMR token deleting failed.")
+            logging.error("CMR token deleting failed.")
     except:  # noqa E722
-        print("Error deleting the token")
+        logging.error("Error deleting the token")
     exit(0)
 
 
@@ -229,7 +219,7 @@ def create_parser():
     parser.add_argument("-c", "--collection-shortname", dest="collection", required=True,
                         help="The collection shortname for which you want to retrieve data.")  # noqa E501
     parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True,
-                        help="The directory where data products will be downloaded.")  # noqa E501
+                        help="The directory where data products will be downloaded. If -s3 option is used, it will instead be the destination S3 bucket name.")  # noqa E501
 
     # Adding optional arguments
 
@@ -356,9 +346,7 @@ def prepare_cycles_output(data_cycles, prefix, file):
     write_path : string
         string path to where granules will be written
     """
-    cycle_match = [
-        cycle for cycle in data_cycles if cycle[0] == splitext(basename(file))[0]
-    ][0]
+    cycle_match = [cycle for cycle in data_cycles if cycle[0] == splitext(basename(file))[0]][0]
     cycle_dir = "c" + cycle_match[1].zfill(4)
     check_dir(join(prefix, cycle_dir))
     write_path = join(prefix, cycle_dir, basename(file))
@@ -371,36 +359,32 @@ def process_file(args, process_cmd, output_path):
     else:
         for cmd in process_cmd:
             if args.verbose:
-                print(f'Running: {cmd} {output_path}')
-            subprocess.run(cmd.split() + [output_path],
-                           check=True)
-
-
-def s3_to_s3_cp(s3, target_file_path, destination_directory_path):
-    target_str_parts = target_file_path[len("s3://"):].split('/')
-    destination_bucket = destination_directory_path[len("s3://"):] if destination_directory_path.startswith(
-        "s3://") else destination_directory_path
-
-    copy_source = {
-        'Bucket': target_str_parts[0],
-        'Key': '/'.join(target_str_parts[1:])
-    }
-
-    # print(f"Pretending to copy s3://{copy_source['Bucket']}/{copy_source['Key']} to s3://{destination_bucket}/{copy_source['Key']}...")
-    s3.meta.client.copy(copy_source, destination_bucket, copy_source['Key'])
+                logging.info(f'Running: {cmd} {output_path}')
+            subprocess.run(cmd.split() + [output_path], check=True)
 
 
 def run():
     parser = create_parser()
     args = parser.parse_args()
 
+    LOGLEVEL = 'DEBUG' if args.verbose else os.environ.get('SUBSCRIBER_LOGLEVEL', 'INFO').upper()
+    logging.basicConfig(level=LOGLEVEL)
+    logging.debug("Log level set to " + LOGLEVEL)
+
+    page_size = 2000
+
+    edl = "urs.earthdata.nasa.gov"
+    cmr = "cmr.earthdata.nasa.gov"
+    token_url = "https://" + cmr + "/legacy-services/rest/tokens"
+    parsed_url = urlparse("https://urs.earthdata.nasa.gov")
+
     if args.version:
-        print("PO.DAAC Data Subscriber v" + __version__)
+        logging.info("PO.DAAC Data Subscriber v" + __version__)
         exit()
     try:
         validate(args)
     except ValueError as v:
-        print(v)
+        logging.error(v)
         exit()
 
     username, password = setup_earthdata_login_auth(edl)
@@ -449,16 +433,16 @@ def run():
     # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
 
     if not isdir(data_path):
-        print("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
+        logging.info("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
         makedirs(data_path)
     else:
         try:
             with open(data_path + "/.update", "r") as f:
                 data_within_last_timestamp = f.read().strip()
         except FileNotFoundError:
-            print("WARN: No .update in the data directory. (Is this the first run?)")
+            logging.error("WARN: No .update in the data directory. (Is this the first run?)")
         else:
-            print(
+            logging.info(
                 "NOTE: .update found in the data directory. (The last run was at " + data_within_last_timestamp + ".)")
 
     # Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
@@ -486,19 +470,16 @@ def run():
         temporal_range = get_temporal_range(start_date_time, end_date_time,
                                             datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
         params['temporal'] = temporal_range
-        if args.verbose:
-            print("Temporal Range: " + temporal_range)
+        logging.debug("Temporal Range: " + temporal_range)
 
-    if args.verbose:
-        print("Provider: " + provider)
-        print("Updated Since: " + data_within_last_timestamp)
+    logging.debug("Provider: " + provider)
+    logging.debug("Updated Since: " + data_within_last_timestamp)
 
     # Get the query parameters as a string and then the complete search url:
     query = urlencode(params)
     url = "https://" + cmr + "/search/granules.umm_json?" + query
 
-    if args.verbose:
-        print(url)
+    logging.debug(url)
 
     # Get a new timestamp that represents the UTC time of the search.
     # Then download the records in `umm_json` format for granules
@@ -506,9 +487,8 @@ def run():
     with urlopen(url) as f:
         results = json.loads(f.read().decode())
 
-    if args.verbose:
-        print(str(results[
-                      'hits']) + " new granules found for " + short_name + " since " + data_within_last_timestamp)  # noqa E501
+    logging.debug(str(results[
+                          'hits']) + " new granules found for " + short_name + " since " + data_within_last_timestamp)  # noqa E501
 
     if any([args.dy, args.dydoy, args.dymd]):
         try:
@@ -562,7 +542,7 @@ def run():
     downloads = [item for sublist in downloads_all for item in sublist]
 
     if len(downloads) >= page_size:
-        print("Warning: only the most recent " + str(
+        logging.info("Warning: only the most recent " + str(
             page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
 
     # filter list based on extension
@@ -576,9 +556,8 @@ def run():
 
     downloads = filtered_downloads
 
-    if args.verbose:
-        print("Found " + str(len(downloads)) + " total files to download")
-        print("Downloading files with extensions: " + str(extensions))
+    logging.debug("Found " + str(len(downloads)) + " total files to download")
+    logging.debug("Downloading files with extensions: " + str(extensions))
 
     # Finish by downloading the files to the data directory in a loop.
     # Overwrite `.update` with a new timestamp on success.
@@ -589,15 +568,16 @@ def run():
             try:
                 for extension in extensions:
                     if f.lower().endswith(extension):
-                        upload_return = upload(f, SessionWithHeaderRedirection(username, password, parsed_url), token, args.s3_bucket)
+                        upload_return = upload(f, SessionWithHeaderRedirection(username, password, parsed_url.netloc),
+                                               token, data_path)
                         if "failed_download" in upload_return:
                             raise Exception(upload_return["failed_download"])
-                        print(str(datetime.now()) + " SUCCESS: " + f)
+                        logging.info(str(datetime.now()) + " SUCCESS: " + f)
                         success_cnt = success_cnt + 1
             except Exception as e:
-                print(str(datetime.now()) + " FAILURE: " + f)
+                logging.error(str(datetime.now()) + " FAILURE: " + f)
                 failure_cnt = failure_cnt + 1
-                print(e)
+                logging.error(e)
     else:
         for f in downloads:
             try:
@@ -613,12 +593,12 @@ def run():
                             output_path = prepare_cycles_output(cycles, data_path, f)
                         urlretrieve(f, output_path)
                         process_file(args, process_cmd, output_path)
-                        print(str(datetime.now()) + " SUCCESS: " + f)
+                        logging.info(str(datetime.now()) + " SUCCESS: " + f)
                         success_cnt = success_cnt + 1
             except Exception as e:
-                print(str(datetime.now()) + " FAILURE: " + f)
+                logging.error(str(datetime.now()) + " FAILURE: " + f)
                 failure_cnt = failure_cnt + 1
-                print(e)
+                logging.error(e)
 
     # If there were updates to the local time series during this run and no
     # exceptions were raised during the download loop, then overwrite the
@@ -629,10 +609,10 @@ def run():
             with open(data_path + "/.update", "w") as f:
                 f.write(timestamp)
 
-    print("Downloaded: " + str(success_cnt) + " files\n")
-    print("Files Failed to download:" + str(failure_cnt) + "\n")
+    logging.info("Downloaded: " + str(success_cnt) + " files\n")
+    logging.info("Files Failed to download:" + str(failure_cnt) + "\n")
     delete_token(token_url, token)
-    print("END \n\n")
+    logging.info("END \n\n")
 
 
 def convert_datetime(datetime_obj, strformat="%Y-%m-%dT%H:%M:%S.%fZ"):
@@ -675,11 +655,11 @@ def upload(url, session, token, bucket_name, staging_area="", chunk_size=25600):
             with session.get(url, headers=headers, stream=True) as r:
                 if r.status_code != 200:
                     r.raise_for_status()
-                # logger.info("Uploading {} to Bucket={}, Key={}".format(file_name, bucket_name, key))
+                logging.info("Uploading {} to Bucket={}, Key={}".format(file_name, bucket_name, key))
                 total_bytes = 0
                 with open("s3://{}/{}".format(bucket, key), "wb") as out:
                     for chunk in r.iter_content(chunk_size=chunk_size):
-                        # logger.debug("Uploading {} byte(s)".format(len(chunk)))
+                        logging.debug("Uploading {} byte(s)".format(len(chunk)))
                         out.write(chunk)
                         total_bytes += len(chunk)
             upload_end_time = datetime.utcnow()
