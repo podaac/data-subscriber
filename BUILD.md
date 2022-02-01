@@ -4,11 +4,10 @@
 ```
 python3 -m pip install --upgrade build
 python3 -m pip install --upgrade pip
-python3 -m pip install --upgrade build
 python3 -m pip install --upgrade twine
 ```
 
-## Clean, build, and upload 
+## Clean, build, and upload
 ```
 rm -r dist
 python3 -m build
@@ -24,4 +23,3 @@ python3 -m twine upload dist/*
 pip install podaac-data-subscriber==1.7.0
 podaac-data-subscriber -c xxx -d ddd  --version
 ```
-
