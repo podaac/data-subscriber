@@ -146,6 +146,13 @@ machine urs.earthdata.nasa.gov
     login <your username>
     password <your password>
 ```
+for example:
+
+```
+machine urs.earthdata.nasa.gov
+    login podaacUser
+    password podaacIsAwesome
+```
 
 **If the script cannot find the netrc file, you will be prompted to enter the username and password and the script wont be able to generate the CMR token**
 
