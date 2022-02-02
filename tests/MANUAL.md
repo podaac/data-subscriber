@@ -69,4 +69,48 @@ run AGAIN to ensure no new files are downloaded
 
 ## Downloader
 
+### Test 1
+
+```
+rm MUR25-JPL-L4-GLOB-v04.2
+python subscriber/podaac_data_downloader.py -c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2  -sd 2020-01-01T00:00:00Z -ed 2020-01-02T00:00:00Z -dymd --offset 4
+```
+should yield:
+
+```
+tree MUR25-JPL-L4-GLOB-v04.2/
+MUR25-JPL-L4-GLOB-v04.2/
+└── 2020
+    └── 01
+        ├── 01
+        │   └── 20200101090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc
+        └── 02
+            └── 20200102090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc
+
+4 directories, 2 files
+```
+
+
+run AGAIN to ensure files are re-downloaded
+
+```
+rm MUR25-JPL-L4-GLOB-v04.2/2020/01/01/20200101090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc
+rm MUR25-JPL-L4-GLOB-v04.2/2020/01/02/20200102090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc
+python subscriber/podaac_data_downloader.py -c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2  -sd 2020-01-01T00:00:00Z -ed 2020-01-02T00:00:00Z -dymd --offset 4
+```
+should result in
+
+```
+tree MUR25-JPL-L4-GLOB-v04.2/
+MUR25-JPL-L4-GLOB-v04.2/
+└── 2020
+    └── 01
+        ├── 01
+        │   └── 20200101090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc
+        └── 02
+            └── 20200102090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc
+
+4 directories, 2 files
+```
+
 TBD
