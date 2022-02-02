@@ -113,4 +113,25 @@ MUR25-JPL-L4-GLOB-v04.2/
 4 directories, 2 files
 ```
 
-TBD
+### Test 2
+use to test:
+* cycle based directory layouts
+* Bounding box limiting search results
+
+```
+python subscriber/podaac_data_downloader.py -c JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F -d ./JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F  -dc -sd 2022-01-01T00:00:00Z -ed 2022-01-02T00:00:00Z -b="-20,-20,20,20"
+```
+should result in
+```
+tree JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F/
+JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F/
+└── c0042
+   ├── S6A_P4_2__LR_STD__NR_042_071_20211231T232728_20220101T012144_F04.nc
+   ├── S6A_P4_2__LR_STD__NR_042_082_20220101T090557_20220101T104242_F04.nc
+   ├── S6A_P4_2__LR_STD__NR_042_083_20220101T104242_20220101T123506_F04.nc
+   ├── S6A_P4_2__LR_STD__NR_042_095_20220101T215702_20220101T234905_F04.nc
+   └── S6A_P4_2__LR_STD__NR_042_097_20220101T234905_20220102T014431_F04.nc
+
+1 directory, 5 files
+
+```
