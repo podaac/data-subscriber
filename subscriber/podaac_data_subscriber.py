@@ -102,6 +102,7 @@ def run():
     if start_date_time or end_date_time:
         defined_time_range = True
 
+    ts_shift=0
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
 
