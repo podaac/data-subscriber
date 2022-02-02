@@ -12,31 +12,23 @@
 # Before you beginning this tutorial, make sure you have an Earthdata account:
 # [https://urs.earthdata.nasa.gov] .
 # Accounts are free to create and take just a moment to set up.
-
+import sys
+print(sys.path)
 
 from urllib import request
-from http.cookiejar import CookieJar
-import netrc
 import requests
-import json
-import socket
 import argparse
 import logging
 import os
 from os import makedirs
 from os.path import isdir, basename, join, splitext
-import subprocess
-from urllib.parse import urlencode
 from urllib.request import urlopen, urlretrieve
 from datetime import datetime, timedelta
 
-<<<<<<< HEAD
-from subscriber import podaac_access as pa
+import podaac_access as pa
+#from podaac_access import setup_earthdata_login_auth
 
 __version__ = pa.__version__
-=======
-__version__ = "1.7.2"
->>>>>>> develop
 
 LOGLEVEL = os.environ.get('SUBSCRIBER_LOGLEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOGLEVEL)
@@ -52,9 +44,6 @@ token_url = pa.token_url
 
 # The lines below are to get the IP address. You can make this static and
 # assign a fixed value to the IPAddr variable
-hostname = socket.gethostname()
-IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
-
 
 def create_parser():
     # Initialize parser
@@ -104,7 +93,7 @@ def run():
         exit()
 
     pa.setup_earthdata_login_auth(edl)
-    token = pa.get_token(token_url, 'podaac-subscriber', IPAddr, edl)
+    token = pa.get_token(token_url, 'podaac-subscriber', edl)
 
     mins = args.minutes  # In this case download files ingested in the last 60 minutes -- change this to whatever setting is needed
     provider = args.provider

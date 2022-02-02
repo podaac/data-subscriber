@@ -20,6 +20,8 @@ edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + cmr + "/legacy-services/rest/tokens"
 
+IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
+
 # ## Authentication setup
 #
 # The function below will allow Python scripts to log into any Earthdata Login
@@ -78,13 +80,13 @@ def setup_earthdata_login_auth(endpoint):
 ###############################################################################
 # GET TOKEN FROM CMR
 ###############################################################################
-def get_token(url: str, client_id: str, user_ip: str, endpoint: str) -> str:
+def get_token(url: str, client_id: str, endpoint: str) -> str:
     try:
         token: str = ''
         username, _, password = netrc.netrc().authenticators(endpoint)
         xml: str = """<?xml version='1.0' encoding='utf-8'?>
         <token><username>{}</username><password>{}</password><client_id>{}</client_id>
-        <user_ip_address>{}</user_ip_address></token>""".format(username, password, client_id, user_ip)   # noqa E501
+        <user_ip_address>{}</user_ip_address></token>""".format(username, password, client_id, IPAddr)   # noqa E501
         headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}   # noqa E501
         resp = requests.post(url, headers=headers, data=xml)
         response_content: Dict = json.loads(resp.content)

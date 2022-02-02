@@ -6,8 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## Unreleased
 ### Added
+- conftest.py added to force module inclusion for pytest
 ### Changed
-- Made number of files to download a non-verbose default printout. [33](https://github.com/podaac/data-subscriber/issues/33)
+- created library of common access mechanisms to split between subscriber and downloader capabilities
 ### Deprecated
 ### Removed
 ### Fixed
