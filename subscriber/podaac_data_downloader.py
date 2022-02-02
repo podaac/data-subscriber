@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-
-# # Access Sentinel-6 MF Data using a script
-# This script shows a simple way to maintain a local time series of Sentinel-6
-# data using the
-# [CMR Search API]
-# (https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html).
-# It downloads granules the ingested since
-#   the previous run to a designated data
-#   folder and overwrites a hidden file inside with the timestamp of the
-# CMR Search request on success.
-# Before you beginning this tutorial, make sure you have an Earthdata account:
-# [https://urs.earthdata.nasa.gov] .
-# Accounts are free to create and take just a moment to set up.
 import argparse
 import logging
 import os
@@ -40,17 +27,17 @@ token_url = pa.token_url
 
 def create_parser():
     # Initialize parser
-    parser = argparse.ArgumentParser(prog='PO.DAAC data subscriber')
+    parser = argparse.ArgumentParser(prog='PO.DAAC bulk-data downloader')
 
     # Adding Required arguments
     parser.add_argument("-c", "--collection-shortname", dest="collection",required=True, help = "The collection shortname for which you want to retrieve data.")  # noqa E501
     parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True, help = "The directory where data products will be downloaded.")  # noqa E501
-
+    parser.add_argument("-sd", "--start-date", required=True, dest="startDate", help = "The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z")  # noqa E501
+    parser.add_argument("-ed", "--end-date", required=True, dest="endDate", help = "The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z")   # noqa E501
     # Adding optional arguments
 
     # spatiotemporal arguments
-    parser.add_argument("-sd", "--start-date", dest="startDate", help = "The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z", default=False)  # noqa E501
-    parser.add_argument("-ed", "--end-date", dest="endDate", help = "The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z", default=False)   # noqa E501
+
     parser.add_argument("-b", "--bounds", dest="bbox", help = "The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".", default="-180,-90,180,90")  # noqa E501
 
     # Arguments for how data are stored locally - much processing is based on
@@ -61,9 +48,9 @@ def create_parser():
     parser.add_argument("-dy", dest="dy", action="store_true", help = "Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.")  # noqa E501
     parser.add_argument("--offset", dest="offset", help = "Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.")  # noqa E501
 
-    parser.add_argument("-m", "--minutes", dest="minutes", help = "How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).", type=int, default=60)  # noqa E501
-    parser.add_argument("-e", "--extensions", dest="extensions", help = "The extensions of products to download. Default is [.nc, .h5, .zip]", default=None, action='append')  # noqa E501
+    parser.add_argument("-e", "--extensions", dest="extensions", help="The extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz]", default=None, action='append')  # noqa E501
     parser.add_argument("--process", dest="process_cmd", help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.", action='append')
+
 
     parser.add_argument("--version", action="version", version='%(prog)s ' + __version__, help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true",help="Verbose mode.")    # noqa E501
@@ -84,7 +71,6 @@ def run():
     pa.setup_earthdata_login_auth(edl)
     token = pa.get_token(token_url, 'podaac-subscriber', edl)
 
-    mins = args.minutes  # In this case download files ingested in the last 60 minutes -- change this to whatever setting is needed
     provider = args.provider
     start_date_time = args.startDate
     end_date_time = args.endDate
@@ -93,11 +79,6 @@ def run():
     process_cmd = args.process_cmd
     data_path = args.outputDirectory
 
-    defined_time_range = False
-    if start_date_time or end_date_time:
-        defined_time_range = True
-
-    ts_shift = 0
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
 
@@ -109,43 +90,16 @@ def run():
                      'Please specify exactly one flag '
                      'from -dc, -dy, -dydoy, or -dymd')
 
-    # **The search retrieves granules ingested during the last `n` minutes.
-    # ** A file in your local data dir  file that tracks updates to your data directory,
-    # if one file exists.
-
-    # This is the default way of finding data if no other
-    if defined_time_range:
-        data_within_last_timestamp = start_date_time if start_date_time else end_date_time
-    else:
-        data_within_last_timestamp = (datetime.utcnow() - timedelta(minutes=mins)).strftime("%Y-%m-%dT%H:%M:%SZ")
-
     # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
 
     if not isdir(data_path):
         print("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
         makedirs(data_path)
-    else:
-        try:
-            with open(data_path + "/.update", "r") as f:
-                data_within_last_timestamp = f.read().strip()
-        except FileNotFoundError:
-            print("WARN: No .update in the data directory. (Is this the first run?)")
-        else:
-            print("NOTE: .update found in the data directory. (The last run was at " + data_within_last_timestamp + ".)")
 
     # Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
     bounding_extent = args.bbox
 
-    # There are several ways to query for CMR updates that occured during a given timeframe. Read on in the CMR Search documentation:
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#c-with-new-granules (Collections)
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#c-with-revised-granules (Collections)
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-production-date (Granules)
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-created-at (Granules)
-    # The `created_at` parameter works for our purposes. It's a granule search parameter that returns the records ingested since the input timestamp.
-
-    if defined_time_range:
-        # if(data_since):
-        temporal_range = pa.get_temporal_range(start_date_time, end_date_time, datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
+    temporal_range = pa.get_temporal_range(start_date_time, end_date_time, datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
 
     params = {
         'scroll': "true",
@@ -153,42 +107,24 @@ def run():
         'sort_key': "-start_date",
         'provider': provider,
         'ShortName': short_name,
-        'updated_since': data_within_last_timestamp,
+        'temporal': temporal_range,
         'token': token,
         'bounding_box': bounding_extent,
     }
 
-    if defined_time_range:
-        params = {
-            'scroll': "true",
-            'page_size': page_size,
-            'sort_key': "-start_date",
-            'provider': provider,
-            'updated_since': data_within_last_timestamp,
-            'ShortName': short_name,
-            'temporal': temporal_range,
-            'token': token,
-            'bounding_box': bounding_extent,
-        }
-
-        if args.verbose:
-            print("Temporal Range: " + temporal_range)
-
     if args.verbose:
+        print("Temporal Range: " + temporal_range)
         print("Provider: " + provider)
-        print("Updated Since: " + data_within_last_timestamp)
 
     results = pa.get_search_results(args, params)
 
     if args.verbose:
-        print(str(results['hits'])+" new granules found for "+short_name+" since "+data_within_last_timestamp)   # noqa E501
+        print(str(results['hits'])+" granules found for "+short_name)   # noqa E501
 
     if any([args.dy, args.dydoy, args.dymd]):
         file_start_times = pa.parse_start_times(results)
     elif args.cycle:
         cycles = pa.parse_cycles(results)
-
-    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     downloads_all = []
     downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results['items']]
@@ -246,15 +182,6 @@ def run():
             print(str(datetime.now()) + " FAILURE: " + f)
             failure_cnt = failure_cnt + 1
             print(e)
-
-    # If there were updates to the local time series during this run and no
-    # exceptions were raised during the download loop, then overwrite the
-    #  timestamp file that tracks updates to the data folder
-    #   (`resources/nrt/.update`):
-    if len(results['items']) > 0:
-        if not failure_cnt > 0:
-            with open(data_path + "/.update", "w") as f:
-                f.write(timestamp)
 
     print("Downloaded: " + str(success_cnt) + " files\n")
     print("Files Failed to download:" + str(failure_cnt) + "\n")

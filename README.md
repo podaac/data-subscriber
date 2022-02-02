@@ -1,4 +1,6 @@
 [![Python Build](https://github.com/podaac/data-subscriber/actions/workflows/python-app.yml/badge.svg?branch=main)](https://github.com/podaac/data-subscriber/actions/workflows/python-app.yml)
+[![PyPi release](https://github.com/podaac/data-subscriber/actions/workflows/release.yml/badge.svg)](https://github.com/podaac/data-subscriber/actions/workflows/release.yml)
+
 
 # Scripted Access to PODAAC data
 
@@ -23,10 +25,10 @@ python -m pip install requests
 
 ## Installation
 
-While the scubscriber is not available in the python repository, it can still be installed via pip:
+The scubscriber available in the [pypi python repository](https://pypi.org/project/podaac-data-subscriber/), it can be installed via pip:
 
 ```
-python -m pip install git+https://github.com/podaac/data-subscriber.git
+pip install podaac-data-subscriber
 ```
 
 you should now have access to the subscriber CLI:
