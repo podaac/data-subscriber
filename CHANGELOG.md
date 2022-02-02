@@ -7,11 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## Unreleased
 ### Added
 - conftest.py added to force module inclusion for pytest
+- podaac-data-downloader script for bulk data downloading
 ### Changed
 - created library of common access mechanisms to split between subscriber and downloader capabilities
+- added .tar.gz to list of default extensions. [40](https://github.com/podaac/data-subscriber/issues/40)
 ### Deprecated
 ### Removed
 ### Fixed
+- issue where only specifying an end data cause issues in subscriber. [39](https://github.com/podaac/data-subscriber/issues/39)
 ### Security
 
 ## [1.7.2]

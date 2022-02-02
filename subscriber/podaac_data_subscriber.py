@@ -44,7 +44,7 @@ token_url = pa.token_url
 
 def create_parser():
     # Initialize parser
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='PO.DAAC data subscriber')
 
     # Adding Required arguments
     parser.add_argument("-c", "--collection-shortname", dest="collection",required=True, help = "The collection shortname for which you want to retrieve data.")  # noqa E501
@@ -70,7 +70,7 @@ def create_parser():
     parser.add_argument("--process", dest="process_cmd", help = "Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.", action='append')
 
 
-    parser.add_argument("--version", dest="version", action="store_true",help="Display script version information and exit.")  # noqa E501
+    parser.add_argument("--version", action="version", version='%(prog)s ' + __version__, help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true",help="Verbose mode.")    # noqa E501
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD', help="Specify a provider for collection search. Default is POCLOUD.")    # noqa E501
     return parser
@@ -80,9 +80,6 @@ def run():
     parser = create_parser()
     args = parser.parse_args()
 
-    if args.version:
-        print("PO.DAAC Data Subscriber v" + pa.__version__)
-        exit()
     try:
         pa.validate(args)
     except ValueError as v:
@@ -124,7 +121,7 @@ def run():
 
     # This is the default way of finding data if no other
     if defined_time_range:
-        data_within_last_timestamp = start_date_time
+        data_within_last_timestamp =  start_date_time if start_date_time else end_date_time
     else:
         data_within_last_timestamp = (datetime.utcnow() - timedelta(minutes=mins)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -217,7 +214,7 @@ def run():
 
     #filter list based on extension
     if not extensions:
-        extensions = [".nc", ".h5", ".zip"]
+        extensions = pa.extensions
     filtered_downloads = []
     for f in downloads:
         for extension in extensions:
