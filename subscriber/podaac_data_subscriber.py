@@ -12,18 +12,15 @@
 # Before you beginning this tutorial, make sure you have an Earthdata account:
 # [https://urs.earthdata.nasa.gov] .
 # Accounts are free to create and take just a moment to set up.
-from urllib import request
-import requests
 import argparse
 import logging
 import os
 from os import makedirs
-from os.path import isdir, basename, join, splitext
-from urllib.request import urlopen, urlretrieve
+from os.path import isdir, basename, join
+from urllib.request import urlretrieve
 from datetime import datetime, timedelta
 
 import podaac_access as pa
-#from podaac_access import setup_earthdata_login_auth
 
 __version__ = pa.__version__
 
@@ -37,10 +34,9 @@ edl = pa.edl
 cmr = pa.cmr
 token_url = pa.token_url
 
-
-
 # The lines below are to get the IP address. You can make this static and
 # assign a fixed value to the IPAddr variable
+
 
 def create_parser():
     # Initialize parser
@@ -67,8 +63,7 @@ def create_parser():
 
     parser.add_argument("-m", "--minutes", dest="minutes", help = "How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).", type=int, default=60)  # noqa E501
     parser.add_argument("-e", "--extensions", dest="extensions", help = "The extensions of products to download. Default is [.nc, .h5, .zip]", default=None, action='append')  # noqa E501
-    parser.add_argument("--process", dest="process_cmd", help = "Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.", action='append')
-
+    parser.add_argument("--process", dest="process_cmd", help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.", action='append')
 
     parser.add_argument("--version", action="version", version='%(prog)s ' + __version__, help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true",help="Verbose mode.")    # noqa E501
@@ -102,7 +97,7 @@ def run():
     if start_date_time or end_date_time:
         defined_time_range = True
 
-    ts_shift=0
+    ts_shift = 0
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
 
@@ -114,15 +109,13 @@ def run():
                      'Please specify exactly one flag '
                      'from -dc, -dy, -dydoy, or -dymd')
 
-
     # **The search retrieves granules ingested during the last `n` minutes.
     # ** A file in your local data dir  file that tracks updates to your data directory,
     # if one file exists.
-    #
 
     # This is the default way of finding data if no other
     if defined_time_range:
-        data_within_last_timestamp =  start_date_time if start_date_time else end_date_time
+        data_within_last_timestamp = start_date_time if start_date_time else end_date_time
     else:
         data_within_last_timestamp = (datetime.utcnow() - timedelta(minutes=mins)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -185,7 +178,7 @@ def run():
         print("Provider: " + provider)
         print("Updated Since: " + data_within_last_timestamp)
 
-    results = pa.get_search_results(args,params)
+    results = pa.get_search_results(args, params)
 
     if args.verbose:
         print(str(results['hits'])+" new granules found for "+short_name+" since "+data_within_last_timestamp)   # noqa E501
@@ -194,7 +187,6 @@ def run():
         file_start_times = pa.parse_start_times(results)
     elif args.cycle:
         cycles = pa.parse_cycles(results)
-
 
     timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -210,10 +202,9 @@ def run():
     downloads = [item for sublist in downloads_all for item in sublist]
 
     if len(downloads) >= page_size:
-        print("Warning: only the most recent "+ str(page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
+        print("Warning: only the most recent " + str(page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
 
-
-    #filter list based on extension
+    # filter list based on extension
     if not extensions:
         extensions = pa.extensions
     filtered_downloads = []
@@ -226,13 +217,12 @@ def run():
 
     # https://github.com/podaac/data-subscriber/issues/33
     # Make this a non-verbose message
-    #if args.verbose:
+    # if args.verbose:
     print("Found " + str(len(downloads)) + " total files to download")
     if args.verbose:
         print("Downloading files with extensions: " + str(extensions))
 
-
-    ## NEED TO REFACTOR THIS, A LOT OF STUFF in here
+    # NEED TO REFACTOR THIS, A LOT OF STUFF in here
     # Finish by downloading the files to the data directory in a loop.
     # Overwrite `.update` with a new timestamp on success.
     success_cnt = failure_cnt = 0
@@ -271,6 +261,7 @@ def run():
     pa.delete_token(token_url, token)
     print("END \n\n")
     exit(0)
+
 
 if __name__ == '__main__':
     run()
