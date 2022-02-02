@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(name='podaac-data-subscriber',
-      version='1.7.2',
+      version='1.8.0',
       description='PO.DAAC Data Susbcriber Command Line Tool',
       url='https://github.com/podaac/data-subscriber',
       long_description=long_description,
@@ -16,5 +16,6 @@ setup(name='podaac-data-subscriber',
       entry_points='''
         [console_scripts]
         podaac-data-subscriber=subscriber.podaac_data_subscriber:run
+        podaac-data-downloader=subscriber.podaac_data_downloader:run
     ''',
       zip_safe=False)

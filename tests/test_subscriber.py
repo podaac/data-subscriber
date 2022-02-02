@@ -1,14 +1,15 @@
 from subscriber import podaac_data_subscriber as pds
+from subscriber import podaac_access as pa
 import pytest
 
 
 def test_temporal_range():
 
-    assert pds.get_temporal_range(None, '2021-01-01T00:00:00Z', "2021-08-20T13:30:38Z") == "1900-01-01T00:00:00Z,2021-01-01T00:00:00Z"
-    assert pds.get_temporal_range('2021-01-01T00:00:00Z', '2022-01-01T00:00:00Z', "2021-08-20T13:30:38Z") == "2021-01-01T00:00:00Z,2022-01-01T00:00:00Z"
-    assert pds.get_temporal_range('2021-01-01T00:00:00Z', None, "2021-08-20T13:30:38Z") == "2021-01-01T00:00:00Z,2021-08-20T13:30:38Z"
+    assert pa.get_temporal_range(None, '2021-01-01T00:00:00Z', "2021-08-20T13:30:38Z") == "1900-01-01T00:00:00Z,2021-01-01T00:00:00Z"
+    assert pa.get_temporal_range('2021-01-01T00:00:00Z', '2022-01-01T00:00:00Z', "2021-08-20T13:30:38Z") == "2021-01-01T00:00:00Z,2022-01-01T00:00:00Z"
+    assert pa.get_temporal_range('2021-01-01T00:00:00Z', None, "2021-08-20T13:30:38Z") == "2021-01-01T00:00:00Z,2021-08-20T13:30:38Z"
     with pytest.raises(ValueError):
-        pds.get_temporal_range(None, None, None) == "2021-01-01T00:00:00Z,2021-08-20T13:30:38Z"
+        pa.get_temporal_range(None, None, None) == "2021-01-01T00:00:00Z,2021-08-20T13:30:38Z"
 
 
 def test_validate():
@@ -94,5 +95,5 @@ def test_validate():
 def validate(args):
     parser = pds.create_parser()
     args2 = parser.parse_args(args)
-    pds.validate(args2)
+    pa.validate(args2)
     return args2
