@@ -3,7 +3,6 @@ from subscriber import podaac_access as pa
 import pytest
 
 
-
 def test_temporal_range():
 
     assert pa.get_temporal_range(None, '2021-01-01T00:00:00Z', "2021-08-20T13:30:38Z") == "1900-01-01T00:00:00Z,2021-01-01T00:00:00Z"

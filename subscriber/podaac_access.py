@@ -3,18 +3,14 @@ from http.cookiejar import CookieJar
 import netrc
 import requests
 import json
-import socket
-import argparse
-import logging
-import os
 from os import makedirs
 from os.path import isdir, basename, join, splitext
 import subprocess
 from urllib.parse import urlencode
-from urllib.request import urlopen, urlretrieve
-from datetime import datetime, timedelta
+from urllib.request import urlopen
+from datetime import datetime
 
-__version__ = "1.7.3"
+__version__ = "1.8.0"
 extensions = [".nc", ".h5", ".zip", ".tar.gz"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
@@ -97,6 +93,7 @@ def get_token(url: str, client_id: str, endpoint: str) -> str:
         print("Error getting the token - check user name and password")
     return token
 
+
 ###############################################################################
 # DELETE TOKEN FROM CMR
 ###############################################################################
@@ -111,6 +108,7 @@ def delete_token(url: str, token: str) -> None:
             print("CMR token deleting failed.")
     except:  # noqa E722
         print("Error deleting the token")
+
 
 def validate(args):
     bounds = args.bbox.split(',')
@@ -144,16 +142,17 @@ def validate(args):
     # Error catching for output directory specifications
     # Must specify -d output path or one time-based output directory flag
     if sum([args.cycle, args.dydoy, args.dymd, args.dy]) > 1:
-        parser.error('Too many output directory flags specified, '
-                     'Please specify exactly one flag '
-                     'from -dc, -dy, -dydoy, or -dymd')
+        raise ValueError('Too many output directory flags specified, '
+                         'Please specify exactly one flag '
+                         'from -dc, -dy, -dydoy, or -dymd')
 
 
 def check_dir(path):
     if not isdir(path):
         makedirs(path)
 
-def prepare_time_output(times, prefix, file, args):
+
+def prepare_time_output(times, prefix, file, args, ts_shift):
     """"
     Create output directory using using:
         OUTPUT_DIR/YEAR/DAY_OF_YEAR/
@@ -209,6 +208,7 @@ def prepare_time_output(times, prefix, file, args):
     write_path = join(prefix, time_dir, basename(file))
     return write_path
 
+
 def prepare_cycles_output(data_cycles, prefix, file):
     """"
     Create output directory using OUTPUT_DIR/CYCLE_NUMBER
@@ -236,6 +236,7 @@ def prepare_cycles_output(data_cycles, prefix, file):
     write_path = join(prefix, cycle_dir, basename(file))
     return write_path
 
+
 def process_file(process_cmd, output_path, args):
     if not process_cmd:
         return
@@ -245,6 +246,7 @@ def process_file(process_cmd, output_path, args):
                 print(f'Running: {cmd} {output_path}')
             subprocess.run(cmd.split() + [output_path],
                            check=True)
+
 
 def get_temporal_range(start, end, now):
     start = start if start is not False else None
@@ -258,6 +260,7 @@ def get_temporal_range(start, end, now):
         return "1900-01-01T00:00:00Z,{}".format(end)
 
     raise ValueError("One of start-date or end-date must be specified.")
+
 
 def get_search_results(args, params):
     # Get the query parameters as a string and then the complete search url:
@@ -273,6 +276,7 @@ def get_search_results(args, params):
         results = json.loads(f.read().decode())
     return results
 
+
 def parse_start_times(results):
     try:
         file_start_times = [(r['meta']['native-id'], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']), "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]  # noqa E501
@@ -280,11 +284,12 @@ def parse_start_times(results):
         raise ValueError('Could not locate start time for data.')
     return file_start_times
 
+
 def parse_cycles(results):
     try:
         cycles = [(splitext(r['meta']['native-id'])[0],str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in results['items']]  # noqa E501
     except KeyError:
-        parser.error('No cycles found within collection granules. '
-                     'Specify an output directory or '
-                     'choose another output directory flag other than -dc.')  # noqa E501
+        raise ValueError('No cycles found within collection granules. '
+                         'Specify an output directory or '
+                         'choose another output directory flag other than -dc.')  # noqa E501
     return cycles

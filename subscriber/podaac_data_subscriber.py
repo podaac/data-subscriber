@@ -242,7 +242,7 @@ def run():
             # -dy, args.dy, -dydoy, args.dydoy and -dymd, args.dymd
             if any([args.dy, args.dydoy, args.dymd]):
                 output_path = pa.prepare_time_output(
-                    file_start_times, data_path, f, args)
+                    file_start_times, data_path, f, args, ts_shift)
             # -dc flag
             if args.cycle:
                 output_path = pa.prepare_cycles_output(
