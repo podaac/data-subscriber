@@ -12,9 +12,6 @@
 # Before you beginning this tutorial, make sure you have an Earthdata account:
 # [https://urs.earthdata.nasa.gov] .
 # Accounts are free to create and take just a moment to set up.
-import sys
-print(sys.path)
-
 from urllib import request
 import requests
 import argparse
