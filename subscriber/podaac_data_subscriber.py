@@ -30,9 +30,13 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, urlretrieve
 from datetime import datetime, timedelta
 
+<<<<<<< HEAD
 from subscriber import podaac_access as pa
 
 __version__ = pa.__version__
+=======
+__version__ = "1.7.2"
+>>>>>>> develop
 
 LOGLEVEL = os.environ.get('SUBSCRIBER_LOGLEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOGLEVEL)
