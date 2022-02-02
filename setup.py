@@ -16,5 +16,6 @@ setup(name='podaac-data-subscriber',
       entry_points='''
         [console_scripts]
         podaac-data-subscriber=subscriber.podaac_data_subscriber:run
+        podaac-data-downloader=subscriber.podaac_data_downloader:run
     ''',
       zip_safe=False)
