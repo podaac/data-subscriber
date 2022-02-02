@@ -7,7 +7,7 @@ from os.path import isdir, basename, join
 from urllib.request import urlretrieve
 from datetime import datetime, timedelta
 
-import podaac_access as pa
+from subscriber import podaac_access as pa
 
 __version__ = pa.__version__
 
