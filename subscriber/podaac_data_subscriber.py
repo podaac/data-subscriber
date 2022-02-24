@@ -37,6 +37,7 @@ token_url = pa.token_url
 # The lines below are to get the IP address. You can make this static and
 # assign a fixed value to the IPAddr variable
 
+
 def get_update_file(data_dir, collection_name):
     if isfile(data_dir + "/.update__" + collection_name):
         return data_dir + "/.update__" + collection_name
@@ -45,6 +46,7 @@ def get_update_file(data_dir, collection_name):
         return data_dir + "/.update"
 
     return None
+
 
 def create_parser():
     # Initialize parser
