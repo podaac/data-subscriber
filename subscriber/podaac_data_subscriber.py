@@ -16,7 +16,7 @@ import argparse
 import logging
 import os
 from os import makedirs
-from os.path import isdir, basename, join
+from os.path import isdir, basename, join, isfile
 from urllib.request import urlretrieve
 from datetime import datetime, timedelta
 
@@ -37,6 +37,14 @@ token_url = pa.token_url
 # The lines below are to get the IP address. You can make this static and
 # assign a fixed value to the IPAddr variable
 
+def get_update_file(data_dir, collection_name):
+    if isfile(data_dir + "/.update__" + collection_name):
+        return data_dir + "/.update__" + collection_name
+    elif isfile(data_dir + "/.update"):
+        print("WARNING: found a deprecated use of '.update' file at {0}. After this run it will be renamed to {1}".format(data_dir + "/.update", data_dir + "/.update__" + collection_name))
+        return data_dir + "/.update"
+
+    return None
 
 def create_parser():
     # Initialize parser
@@ -124,14 +132,18 @@ def run():
     if not isdir(data_path):
         print("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
         makedirs(data_path, exist_ok=True)
+
     else:
-        try:
-            with open(data_path + "/.update", "r") as f:
-                data_within_last_timestamp = f.read().strip()
-        except FileNotFoundError:
-            print("WARN: No .update in the data directory. (Is this the first run?)")
+        update_file = get_update_file(data_path, short_name)
+        if update_file is not None:
+            try:
+                with open(update_file, "r") as f:
+                    data_within_last_timestamp = f.read().strip()
+                    print("NOTE: Update found in the data directory. (The last run was at " + data_within_last_timestamp + ".)")
+            except FileNotFoundError:
+                print("WARN: No .update in the data directory. (Is this the first run?)")
         else:
-            print("NOTE: .update found in the data directory. (The last run was at " + data_within_last_timestamp + ".)")
+            print("WARN: No .update__" + short_name + " in the data directory. (Is this the first run?)")
 
     # Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
     bounding_extent = args.bbox
@@ -253,7 +265,7 @@ def run():
     #   (`resources/nrt/.update`):
     if len(results['items']) > 0:
         if not failure_cnt > 0:
-            with open(data_path + "/.update", "w") as f:
+            with open(data_path + "/.update__" + short_name, "w") as f:
                 f.write(timestamp)
 
     print("Downloaded: " + str(success_cnt) + " files\n")
