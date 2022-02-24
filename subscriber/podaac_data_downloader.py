@@ -25,6 +25,26 @@ token_url = pa.token_url
 # assign a fixed value to the IPAddr variable
 
 
+def parse_cycles(cycle_input):
+    # if cycle_input is None:
+    #     return None
+    # if isinstance(cycle_input, list):
+    #     return cycle_input
+    # return [int(cycle_input)]
+    return
+
+
+def validate(args):
+    if args.search_cycles is None and args.startDate is None and args.endDate is None:
+        raise ValueError("Error parsing command line arguments: one of [--start-date and --end-date] or [--cycles] are required")  # noqa E501
+    if args.search_cycles is not None and args.startDate is not None:
+        raise ValueError("Error parsing command line arguments: only one of -sd/--start-date and --cycles are allowed")  # noqa E501
+    if args.search_cycles is not None and args.endDate is not None:
+        raise ValueError("Error parsing command line arguments: only one of -ed/--end-date and --cycles are allowed")  # noqa E50
+    if None in [args.endDate, args.startDate] and args.search_cycles is None:
+        raise ValueError("Error parsing command line arguments: Both --start-date and --end-date must be specified")  # noqa E50
+
+
 def create_parser():
     # Initialize parser
     parser = argparse.ArgumentParser(prog='PO.DAAC bulk-data downloader')
@@ -32,12 +52,14 @@ def create_parser():
     # Adding Required arguments
     parser.add_argument("-c", "--collection-shortname", dest="collection",required=True, help = "The collection shortname for which you want to retrieve data.")  # noqa E501
     parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True, help = "The directory where data products will be downloaded.")  # noqa E501
-    parser.add_argument("-sd", "--start-date", required=True, dest="startDate", help = "The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z")  # noqa E501
-    parser.add_argument("-ed", "--end-date", required=True, dest="endDate", help = "The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z")   # noqa E501
+
+    # Required through validation
+    parser.add_argument("--cycle", required=False, dest="search_cycles", help="Cycle number for determining downloads. can be repeated for multiple cycles", action='append', type=int)
+    parser.add_argument("-sd", "--start-date", required=False, dest="startDate", help="The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z")  # noqa E501
+    parser.add_argument("-ed", "--end-date", required=False, dest="endDate", help="The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z")   # noqa E501
     # Adding optional arguments
 
     # spatiotemporal arguments
-
     parser.add_argument("-b", "--bounds", dest="bbox", help = "The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".", default="-180,-90,180,90")  # noqa E501
 
     # Arguments for how data are stored locally - much processing is based on
@@ -55,6 +77,7 @@ def create_parser():
     parser.add_argument("--version", action="version", version='%(prog)s ' + __version__, help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true",help="Verbose mode.")    # noqa E501
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD', help="Specify a provider for collection search. Default is POCLOUD.")    # noqa E501
+    parser.add_argument("--limit", dest="limit", default='2000', type=int, help="Integer limit for number of granules to download. Useful in testing. Defaults to " + str(page_size))    # noqa E501
     return parser
 
 
@@ -64,6 +87,12 @@ def run():
 
     try:
         pa.validate(args)
+        # download specific validations
+        # cannot specify all thre options (start, end, cycle)
+        # must specify start/end togeher
+        # if cycle, then no sd/ed can be given, and vice versa
+        validate(args)
+
     except ValueError as v:
         print(v)
         exit()
@@ -74,10 +103,13 @@ def run():
     provider = args.provider
     start_date_time = args.startDate
     end_date_time = args.endDate
+    search_cycles = args.search_cycles
     short_name = args.collection
     extensions = args.extensions
     process_cmd = args.process_cmd
     data_path = args.outputDirectory
+    if args.limit is not None:
+        page_size = args.limit
 
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
@@ -99,21 +131,38 @@ def run():
     # Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
     bounding_extent = args.bbox
 
-    temporal_range = pa.get_temporal_range(start_date_time, end_date_time, datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
+    if search_cycles is not None:
+        cmr_cycles = search_cycles
+        params = [
+            ('scroll', "true"),
+            ('page_size', page_size),
+            ('sort_key', "-start_date"),
+            ('provider', provider),
+            ('ShortName', short_name),
+            ('token', token),
+            ('bounding_box', bounding_extent),
+        ]
+        for v in cmr_cycles:
+            params.append(("cycle[]", v))
+        if args.verbose:
+            print("cycles: " + str(cmr_cycles))
 
-    params = {
-        'scroll': "true",
-        'page_size': page_size,
-        'sort_key': "-start_date",
-        'provider': provider,
-        'ShortName': short_name,
-        'temporal': temporal_range,
-        'token': token,
-        'bounding_box': bounding_extent,
-    }
+    else:
+        temporal_range = pa.get_temporal_range(start_date_time, end_date_time, datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
+        params = {
+            'scroll': "true",
+            'page_size': page_size,
+            'sort_key': "-start_date",
+            'provider': provider,
+            'ShortName': short_name,
+            'temporal': temporal_range,
+            'token': token,
+            'bounding_box': bounding_extent,
+        }
+        if args.verbose:
+            print("Temporal Range: " + temporal_range)
 
     if args.verbose:
-        print("Temporal Range: " + temporal_range)
         print("Provider: " + provider)
 
     results = pa.get_search_results(args, params)
