@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## Unreleased
 ### Added
+- cycle based downloads to the podaac-data-downloader. [41](https://github.com/podaac/data-subscriber/issues/41)
 - conftest.py added to force module inclusion for pytest
 - podaac-data-downloader script for bulk data downloading
 ### Changed
