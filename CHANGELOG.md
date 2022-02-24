@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Changed
 - created library of common access mechanisms to split between subscriber and downloader capabilities
 - added .tar.gz to list of default extensions. [40](https://github.com/podaac/data-subscriber/issues/40)
+- Ignore error if destination directory already exists. [46](https://github.com/podaac/data-subscriber/issues/46)
 ### Deprecated
 ### Removed
 ### Fixed
