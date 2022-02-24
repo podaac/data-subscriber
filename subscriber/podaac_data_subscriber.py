@@ -123,7 +123,7 @@ def run():
 
     if not isdir(data_path):
         print("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
-        makedirs(data_path)
+        makedirs(data_path, exist_ok=True)
     else:
         try:
             with open(data_path + "/.update", "r") as f:
