@@ -149,7 +149,7 @@ def validate(args):
 
 def check_dir(path):
     if not isdir(path):
-        makedirs(path)
+        makedirs(path, exist_ok=True)
 
 
 def prepare_time_output(times, prefix, file, args, ts_shift):

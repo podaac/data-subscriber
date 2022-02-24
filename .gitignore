@@ -6,3 +6,4 @@ build/
 dist/
 podaac_data_subscriber.egg-info/
 .idea/
+venv
