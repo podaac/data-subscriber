@@ -8,12 +8,18 @@
 
 ![N|Solid](https://podaac.jpl.nasa.gov/sites/default/files/image/custom_thumbs/podaac_logo.png)
 
-The example script is to download data given a PO.DAAC collection shortname.
-  - These scripts can be set up as a cron that runs every hour or set up to download data per user needs
-  - PO.DAAC is providing this script as “starter” script for download -- advanced features can be added and it would be great if you can contribute these code back to PO.DAAC.
-  - The search and download relies on an API as defined at https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html
 
-If this is your first time running the subscriber, please checkout information on ["your first run"!](#your-first-run)
+## Subscriber or Bulk Download?
+
+There are 2 tools in this repository, the data subscriber and the data downloader. Which you use depends on your use case. If you're not sure, we'd recommend starting with the downloader.
+
+**Downloader** - [Documentation](Downloader.md)
+
+The Downloader is useful if you need to download PO.DAAC data once in a while or prefer to do it "on-demand". The subscriber makes no assumptions about the last time run or what is new in the archive, it simply uses the provided requests and downloads all matching data.
+
+**Subscriber** - [Documentation](Subscriber.md)
+
+The subscriber is useful for users who need to continuously pull the latest data from the PO.DAAC archive. If you feed data into a model or real time process, the subscriber allows you to repeatedly run the script and only download the latest data.
 
 ## Dependencies
 
@@ -37,6 +43,13 @@ you should now have access to the downloader and subscriber Command line interfa
 $> podaac-data-subscriber -h
 usage: podaac_data_subscriber.py [-h] -c COLLECTION -d OUTPUTDIRECTORY [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-m MINUTES]
                                  [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER]
+
+...
+```
+
+```
+$> podaac-data-downloader -h
+usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER] [--limit LIMIT]
 
 ...
 ```
