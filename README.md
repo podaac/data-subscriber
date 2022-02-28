@@ -112,7 +112,7 @@ podaac-data-subscriber -c SENTINEL-1A_SLC -d myData  -p ASF -sd 2014-06-01T00:46
 For error troubleshooting, one can set an environment variable to gain more insight into errors:
 
 ```
-export SUBSCRIBER_LOGLEVEL=DEBUG
+export PODAAC_LOGLEVEL=DEBUG
 ```
 
 And then run the script. This should give you more verbose output on URL requests to CMR, tokens, etc.
