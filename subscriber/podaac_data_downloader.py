@@ -11,7 +11,7 @@ from subscriber import podaac_access as pa
 
 __version__ = pa.__version__
 
-LOGLEVEL = os.environ.get('SUBSCRIBER_LOGLEVEL', 'WARNING').upper()
+LOGLEVEL = os.environ.get('PODAAC_LOGLEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOGLEVEL)
 logging.debug("Log level set to " + LOGLEVEL)
 
