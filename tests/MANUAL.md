@@ -138,4 +138,23 @@ MUR25-JPL-L4-GLOB-v04.2/
 4 directories, 2 files
 ```
 
+Download by cycle
+```
+rm -r JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F
+podaac-data-downloader -c JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F -d ./JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F  -dc  -b="-20,-20,20,20" --cycle 42 --limit 2
+```
+
+should result in
+
+```
+tree JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F
+JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F
+└── c0042
+    ├── S6A_P4_2__LR_STD__NR_042_248_20220107T203645_20220107T221337_F04.nc
+    └── S6A_P4_2__LR_STD__NR_042_249_20220107T221337_20220108T000821_F04.nc
+
+1 directory, 2 files
+
+```
+
 TBD
