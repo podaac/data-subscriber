@@ -24,7 +24,7 @@ from subscriber import podaac_access as pa
 
 __version__ = pa.__version__
 
-LOGLEVEL = os.environ.get('SUBSCRIBER_LOGLEVEL', 'WARNING').upper()
+LOGLEVEL = os.environ.get('PODAAC_LOGLEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOGLEVEL)
 logging.debug("Log level set to " + LOGLEVEL)
 
@@ -33,9 +33,6 @@ page_size = 2000
 edl = pa.edl
 cmr = pa.cmr
 token_url = pa.token_url
-
-# The lines below are to get the IP address. You can make this static and
-# assign a fixed value to the IPAddr variable
 
 
 def get_update_file(data_dir, collection_name):
@@ -46,6 +43,11 @@ def get_update_file(data_dir, collection_name):
         return data_dir + "/.update"
 
     return None
+
+
+def validate(args):
+    if args.minutes is None and args.startDate is False and args.endDate is False:
+        raise ValueError("Error parsing command line arguments: one of --start-date, --end-date or --minutes are required")
 
 
 def create_parser():
@@ -71,12 +73,13 @@ def create_parser():
     parser.add_argument("-dy", dest="dy", action="store_true", help = "Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.")  # noqa E501
     parser.add_argument("--offset", dest="offset", help = "Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.")  # noqa E501
 
-    parser.add_argument("-m", "--minutes", dest="minutes", help = "How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).", type=int, default=60)  # noqa E501
+    parser.add_argument("-m", "--minutes", dest="minutes", help = "How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs.", type=int, default=None)  # noqa E501
     parser.add_argument("-e", "--extensions", dest="extensions", help = "The extensions of products to download. Default is [.nc, .h5, .zip]", default=None, action='append')  # noqa E501
     parser.add_argument("--process", dest="process_cmd", help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.", action='append')
 
     parser.add_argument("--version", action="version", version='%(prog)s ' + __version__, help="Display script version information and exit.")  # noqa E501
-    parser.add_argument("--verbose", dest="verbose", action="store_true",help="Verbose mode.")    # noqa E501
+    parser.add_argument("--verbose", dest="verbose", action="store_true", help="Verbose mode.")    # noqa E501
+
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD', help="Specify a provider for collection search. Default is POCLOUD.")    # noqa E501
     return parser
 
@@ -87,6 +90,7 @@ def run():
 
     try:
         pa.validate(args)
+        validate(args)
     except ValueError as v:
         print(v)
         exit()
