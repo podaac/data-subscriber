@@ -4,12 +4,9 @@ The PO.DAAC Data subscriber is a python-based tool for continuously downloading 
 
 For installation and dependency information, please see the [top-level README](README.md).
 
-If this is your first time running the subscriber, please checkout information on ["your first run"!](#your-first-run)
-
 ```
 $> podaac-data-subscriber -h
-usage: podaac_data_subscriber.py [-h] -c COLLECTION -d OUTPUTDIRECTORY [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-m MINUTES]
-                                 [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER]
+usage: PO.DAAC data subscriber [-h] -c COLLECTION -d OUTPUTDIRECTORY [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-m MINUTES] [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -22,16 +19,14 @@ optional arguments:
   -ed ENDDATE, --end-date ENDDATE
                         The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z
   -b BBOX, --bounds BBOX
-                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing
-                        arguments, to use this command, please use the -b="-180,-90,180,90" syntax when calling from the command line. Default: "-180,-90,180,90".
+                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b="-180,-90,180,90" syntax when calling from the command line. Default: "-180,-90,180,90".
   -dc                   Flag to use cycle number for directory where data products will be downloaded.
   -dydoy                Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.
   -dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.
   -dy                   Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.
   --offset OFFSET       Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.
   -m MINUTES, --minutes MINUTES
-                        How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how
-                        often your cron runs (default: 60 minutes).
+                        How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).
   -e EXTENSIONS, --extensions EXTENSIONS
                         The extensions of products to download. Default is [.nc, .h5, .zip]
   --process PROCESS_CMD
@@ -42,7 +37,7 @@ optional arguments:
                         Specify a provider for collection search. Default is POCLOUD.
 ```
 
-## Step 2:  Run the Script
+##Run the Script
 
 Usage:
 ```
@@ -59,16 +54,30 @@ To run the script, the following parameters are required:
                         The directory where data products will be downloaded.
 ```
 
+And one of
+
+```
+-sd STARTDATE, --start-date STARTDATE
+                      The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z
+-ed ENDDATE, --end-date ENDDATE
+                      The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z
+-m MINUTES, --minutes MINUTES
+                      How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs.                    
+```
+
+
 `COLLECTION` is collection shortname of interest. This can be found from the PO.DAAC Portal, CMR, or earthdata search. Please see the included `Finding_shortname.pdf` document on how to find a collection shortname.
 
 `OUTPUTDIRECTORY` is the directory in which files will be downloaded. It's customary to set this to a data directory and include the collection shortname as part of the path so if you run multiple subscribers, the data are not dumped into the same directory.
 
-The Script will login to CMR and the PO.DAAC Archive using a netrc file. See Note 1 for more information on setting this up.
+One last required item is a time entry, one of `--start-date`, `--end-date`, or `--minutes` must be specified. This is done so that a time is explicitly requested, and fewer assumptions are made about how the users is running the subscriber.
 
-Every time the script runs successfully (that is, no errors), a `.update` file is created in your download directory with the last run timestamp. This timestamp will be used the next time the script is run. It will look for data between the timestamp in that file and the current time to determine new files to download.
+The Script will login to CMR and the PO.DAAC Archive using a **netrc** file. See Note 1 for more information on setting this up.
+
+Every time the script runs successfully (that is, no errors), a `.update__<collectionname>` file is created in your download directory with the last run timestamp. This timestamp will be used the next time the script is run. It will look for data between the timestamp in that file and the current time to determine new files to download.
 
 ## Note: CMR times
-There are numerous 'times' available to query on in CMR. For the default subscriber, we look at the 'created at' field, which will look for when a granule file was ingested into the archive. This means as PO.DAAC gets data, your subscriber will also get data, regardelss of the time range within the granule itself.
+There are numerous 'times' available to query on in CMR. For the default subscriber, we look at the 'created at' field, which will look for when a granule file was ingested into the archive. This means as PO.DAAC gets data, your subscriber will also get data, regardless of the time range within the granule itself.
 
 ## Note: netrc file
 The netrc used within the script  will allow Python scripts to log into any Earthdata Login without being prompted for
@@ -103,34 +112,6 @@ machine urs.earthdata.nasa.gov
 
 **If the script cannot find the netrc file, you will be prompted to enter the username and password and the script wont be able to generate the CMR token**
 
-## Your First Run<a name="yfr"></a>
-
-The first time you run the subscriber, there a few things to be aware of:
-
-1. If no other flags are specified (aside from the required -d and -c), the subscriber looks 60 minutes (the default for the -m option) ago for new data for your data product. If no new data has been ingested in the last 60 minutes, you won't get any results. The next time you run this command, however, it will look for data *since the last run*, so if it's been an hour or 10 days since the last run, it will find any data since that time. This 'last run' time is stored in a file in the -d data download directory. If you change data directories, there will be no 'last run' time, and it will act like your first time.
-
-Take for example a collection that was last updated in February of 2021.
-
-```
-podaac-data-subscriber -c CYGNSS_L1_CDR_V1.0 -d myData
-NOTE: Making new data directory at myData(This is the first run.)
-Downloaded: 0 files
-
-Files Failed to download:0
-
-CMR token successfully deleted
-```
-
-No data! What gives?! oh... because i'm not using any flags, I'm only looking back 60 minutes.
-
-```
-podaac-data-subscriber -c CYGNSS_L1_CDR_V1.0 -d myData --start-date 2021-02-25T00:00:00Z
-2021-07-29 14:33:11.249343 SUCCESS: https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-protected/CYGNSS_L1_CDR_V1.0/cyg03.ddmi.s20210228-000000-e20210228-235959.l1.power-brcs-cdr.a10.d10.nc
-...
-```
-
-Now we're getting data, great!
-
 ## Advanced Usage
 
 ### Request data from another DAAC...
@@ -146,7 +127,7 @@ podaac-data-subscriber -c SENTINEL-1A_SLC -d myData  -p ASF -sd 2014-06-01T00:46
 For error troubleshooting, one can set an environment variable to gain more insight into errors:
 
 ```
-export SUBSCRIBER_LOGLEVEL=DEBUG
+export PODAAC_LOGLEVEL=DEBUG
 ```
 
 And then run the script. This should give you more verbose output on URL requests to CMR, tokens, etc.
@@ -205,45 +186,6 @@ podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e .nc -e .h5
 ### run a post download process
 
 Using the `--process` option, you can run a simple command agaisnt the "just" downloaded file. This will take the format of "<command> <path/to/file>". This means you can run a command like `--process gzip` to gzip all downloaded files. We do not support more advanced processes at this time (piping, running a process on a directory, etc).
-
-
-### Changing how far back the script looks for data
-
-Each time the script runs, the script takes the current time and looks -m minutes ago to determine what files it needs to download. the Default is 60 minutes. So it looks at files ingested within the last hour. This works well fi you run a cron job every 60 minutes.
-
-**If the .update file exists in the output directory, that timestamp will override the -m flag.**
-
-```
--m MINUTES, --minutes MINUTES
-                       How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).
-
-```
-An example of the -m flag:
-```
-podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -m 10
-```
-
-
-## Note: Downloading all or specific files for a collection
-The code is meant to be generic – for some data products, there is more than one file that can be a data files.
-To get just the raw data file as defined by the metadata swap out
-```
-downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type']=="EXTENDED METADATA"] for r in results['items']]
-```
-to
-```
-downloads_metadata = []
-```
-
-```
-downloads = [item for sublist in downloads_all for item in sublist]
-filter_files = ['.nc', '.dat','.bin']  # This will only download netcdf, data, and binary files, you can add/remove other data types as you see fit
-import re
-def Filter(list1, list2):
-    return [n for n in list1 if
-             any(m in n for m in list2)]
-downloads=Filter(downloads,filter_files)
-```
 
 
 ### In need of Help?
