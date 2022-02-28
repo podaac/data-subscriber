@@ -13,6 +13,8 @@
 
 There are 2 tools in this repository, the data subscriber and the data downloader. Which you use depends on your use case. If you're not sure, we'd recommend starting with the downloader.
 
+![Download or Subscribe?](/img/PO.DAAC%20Tools.png)
+
 **Downloader** - [Documentation](Downloader.md)
 
 The Downloader is useful if you need to download PO.DAAC data once in a while or prefer to do it "on-demand". The subscriber makes no assumptions about the last time run or what is new in the archive, it simply uses the provided requests and downloads all matching data.

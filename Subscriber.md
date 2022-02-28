@@ -1,37 +1,10 @@
-[![Python Build](https://github.com/podaac/data-subscriber/actions/workflows/python-app.yml/badge.svg?branch=main)](https://github.com/podaac/data-subscriber/actions/workflows/python-app.yml)
-[![PyPi release](https://github.com/podaac/data-subscriber/actions/workflows/release.yml/badge.svg)](https://github.com/podaac/data-subscriber/actions/workflows/release.yml)
+# Data Subscriber: Continual, Scripted Access to PODAAC data
 
+The PO.DAAC Data subscriber is a python-based tool for continuously downloading data from the PO.DAAC archive. Use this script if you want to constantly download the newest data from PO.DAAC as it comes in.
 
-# Scripted Access to PODAAC data
-
- ----
-
-![N|Solid](https://podaac.jpl.nasa.gov/sites/default/files/image/custom_thumbs/podaac_logo.png)
-
-The example script is to download data given a PO.DAAC collection shortname.
-  - These scripts can be set up as a cron that runs every hour or set up to download data per user needs
-  - PO.DAAC is providing this script as “starter” script for download -- advanced features can be added and it would be great if you can contribute these code back to PO.DAAC.
-  - The search and download relies on an API as defined at https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html
+For installation and dependency information, please see the [top-level README](README.md).
 
 If this is your first time running the subscriber, please checkout information on ["your first run"!](#your-first-run)
-
-## Dependencies
-
-Aside from **python 3**, the only dependency is the python 'requests' module, which can be installed via pip.
-
-```
-python -m pip install requests
-```
-
-## Installation
-
-The scubscriber available in the [pypi python repository](https://pypi.org/project/podaac-data-subscriber/), it can be installed via pip:
-
-```
-pip install podaac-data-subscriber
-```
-
-you should now have access to the subscriber CLI:
 
 ```
 $> podaac-data-subscriber -h
@@ -68,32 +41,6 @@ optional arguments:
   -p PROVIDER, --provider PROVIDER
                         Specify a provider for collection search. Default is POCLOUD.
 ```
-
-One can also call the python package directly:
-
-```
-git clone https://github.com/podaac/data-subscriber.git
-
-Cloning into 'data-subscriber'...
-remote: Enumerating objects: 35, done.
-remote: Counting objects: 100% (35/35), done.
-remote: Compressing objects: 100% (25/25), done.
-remote: Total 35 (delta 14), reused 28 (delta 7), pack-reused 0
-Receiving objects: 100% (35/35), 1.19 MiB | 704.00 KiB/s, done.
-Resolving deltas: 100% (14/14), done.
-$ cd data-subscriber/
-$ python subscriber/podaac_data_subscriber.py -h
-....
-```
-
-## Step 1:  Get Earthdata Login     
-This step is needed only if you dont have an Earthdata login already.
-https://urs.earthdata.nasa.gov/
-> The Earthdata Login provides a single mechanism for user registration and profile  management for all EOSDIS system components (DAACs, Tools, Services). Your Earthdata login   also helps the EOSDIS program better understand the usage of EOSDIS services to improve  user experience through customization of tools and improvement of services. EOSDIS data are  openly available to all and free of charge except where governed by international  agreements.
-
-For setting up your authentication, see the notes on the `netrc` file below.
-
-
 
 ## Step 2:  Run the Script
 

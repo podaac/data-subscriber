@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - added .tar.gz to list of default extensions. [40](https://github.com/podaac/data-subscriber/issues/40)
 - Ignore error if destination directory already exists. [46](https://github.com/podaac/data-subscriber/issues/46)
 - Updated the naming convention of .update file. [44](https://github.com/podaac/data-subscriber/issues/44)
+- one of -m, -sd, or -ed must be given to subscriber. Previously -m 60 was the default if nothing was specified.
 ### Deprecated
 - use of ".update" file naming convention. This will still work, but will be renamed to .update__COLLECTIONNAME after a successful run. the ".update" file will need to be manually cleaned up. See [issue 44](https://github.com/podaac/data-subscriber/issues/44)
 ### Removed
