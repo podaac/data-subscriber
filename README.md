@@ -25,7 +25,7 @@ The subscriber is useful for users who need to continuously pull the latest data
 
 ## Dependencies
 
-Aside from **python 3**, the only dependency is the python 'requests' module, which can be installed via pip.
+Aside from **python 3**, the only dependency is the python 'requests' module, which can be installed via pip. Pip is the `package installer for python`. you don't need to know much of anything about python or pip, as long as you have it installed on the machine you're using.
 
 ```
 python -m pip install requests
