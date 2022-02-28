@@ -34,9 +34,6 @@ edl = pa.edl
 cmr = pa.cmr
 token_url = pa.token_url
 
-# The lines below are to get the IP address. You can make this static and
-# assign a fixed value to the IPAddr variable
-
 
 def get_update_file(data_dir, collection_name):
     if isfile(data_dir + "/.update__" + collection_name):
@@ -82,6 +79,7 @@ def create_parser():
 
     parser.add_argument("--version", action="version", version='%(prog)s ' + __version__, help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true", help="Verbose mode.")    # noqa E501
+
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD', help="Specify a provider for collection search. Default is POCLOUD.")    # noqa E501
     return parser
 

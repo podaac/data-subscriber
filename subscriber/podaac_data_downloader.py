@@ -12,6 +12,7 @@ from subscriber import podaac_access as pa
 __version__ = pa.__version__
 
 LOGLEVEL = os.environ.get('PODAAC_LOGLEVEL', 'WARNING').upper()
+
 logging.basicConfig(level=LOGLEVEL)
 logging.debug("Log level set to " + LOGLEVEL)
 
@@ -77,7 +78,9 @@ def create_parser():
     parser.add_argument("--version", action="version", version='%(prog)s ' + __version__, help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true",help="Verbose mode.")    # noqa E501
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD', help="Specify a provider for collection search. Default is POCLOUD.")    # noqa E501
+
     parser.add_argument("--limit", dest="limit", default='2000', type=int, help="Integer limit for number of granules to download. Useful in testing. Defaults to " + str(page_size))    # noqa E501
+
     return parser
 
 
@@ -87,6 +90,7 @@ def run():
 
     try:
         pa.validate(args)
+
         # download specific validations
         # cannot specify all thre options (start, end, cycle)
         # must specify start/end togeher
@@ -108,6 +112,7 @@ def run():
     extensions = args.extensions
     process_cmd = args.process_cmd
     data_path = args.outputDirectory
+
     if args.limit is not None:
         page_size = args.limit
 
