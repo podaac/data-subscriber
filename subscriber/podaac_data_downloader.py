@@ -80,6 +80,7 @@ def create_parser():
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD', help="Specify a provider for collection search. Default is POCLOUD.")    # noqa E501
 
     parser.add_argument("--limit", dest="limit", default='2000', type=int, help="Integer limit for number of granules to download. Useful in testing. Defaults to " + str(page_size))    # noqa E501
+    parser.add_argument( "--dry-run", dest="dry-run", default=False, action="store_true", help=argparse.SUPPRESS)    # noqa E501
 
     return parser
 
@@ -101,8 +102,8 @@ def run():
         print(v)
         exit()
 
-    pa.setup_earthdata_login_auth(edl)
-    token = pa.get_token(token_url, 'podaac-subscriber', edl)
+    pa.setup_earthdata_login_auth(edl, "podaac-downloader")
+    token = pa.get_token(token_url, 'podaac-downloader', edl)
 
     provider = args.provider
     start_date_time = args.startDate
@@ -170,10 +171,10 @@ def run():
     if args.verbose:
         print("Provider: " + provider)
 
-    results = pa.get_search_results(args, params)
+    results = pa.get_search_results(args.verbose, params)
 
     if args.verbose:
-        print(str(results['hits'])+" granules found for "+short_name)   # noqa E501
+        print(str(len(results))+" granules found for "+short_name)   # noqa E501
 
     if any([args.dy, args.dydoy, args.dymd]):
         file_start_times = pa.parse_start_times(results)

@@ -8,6 +8,7 @@ from os.path import isdir, basename, join, splitext
 import subprocess
 from urllib.parse import urlencode
 from urllib.request import urlopen
+from urllib.request import Request
 from datetime import datetime
 
 __version__ = "1.8.0"
@@ -44,7 +45,7 @@ IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
 # notebook client in your browser.*
 
 
-def setup_earthdata_login_auth(endpoint):
+def setup_earthdata_login_auth(endpoint, agent="podaac-subscriber"):
     """
     Set up the request library so that it authenticates against the given
     Earthdata Login endpoint and is able to track cookies between requests.
@@ -69,7 +70,7 @@ def setup_earthdata_login_auth(endpoint):
     jar = CookieJar()
     processor = request.HTTPCookieProcessor(jar)
     opener = request.build_opener(auth, processor)
-    opener.addheaders = [('User-agent', 'podaac-subscriber-' + __version__)]
+    opener.addheaders = [('User-agent', agent + '-' + __version__)]
     request.install_opener(opener)
 
 
@@ -262,24 +263,36 @@ def get_temporal_range(start, end, now):
     raise ValueError("One of start-date or end-date must be specified.")
 
 
-def get_search_results(args, params):
+def get_search_results(verbose, params):
     # Get the query parameters as a string and then the complete search url:
-    query = urlencode(params)
-    url = "https://" + cmr + "/search/granules.umm_json?" + query
-    if args.verbose:
-        print(url)
+    cmr_search_after = None
+    total = 0
+    results = []
+    while True:
 
-    # Get a new timestamp that represents the UTC time of the search.
-    # Then download the records in `umm_json` format for granules
-    # that match our search parameters:
-    with urlopen(url) as f:
-        results = json.loads(f.read().decode())
+        query = urlencode(params)
+        url = "https://" + cmr + "/search/granules.umm_json?" + query
+        request = Request(url)
+        if cmr_search_after is not None:
+            print("Updating search-after...")
+            request.add_header('CMR-Search-After', cmr_search_after)
+        if verbose:
+            print(url)
+
+        with urlopen(request) as f:
+            f.getheaders()
+            results.extend(json.loads(f.read().decode())['items'])
+            cmr_search_after = f.getheader('CMR-Search-After')
+
+        if cmr_search_after is None:
+            break
+
     return results
 
 
 def parse_start_times(results):
     try:
-        file_start_times = [(r['meta']['native-id'], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']), "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]  # noqa E501
+        file_start_times = [(r['meta']['native-id'], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']), "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results]  # noqa E501
     except KeyError:
         raise ValueError('Could not locate start time for data.')
     return file_start_times
@@ -287,7 +300,7 @@ def parse_start_times(results):
 
 def parse_cycles(results):
     try:
-        cycles = [(splitext(r['meta']['native-id'])[0],str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in results['items']]  # noqa E501
+        cycles = [(splitext(r['meta']['native-id'])[0],str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in results]  # noqa E501
     except KeyError:
         raise ValueError('No cycles found within collection granules. '
                          'Specify an output directory or '

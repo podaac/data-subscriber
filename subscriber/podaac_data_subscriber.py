@@ -28,8 +28,6 @@ LOGLEVEL = os.environ.get('PODAAC_LOGLEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOGLEVEL)
 logging.debug("Log level set to " + LOGLEVEL)
 
-page_size = 2000
-
 edl = pa.edl
 cmr = pa.cmr
 token_url = pa.token_url
@@ -81,6 +79,9 @@ def create_parser():
     parser.add_argument("--verbose", dest="verbose", action="store_true", help="Verbose mode.")    # noqa E501
 
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD', help="Specify a provider for collection search. Default is POCLOUD.")    # noqa E501
+    parser.add_argument( "--dry-run", dest="dry-run", default=False, action="store_true", help=argparse.SUPPRESS)    # noqa E501
+    parser.add_argument( "--force", dest="force", default=False, action="store_true", help="If same download in the data-directory already exists, force download it anyway.")    # noqa E501
+
     return parser
 
 
@@ -95,7 +96,7 @@ def run():
         print(v)
         exit()
 
-    pa.setup_earthdata_login_auth(edl)
+    pa.setup_earthdata_login_auth(edl, "podaac-subscriber")
     token = pa.get_token(token_url, 'podaac-subscriber', edl)
 
     mins = args.minutes  # In this case download files ingested in the last 60 minutes -- change this to whatever setting is needed
@@ -150,7 +151,7 @@ def run():
                 print("WARN: No .update in the data directory. (Is this the first run?)")
         else:
             print("WARN: No .update__" + short_name + " in the data directory. (Is this the first run?)")
-
+            data_within_last_timestamp = "1900-01-01T00:00:00Z"
     # Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
     bounding_extent = args.bbox
 
@@ -166,8 +167,7 @@ def run():
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time, datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
 
     params = {
-        'scroll': "true",
-        'page_size': page_size,
+        'page_size': 2000,
         'sort_key': "-start_date",
         'provider': provider,
         'ShortName': short_name,
@@ -178,8 +178,7 @@ def run():
 
     if defined_time_range:
         params = {
-            'scroll': "true",
-            'page_size': page_size,
+            'page_size': 2000,
             'sort_key': "-start_date",
             'provider': provider,
             'updated_since': data_within_last_timestamp,
@@ -196,10 +195,10 @@ def run():
         print("Provider: " + provider)
         print("Updated Since: " + data_within_last_timestamp)
 
-    results = pa.get_search_results(args, params)
+    results = pa.get_search_results(args.verbose, params)
 
     if args.verbose:
-        print(str(results['hits'])+" new granules found for "+short_name+" since "+data_within_last_timestamp)   # noqa E501
+        print(str(len(results))+" new granules found for "+short_name+" since "+data_within_last_timestamp)   # noqa E501
 
     if any([args.dy, args.dydoy, args.dymd]):
         file_start_times = pa.parse_start_times(results)
@@ -209,8 +208,8 @@ def run():
     timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     downloads_all = []
-    downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results['items']]
-    downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in results['items']]
+    downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results]
+    downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in results]
 
     for f in downloads_data:
         downloads_all.append(f)
@@ -219,8 +218,8 @@ def run():
 
     downloads = [item for sublist in downloads_all for item in sublist]
 
-    if len(downloads) >= page_size:
-        print("Warning: only the most recent " + str(page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
+    # if len(downloads) >= page_size:
+    #     print("Warning: only the most recent " + str(page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
 
     # filter list based on extension
     if not extensions:
@@ -269,7 +268,7 @@ def run():
     # exceptions were raised during the download loop, then overwrite the
     #  timestamp file that tracks updates to the data folder
     #   (`resources/nrt/.update`):
-    if len(results['items']) > 0:
+    if len(results) > 0:
         if not failure_cnt > 0:
             with open(data_path + "/.update__" + short_name, "w") as f:
                 f.write(timestamp)

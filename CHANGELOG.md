@@ -6,7 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## Unreleased
 ### Added
+- added Search After param handling from CMR
 ### Changed
+- Can now download all files from CMR, no longer limited to 2000 [15](https://github.com/podaac/data-subscriber/issues/15)
+- changed user-agent header for Downloader to 'podaac-downloader-VERSION'. Was previously the same as subscriber.
 ### Deprecated
 ### Removed
 ### Fixed
