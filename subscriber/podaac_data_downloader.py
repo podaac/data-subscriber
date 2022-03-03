@@ -69,7 +69,7 @@ def create_parser():
     parser.add_argument("-dydoy", dest="dydoy", action="store_true", help = "Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.")  # noqa E501
     parser.add_argument("-dymd", dest="dymd", action="store_true", help = "Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.")  # noqa E501
     parser.add_argument("-dy", dest="dy", action="store_true", help = "Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.")  # noqa E501
-    parser.add_argument("--offset", dest="offset", help = "Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.")  # noqa E501
+    parser.add_argument("--offset", dest="offset", default=0, help = "Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.")  # noqa E501
 
     parser.add_argument("-e", "--extensions", dest="extensions", help="The extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz]", default=None, action='append')  # noqa E501
     parser.add_argument("--process", dest="process_cmd", help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.", action='append')
@@ -117,6 +117,7 @@ def run():
     if args.limit is not None:
         page_size = args.limit
 
+    ts_shift = 0
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
 
@@ -140,7 +141,6 @@ def run():
     if search_cycles is not None:
         cmr_cycles = search_cycles
         params = [
-            ('scroll', "true"),
             ('page_size', page_size),
             ('sort_key', "-start_date"),
             ('provider', provider),
@@ -156,7 +156,6 @@ def run():
     else:
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time, datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
         params = {
-            'scroll': "true",
             'page_size': page_size,
             'sort_key': "-start_date",
             'provider': provider,
@@ -182,8 +181,8 @@ def run():
         cycles = pa.parse_cycles(results)
 
     downloads_all = []
-    downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results['items']]
-    downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in results['items']]
+    downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results]
+    downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in results]
 
     for f in downloads_data:
         downloads_all.append(f)
@@ -192,8 +191,6 @@ def run():
 
     downloads = [item for sublist in downloads_all for item in sublist]
 
-    if len(downloads) >= page_size:
-        print("Warning: only the most recent " + str(page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
 
     # filter list based on extension
     if not extensions:
