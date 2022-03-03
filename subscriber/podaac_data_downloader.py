@@ -139,7 +139,6 @@ def run():
     if search_cycles is not None:
         cmr_cycles = search_cycles
         params = [
-            ('scroll', "true"),
             ('page_size', page_size),
             ('sort_key', "-start_date"),
             ('provider', provider),
@@ -155,7 +154,6 @@ def run():
     else:
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time, datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
         params = {
-            'scroll': "true",
             'page_size': page_size,
             'sort_key': "-start_date",
             'provider': provider,
@@ -180,30 +178,10 @@ def run():
     elif args.cycle:
         cycles = pa.parse_cycles(results)
 
-    downloads_all = []
-    downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results['items']]
-    downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in results['items']]
-
-    for f in downloads_data:
-        downloads_all.append(f)
-    for f in downloads_metadata:
-        downloads_all.append(f)
-
-    downloads = [item for sublist in downloads_all for item in sublist]
-
-    if len(downloads) >= page_size:
+    if results['hits'] >= page_size:
         print("Warning: only the most recent " + str(page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
 
-    # filter list based on extension
-    if not extensions:
-        extensions = pa.extensions
-    filtered_downloads = []
-    for f in downloads:
-        for extension in extensions:
-            if f.lower().endswith(extension):
-                filtered_downloads.append(f)
-
-    downloads = filtered_downloads
+    downloads = pa.filter_downloads(results, extensions)
 
     # https://github.com/podaac/data-subscriber/issues/33
     # Make this a non-verbose message

@@ -11,38 +11,12 @@ from urllib.request import urlopen
 from datetime import datetime
 
 __version__ = "1.8.0"
-extensions = [".nc", ".h5", ".zip", ".tar.gz"]
+extensions = [".nc", ".h5", ".zip", ".tar.gz", ".nc4", ".nc3"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + cmr + "/legacy-services/rest/tokens"
 
 IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
-
-# ## Authentication setup
-#
-# The function below will allow Python scripts to log into any Earthdata Login
-#  application programmatically.  To avoid being prompted for
-# credentials every time you run and also allow clients such as curl to log in,
-#  you can add the following to a `.netrc` (`_netrc` on Windows) file in
-#  your home directory:
-#
-# ```
-# machine urs.earthdata.nasa.gov
-#     login <your username>
-#     password <your password>
-# ```
-#
-# Make sure that this file is only readable by the current user
-# or you will receive an error stating
-# "netrc access too permissive."
-#
-# `$ chmod 0600 ~/.netrc`
-#
-# You'll need to authenticate using the netrc method when running from
-# command line with [`papermill`](https://papermill.readthedocs.io/en/latest/).
-# You can log in manually by executing the cell below when running in the
-# notebook client in your browser.*
-
 
 def setup_earthdata_login_auth(endpoint):
     """
@@ -293,3 +267,37 @@ def parse_cycles(results):
                          'Specify an output directory or '
                          'choose another output directory flag other than -dc.')  # noqa E501
     return cycles
+
+
+def filter_results(results):
+    downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results]
+    downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in results]
+    return downloads_data, downloads_metadata
+
+
+def filter_downloads(results, user_extensions):
+    downloads_all = []
+    downloads_data, downloads_metadata = filter_results(results['items'])
+
+    for f in downloads_data:
+        downloads_all.append(f)
+    for f in downloads_metadata:
+        downloads_all.append(f)
+
+    downloads = [item for sublist in downloads_all for item in sublist]
+
+    if not user_extensions:
+        user_extensions = extensions
+    filtered_downloads = []
+    for f in downloads:
+        for extension in user_extensions:
+            if f.lower().endswith(extension):
+                filtered_downloads.append(f)
+
+    if results['hits'] > 0 and len(filtered_downloads) == 0:
+        print("WARNING: All downloads have been filtered out based on the user provided or default extensions: " + str(user_extensions) + ". Please specify an extension (-e) that allows for downlaoding of these files.")
+        downloads_data, downloads_metadata = filter_results([results['items'][0]])
+        print("WARNING: Example data files for this collection include" + str(downloads_data))
+
+
+    return filtered_downloads

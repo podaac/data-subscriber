@@ -157,4 +157,21 @@ JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F
 
 ```
 
+Download data with no suffix
+
+```
+podaac-data-downloader -c GRACEFO_L2_CSR_MONTHLY_0060 -d /Volumes/DataDisk/GRACE_RL06/CSR_SPHARM_60 -sd 2018-01-01T00:00:00Z -ed 2018-12-31T00:00:00Z --limit 2
+```
+should result in
+
+```
+tree GRACE_RL06/
+GRACE_RL06/
+└── CSR_SPHARM_60
+    ├── GSM-2_2018335-2018365_GRFO_UTCSR_BA01_0600
+    └── GSM-2_2018335-2018365_GRFO_UTCSR_BB01_0600
+
+1 directory, 2 files
+```
+
 TBD
