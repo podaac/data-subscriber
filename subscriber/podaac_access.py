@@ -253,7 +253,7 @@ def process_file(process_cmd, output_path, args):
             if args.verbose:
                 logging.info(f'Running: {cmd} {output_path}')
             subprocess.run(cmd.split() + [output_path],
-                           check=True, stdout=PIPE, stderr=PIPE)
+                           check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def get_temporal_range(start, end, now):

@@ -288,7 +288,7 @@ def run():
             pa.process_file(process_cmd, output_path, args)
             logging.info(str(datetime.now()) + " SUCCESS: " + f)
             success_cnt = success_cnt + 1
-        except Exception as e:
+        except Exception:
             logging.warning(str(datetime.now()) + " FAILURE: " + f, exc_info=True)
             failure_cnt = failure_cnt + 1
 
