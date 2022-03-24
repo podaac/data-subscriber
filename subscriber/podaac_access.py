@@ -7,10 +7,18 @@ from http.cookiejar import CookieJar
 from os import makedirs
 from os.path import isdir, basename, join, splitext
 from urllib import request
+from typing import Dict
+from urllib import request
+from urllib.error import HTTPError
+import subprocess
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
 import requests
+
+import requests
+import tenacity
+from datetime import datetime
 
 __version__ = "1.8.0"
 extensions = [".nc", ".h5", ".zip", ".tar.gz"]
@@ -111,6 +119,12 @@ def delete_token(url: str, token: str) -> None:
             logging.info("CMR token deleting failed.")
     except:  # noqa E722
         logging.warning("Error deleting the token")
+
+
+def refresh_token(old_token: str, client_id: str):
+    setup_earthdata_login_auth(edl)
+    delete_token(token_url, old_token)
+    return get_token(token_url, client_id, edl)
 
 
 def validate(args):
@@ -270,6 +284,13 @@ def get_temporal_range(start, end, now):
     raise ValueError("One of start-date or end-date must be specified.")
 
 
+# Retry using random exponential backoff if a 500 error is raised. Maximum 10 attempts.
+@tenacity.retry(wait=tenacity.wait_random_exponential(multiplier=1, max=60),
+                stop=tenacity.stop_after_attempt(10),
+                reraise=True,
+                retry=(tenacity.retry_if_exception_type(HTTPError) & tenacity.retry_if_exception(
+                    lambda exc: exc.code == 500))
+                )
 def get_search_results(args, params):
     # Get the query parameters as a string and then the complete search url:
     query = urlencode(params)

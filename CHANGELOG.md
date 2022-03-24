@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 ### Added
 ### Changed
+- Retry CMR queries on server error using random exponential backoff max 60 seconds and 10 retries
+- Refresh token if CMR returns 401 error
 - Converted print statements to log statements
 ### Deprecated
 ### Removed
