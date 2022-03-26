@@ -61,8 +61,8 @@ def create_parser():
     # Adding optional arguments
 
     # spatiotemporal arguments
-    parser.add_argument("-sd", "--start-date", dest="startDate", help = "The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z", default=False)  # noqa E501
-    parser.add_argument("-ed", "--end-date", dest="endDate", help = "The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z", default=False)   # noqa E501
+    parser.add_argument("-sd", "--start-date", dest="startDate", help = "The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z or --start-date 2021-01-14", default=False)  # noqa E501
+    parser.add_argument("-ed", "--end-date", dest="endDate", help = "The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-15T00:00:00Z or --end-date 2021-01-15", default=False)   # noqa E501
     parser.add_argument("-b", "--bounds", dest="bbox", help = "The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".", default="-180,-90,180,90")  # noqa E501
 
     # Arguments for how data are stored locally - much processing is based on
@@ -100,8 +100,8 @@ def run():
 
     mins = args.minutes  # In this case download files ingested in the last 60 minutes -- change this to whatever setting is needed
     provider = args.provider
-    start_date_time = args.startDate
-    end_date_time = args.endDate
+    start_date_time = pa.cmr_date(args.startDate)
+    end_date_time = pa.cmr_date(args.endDate, end=True)
     short_name = args.collection
     extensions = args.extensions
     process_cmd = args.process_cmd

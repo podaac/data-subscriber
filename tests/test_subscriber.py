@@ -41,6 +41,20 @@ def test_update_format_change(cleanup_update_test):
     assert pds.get_update_file(data_dir_with_updates, collection_name_does_not_exist) == data_dir_with_updates+"/.update"
     assert pds.get_update_file(data_dir_with_updates, collection_name_exists) == data_dir_with_updates+'/.update__' + collection_name_exists
 
+
+def test_cmr_date():
+    assert pa.cmr_date('2020-01-01T00:00:00Z') == '2020-01-01T00:00:00Z'
+    assert pa.cmr_date('2020-01-01') == '2020-01-01T00:00:00Z'
+    assert pa.cmr_date('2020-01-01', end=True) == '2020-01-01T23:59:59Z'
+    assert pa.cmr_date('2020-01-01T00:00:00Z', end=True) == '2020-01-01T00:00:00Z'
+
+def test_date_validate():
+    #new start date formats
+    a = validate(["-c", "dataset", "-d", "/data", "-sd", "2020-01-01", "-ed", "2021-01-02"])
+    assert a.startDate == '2020-01-01'
+    assert a.endDate == '2021-01-02'
+    assert a.provider == "POCLOUD"
+
 def test_validate():
     # work
     a = validate(["-c", "viirs", "-d", "/data"])
@@ -82,14 +96,15 @@ def test_validate():
     assert a.endDate == '2021-01-01T00:00:00Z'
     assert a.provider == "POCLOUD"
 
+
     a = validate(["-c", "dataset", "-d", "/data", "-p", "ANEWCLOUD"])
     assert a.provider == 'ANEWCLOUD'
 
     with pytest.raises(ValueError):
-        a = validate(["-c", "dataset", "-d", "/data", "-sd", "2020-01-01", "-ed", "2021-01-01T00:00:00Z"])
+        a = validate(["-c", "dataset", "-d", "/data", "-sd", "2020/01/01", "-ed", "2021-01-01T00:00:00Z"])
 
     with pytest.raises(ValueError):
-        a = validate(["-c", "dataset", "-d", "/data", "-sd", "2020-01-01T00:00:00Z", "-ed", "2021-01-01"])
+        a = validate(["-c", "dataset", "-d", "/data", "-sd", "2020-01-01T00:00:00Z", "-ed", "01/01/2021"])
 
     with pytest.raises(ValueError):
         a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180,90anc", "-m", "100"])

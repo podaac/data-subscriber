@@ -8,7 +8,7 @@ from os.path import isdir, basename, join, splitext
 import subprocess
 from urllib.parse import urlencode
 from urllib.request import urlopen
-from datetime import datetime
+from datetime import datetime, timedelta
 
 __version__ = "1.8.0"
 extensions = [".nc", ".h5", ".zip", ".tar.gz"]
@@ -109,6 +109,20 @@ def delete_token(url: str, token: str) -> None:
     except:  # noqa E722
         print("Error deleting the token")
 
+def cmr_date(input_date, end=False):
+    new_dt = None
+    for fmt in ('%Y-%m-%d', '%Y-%m-%dT%H:%M:%SZ'):
+        try:
+            new_dt = datetime.strptime(input_date, fmt)
+            if end and 'T' not in fmt:
+                new_dt = new_dt + timedelta(days=1) - timedelta(seconds=1)
+        except ValueError:
+            pass
+
+    if new_dt is None:
+        raise ValueError("cannot convert " + input_date + " to a cmr date")
+    return new_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
 
 def validate(args):
     bounds = args.bbox.split(',')
@@ -122,13 +136,13 @@ def validate(args):
 
     if args.startDate:
         try:
-            datetime.strptime(args.startDate, '%Y-%m-%dT%H:%M:%SZ')
+            cmr_date(args.startDate)
         except ValueError:
-            raise ValueError("Error parsing '--start-date' date: " + args.startDate + ". Format must be like 2021-01-14T00:00:00Z")   # noqa E501
+            raise ValueError("Error parsing '--start-date' date: " + args.startDate + ". Format must be like 2021-01-14T00:00:00Z or 2021-01-14")   # noqa E501
 
     if args.endDate:
         try:
-            datetime.strptime(args.endDate, '%Y-%m-%dT%H:%M:%SZ')
+            cmr_date(args.endDate)
         except ValueError:
             raise ValueError("Error parsing '--end-date' date: " + args.endDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
 

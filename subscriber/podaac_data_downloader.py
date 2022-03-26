@@ -56,8 +56,8 @@ def create_parser():
 
     # Required through validation
     parser.add_argument("--cycle", required=False, dest="search_cycles", help="Cycle number for determining downloads. can be repeated for multiple cycles", action='append', type=int)
-    parser.add_argument("-sd", "--start-date", required=False, dest="startDate", help="The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z")  # noqa E501
-    parser.add_argument("-ed", "--end-date", required=False, dest="endDate", help="The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z")   # noqa E501
+    parser.add_argument("-sd", "--start-date", dest="startDate", help = "The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z or --start-date 2021-01-14", default=False)  # noqa E501
+    parser.add_argument("-ed", "--end-date", dest="endDate", help = "The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-15T00:00:00Z or --end-date 2021-01-15", default=False)   # noqa E501
     # Adding optional arguments
 
     # spatiotemporal arguments
@@ -105,8 +105,8 @@ def run():
     token = pa.get_token(token_url, 'podaac-subscriber', edl)
 
     provider = args.provider
-    start_date_time = args.startDate
-    end_date_time = args.endDate
+    start_date_time = pa.cmr_date(args.startDate)
+    end_date_time = pa.cmr_date(args.endDate, end=True)
     search_cycles = args.search_cycles
     short_name = args.collection
     extensions = args.extensions
