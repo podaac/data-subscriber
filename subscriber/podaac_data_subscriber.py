@@ -19,6 +19,7 @@ import sys
 from datetime import datetime, timedelta
 from os import makedirs
 from os.path import isdir, basename, join, isfile
+from urllib.error import HTTPError
 from urllib.request import urlretrieve
 
 from subscriber import podaac_access as pa
@@ -219,7 +220,16 @@ def run():
         logging.info("Provider: " + provider)
         logging.info("Updated Since: " + data_within_last_timestamp)
 
-    results = pa.get_search_results(args, params)
+    # If 401 is raised, refresh token and try one more time
+    try:
+        results = pa.get_search_results(args, params)
+    except HTTPError as e:
+        if e.code == 401:
+            token = pa.refresh_token(token, 'podaac-subscriber')
+            params['token'] = token
+            results = pa.get_search_results(args, params)
+        else:
+            raise e
 
     if args.verbose:
         logging.info(str(results[

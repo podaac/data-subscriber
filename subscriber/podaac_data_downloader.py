@@ -6,6 +6,7 @@ import sys
 from datetime import datetime, timedelta
 from os import makedirs
 from os.path import isdir, basename, join
+from urllib.error import HTTPError
 from urllib.request import urlretrieve
 
 from subscriber import podaac_access as pa
@@ -192,7 +193,16 @@ def run():
     if args.verbose:
         logging.info("Provider: " + provider)
 
-    results = pa.get_search_results(args, params)
+    # If 401 is raised, refresh token and try one more time
+    try:
+        results = pa.get_search_results(args, params)
+    except HTTPError as e:
+        if e.code == 401:
+            token = pa.refresh_token(token, 'podaac-subscriber')
+            params['token'] = token
+            results = pa.get_search_results(args, params)
+        else:
+            raise e
 
     if args.verbose:
         logging.info(str(results['hits']) + " granules found for " + short_name)  # noqa E501
