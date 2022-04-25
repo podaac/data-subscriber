@@ -195,12 +195,12 @@ def run():
 
     # If 401 is raised, refresh token and try one more time
     try:
-        results = pa.get_search_results(args, params)
+        results = pa.get_search_results(params, args.verbose)
     except HTTPError as e:
         if e.code == 401:
             token = pa.refresh_token(token, 'podaac-subscriber')
             params['token'] = token
-            results = pa.get_search_results(args, params)
+            results = pa.get_search_results(params, args.verbose)
         else:
             raise e
 

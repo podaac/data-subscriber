@@ -124,9 +124,9 @@ def extract_checksums(granule_results):
 
     For Example:
     {
-        "some-granule-name.nc": { 
-            "Value": "d96387295ea979fb8f7b9aa5f231c4ab", 
-            "Algorithm": "MD5" 
+        "some-granule-name.nc": {
+            "Value": "d96387295ea979fb8f7b9aa5f231c4ab",
+            "Algorithm": "MD5"
         },
         "some-granule-name.nc.md5": {
             "Value": '320876f087da0876edc0876ab0876b7a",
@@ -157,7 +157,7 @@ def checksum_does_match(file_path, checksums):
     ----------
     file_path : string
         The relative or absolute path to an existing file
-    
+
     checksums: dict
         A dictionary where keys are filenames (not including the path)
         and values are checksum information (checksum value and checksum algorithm)
@@ -304,12 +304,12 @@ def run():
 
     # If 401 is raised, refresh token and try one more time
     try:
-        results = pa.get_search_results(args, params)
+        results = pa.get_search_results(params, args.verbose)
     except HTTPError as e:
         if e.code == 401:
             token = pa.refresh_token(token, 'podaac-subscriber')
             params['token'] = token
-            results = pa.get_search_results(args, params)
+            results = pa.get_search_results(params, args.verbose)
         else:
             raise e
 
@@ -325,7 +325,7 @@ def run():
     timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     downloads_all = []
-    
+
     downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if
                        u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in
                       results['items']]

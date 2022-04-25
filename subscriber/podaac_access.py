@@ -291,11 +291,11 @@ def get_temporal_range(start, end, now):
                 retry=(tenacity.retry_if_exception_type(HTTPError) & tenacity.retry_if_exception(
                     lambda exc: exc.code == 500))
                 )
-def get_search_results(args, params):
+def get_search_results(params, verbose=False):
     # Get the query parameters as a string and then the complete search url:
     query = urlencode(params)
     url = "https://" + cmr + "/search/granules.umm_json?" + query
-    if args.verbose:
+    if verbose:
         logging.info(url)
 
     # Get a new timestamp that represents the UTC time of the search.

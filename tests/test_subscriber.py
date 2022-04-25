@@ -24,6 +24,17 @@ def cleanup_update_test():
     shutil.rmtree(data_dir_with_updates)
 
 
+def test_search_after():
+    params = {
+        'page_size': 2000,
+        'sort_key': "-start_date",
+        'provider': "POCLOUD",
+        'ShortName': "JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F",
+        'temporal': "2000-01-01T10:00:00Z,2022-04-15T00:00:00Z",
+        'bounding_box': "-180,-90,180,90",
+    }
+    pa.get_search_results(params, True)
+
 def test_update_format_change(cleanup_update_test):
     print("Running Test")
     data_dir_with_updates = "./test_update_format_change"
