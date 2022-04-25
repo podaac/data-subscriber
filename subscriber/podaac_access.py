@@ -1,13 +1,23 @@
-from urllib import request
-from http.cookiejar import CookieJar
-import netrc
-import requests
 import json
+import logging
+import netrc
+import subprocess
+from datetime import datetime
+from http.cookiejar import CookieJar
 from os import makedirs
 from os.path import isdir, basename, join, splitext
+from urllib import request
+from typing import Dict
+from urllib import request
+from urllib.error import HTTPError
 import subprocess
 from urllib.parse import urlencode
 from urllib.request import urlopen
+
+import requests
+
+import requests
+import tenacity
 from datetime import datetime
 
 __version__ = "1.8.0"
@@ -17,6 +27,7 @@ cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + cmr + "/legacy-services/rest/tokens"
 
 IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
+
 
 # ## Authentication setup
 #
@@ -60,7 +71,7 @@ def setup_earthdata_login_auth(endpoint):
         # FileNotFound = There's no .netrc file
         # TypeError = The endpoint isn't in the netrc file,
         #  causing the above to try unpacking None
-        print("There's no .netrc file or the The endpoint isn't in the netrc file")  # noqa E501
+        logging.warning("There's no .netrc file or the The endpoint isn't in the netrc file")
 
     manager = request.HTTPPasswordMgrWithDefaultRealm()
     manager.add_password(None, endpoint, username, password)
@@ -82,15 +93,15 @@ def get_token(url: str, client_id: str, endpoint: str) -> str:
         username, _, password = netrc.netrc().authenticators(endpoint)
         xml: str = """<?xml version='1.0' encoding='utf-8'?>
         <token><username>{}</username><password>{}</password><client_id>{}</client_id>
-        <user_ip_address>{}</user_ip_address></token>""".format(username, password, client_id, IPAddr)   # noqa E501
-        headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}   # noqa E501
+        <user_ip_address>{}</user_ip_address></token>""".format(username, password, client_id, IPAddr)  # noqa E501
+        headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}  # noqa E501
         resp = requests.post(url, headers=headers, data=xml)
         response_content: Dict = json.loads(resp.content)
         token = response_content['token']['id']
 
     # What error is thrown here? Value Error? Request Errors?
     except:  # noqa E722
-        print("Error getting the token - check user name and password")
+        logging.warning("Error getting the token - check user name and password")
     return token
 
 
@@ -99,45 +110,56 @@ def get_token(url: str, client_id: str, endpoint: str) -> str:
 ###############################################################################
 def delete_token(url: str, token: str) -> None:
     try:
-        headers: Dict = {'Content-Type': 'application/xml','Accept': 'application/json'}   # noqa E501
+        headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}  # noqa E501
         url = '{}/{}'.format(url, token)
         resp = requests.request('DELETE', url, headers=headers)
         if resp.status_code == 204:
-            print("CMR token successfully deleted")
+            logging.info("CMR token successfully deleted")
         else:
-            print("CMR token deleting failed.")
+            logging.info("CMR token deleting failed.")
     except:  # noqa E722
-        print("Error deleting the token")
+        logging.warning("Error deleting the token")
+
+
+def refresh_token(old_token: str, client_id: str):
+    setup_earthdata_login_auth(edl)
+    delete_token(token_url, old_token)
+    return get_token(token_url, client_id, edl)
 
 
 def validate(args):
     bounds = args.bbox.split(',')
     if len(bounds) != 4:
-        raise ValueError("Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")   # noqa E501
+        raise ValueError(
+            "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
     for b in bounds:
         try:
             float(b)
         except ValueError:
-            raise ValueError("Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")   # noqa E501
+            raise ValueError(
+                "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
 
     if args.startDate:
         try:
             datetime.strptime(args.startDate, '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
-            raise ValueError("Error parsing '--start-date' date: " + args.startDate + ". Format must be like 2021-01-14T00:00:00Z")   # noqa E501
+            raise ValueError(
+                "Error parsing '--start-date' date: " + args.startDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
 
     if args.endDate:
         try:
             datetime.strptime(args.endDate, '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
-            raise ValueError("Error parsing '--end-date' date: " + args.endDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
+            raise ValueError(
+                "Error parsing '--end-date' date: " + args.endDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
 
     if 'minutes' in args:
         if args.minutes:
             try:
                 int(args.minutes)
             except ValueError:
-                raise ValueError("Error parsing '--minutes': " + args.minutes + ". Number must be an integer.")  # noqa E501
+                raise ValueError(
+                    "Error parsing '--minutes': " + args.minutes + ". Number must be an integer.")  # noqa E501
 
     # Error catching for output directory specifications
     # Must specify -d output path or one time-based output directory flag
@@ -243,9 +265,9 @@ def process_file(process_cmd, output_path, args):
     else:
         for cmd in process_cmd:
             if args.verbose:
-                print(f'Running: {cmd} {output_path}')
+                logging.info(f'Running: {cmd} {output_path}')
             subprocess.run(cmd.split() + [output_path],
-                           check=True)
+                           check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def get_temporal_range(start, end, now):
@@ -262,12 +284,19 @@ def get_temporal_range(start, end, now):
     raise ValueError("One of start-date or end-date must be specified.")
 
 
+# Retry using random exponential backoff if a 500 error is raised. Maximum 10 attempts.
+@tenacity.retry(wait=tenacity.wait_random_exponential(multiplier=1, max=60),
+                stop=tenacity.stop_after_attempt(10),
+                reraise=True,
+                retry=(tenacity.retry_if_exception_type(HTTPError) & tenacity.retry_if_exception(
+                    lambda exc: exc.code == 500))
+                )
 def get_search_results(args, params):
     # Get the query parameters as a string and then the complete search url:
     query = urlencode(params)
     url = "https://" + cmr + "/search/granules.umm_json?" + query
     if args.verbose:
-        print(url)
+        logging.info(url)
 
     # Get a new timestamp that represents the UTC time of the search.
     # Then download the records in `umm_json` format for granules
@@ -279,7 +308,9 @@ def get_search_results(args, params):
 
 def parse_start_times(results):
     try:
-        file_start_times = [(r['meta']['native-id'], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']), "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]  # noqa E501
+        file_start_times = [(r['meta']['native-id'],
+                             datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']),
+                                               "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]  # noqa E501
     except KeyError:
         raise ValueError('Could not locate start time for data.')
     return file_start_times
@@ -287,7 +318,9 @@ def parse_start_times(results):
 
 def parse_cycles(results):
     try:
-        cycles = [(splitext(r['meta']['native-id'])[0],str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in results['items']]  # noqa E501
+        cycles = [(splitext(r['meta']['native-id'])[0],
+                   str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in
+                  results['items']]  # noqa E501
     except KeyError:
         raise ValueError('No cycles found within collection granules. '
                          'Specify an output directory or '
