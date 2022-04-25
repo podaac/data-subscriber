@@ -161,7 +161,6 @@ def run():
     if search_cycles is not None:
         cmr_cycles = search_cycles
         params = [
-            ('scroll', "true"),
             ('page_size', page_size),
             ('sort_key', "-start_date"),
             ('provider', provider),
@@ -178,7 +177,6 @@ def run():
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time,
                                                datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
         params = {
-            'scroll': "true",
             'page_size': page_size,
             'sort_key': "-start_date",
             'provider': provider,

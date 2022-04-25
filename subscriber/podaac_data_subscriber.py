@@ -272,7 +272,6 @@ def run():
                                                datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
 
     params = {
-        'scroll': "true",
         'page_size': page_size,
         'sort_key': "-start_date",
         'provider': provider,
@@ -284,7 +283,6 @@ def run():
 
     if defined_time_range:
         params = {
-            'scroll': "true",
             'page_size': page_size,
             'sort_key': "-start_date",
             'provider': provider,
