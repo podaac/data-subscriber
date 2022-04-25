@@ -3,6 +3,56 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+
+## [Unreleased]
+### Added
+- check if file exists before downloading a file. [17](https://github.com/podaac/data-subscriber/issues/17)
+### Changed
+- Retry CMR queries on server error using random exponential backoff max 60 seconds and 10 retries
+- Refresh token if CMR returns 401 error
+- Converted print statements to log statements
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+## [1.8.0]
+### Added
+- limit to set limit of downloads- useful for testing
+- cycle based downloads to the podaac-data-downloader. [41](https://github.com/podaac/data-subscriber/issues/41)
+- conftest.py added to force module inclusion for pytest
+- podaac-data-downloader script for bulk data downloading
+### Changed
+- created library of common access mechanisms to split between subscriber and downloader capabilities
+- added .tar.gz to list of default extensions. [40](https://github.com/podaac/data-subscriber/issues/40)
+- Ignore error if destination directory already exists. [46](https://github.com/podaac/data-subscriber/issues/46)
+- Updated the naming convention of .update file. [44](https://github.com/podaac/data-subscriber/issues/44)
+- one of -m, -sd, or -ed must be given to subscriber. Previously -m 60 was the default if nothing was specified.
+### Deprecated
+- use of ".update" file naming convention. This will still work, but will be renamed to .update__COLLECTIONNAME after a successful run. the ".update" file will need to be manually cleaned up. See [issue 44](https://github.com/podaac/data-subscriber/issues/44)
+### Removed
+### Fixed
+- issue where only specifying an end data cause issues in subscriber. [39](https://github.com/podaac/data-subscriber/issues/39)
+### Security
+
+## [1.7.2]
+### Added
+### Changed
+- Made number of files to download a non-verbose default printout. [33](https://github.com/podaac/data-subscriber/issues/33)
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+## [1.7.1]
+### Added
+- Auto build and deploy to pypi on tag/release.
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
 ## [1.7.0]
 ### Added
 - Added ability to call a process on downlaoded files. [Thank to Joe Sapp](https://github.com/sappjw).

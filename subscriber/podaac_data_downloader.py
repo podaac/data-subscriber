@@ -1,27 +1,13 @@
 #!/usr/bin/env python3
-
-# # Access Sentinel-6 MF Data using a script
-# This script shows a simple way to maintain a local time series of Sentinel-6
-# data using the
-# [CMR Search API]
-# (https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html).
-# It downloads granules the ingested since
-#   the previous run to a designated data
-#   folder and overwrites a hidden file inside with the timestamp of the
-# CMR Search request on success.
-# Before you beginning this tutorial, make sure you have an Earthdata account:
-# [https://urs.earthdata.nasa.gov] .
-# Accounts are free to create and take just a moment to set up.
 import argparse
 import logging
 import os
 import sys
 from datetime import datetime, timedelta
 from os import makedirs
-from os.path import isdir, basename, join, isfile, exists
+from os.path import isdir, basename, join
 from urllib.error import HTTPError
 from urllib.request import urlretrieve
-import hashlib
 
 from subscriber import podaac_access as pa
 
@@ -34,27 +20,37 @@ cmr = pa.cmr
 token_url = pa.token_url
 
 
-def get_update_file(data_dir, collection_name):
-    if isfile(data_dir + "/.update__" + collection_name):
-        return data_dir + "/.update__" + collection_name
-    elif isfile(data_dir + "/.update"):
-        logging.warning(
-            "found a deprecated use of '.update' file at {0}. After this run it will be renamed to {1}".format(
-                data_dir + "/.update", data_dir + "/.update__" + collection_name))
-        return data_dir + "/.update"
+# The lines below are to get the IP address. You can make this static and
+# assign a fixed value to the IPAddr variable
 
-    return None
+
+def parse_cycles(cycle_input):
+    # if cycle_input is None:
+    #     return None
+    # if isinstance(cycle_input, list):
+    #     return cycle_input
+    # return [int(cycle_input)]
+    return
 
 
 def validate(args):
-    if args.minutes is None and args.startDate is False and args.endDate is False:
+    if args.search_cycles is None and args.startDate is None and args.endDate is None:
         raise ValueError(
-            "Error parsing command line arguments: one of --start-date, --end-date or --minutes are required")
+            "Error parsing command line arguments: one of [--start-date and --end-date] or [--cycles] are required")  # noqa E501
+    if args.search_cycles is not None and args.startDate is not None:
+        raise ValueError(
+            "Error parsing command line arguments: only one of -sd/--start-date and --cycles are allowed")  # noqa E501
+    if args.search_cycles is not None and args.endDate is not None:
+        raise ValueError(
+            "Error parsing command line arguments: only one of -ed/--end-date and --cycles are allowed")  # noqa E50
+    if None in [args.endDate, args.startDate] and args.search_cycles is None:
+        raise ValueError(
+            "Error parsing command line arguments: Both --start-date and --end-date must be specified")  # noqa E50
 
 
 def create_parser():
     # Initialize parser
-    parser = argparse.ArgumentParser(prog='PO.DAAC data subscriber')
+    parser = argparse.ArgumentParser(prog='PO.DAAC bulk-data downloader')
 
     # Adding Required arguments
     parser.add_argument("-c", "--collection-shortname", dest="collection", required=True,
@@ -62,16 +58,17 @@ def create_parser():
     parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True,
                         help="The directory where data products will be downloaded.")  # noqa E501
 
+    # Required through validation
+    parser.add_argument("--cycle", required=False, dest="search_cycles",
+                        help="Cycle number for determining downloads. can be repeated for multiple cycles",
+                        action='append', type=int)
+    parser.add_argument("-sd", "--start-date", required=False, dest="startDate",
+                        help="The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z")  # noqa E501
+    parser.add_argument("-ed", "--end-date", required=False, dest="endDate",
+                        help="The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z")  # noqa E501
     # Adding optional arguments
-    parser.add_argument("-f", "--force", dest="force", action="store_true", help = "Flag to force downloading files that are listed in CMR query, even if the file exists and checksum matches")  # noqa E501
 
     # spatiotemporal arguments
-    parser.add_argument("-sd", "--start-date", dest="startDate",
-                        help="The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z",
-                        default=False)  # noqa E501
-    parser.add_argument("-ed", "--end-date", dest="endDate",
-                        help="The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z",
-                        default=False)  # noqa E501
     parser.add_argument("-b", "--bounds", dest="bbox",
                         help="The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".",
                         default="-180,-90,180,90")  # noqa E501
@@ -89,12 +86,9 @@ def create_parser():
     parser.add_argument("--offset", dest="offset",
                         help="Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.")  # noqa E501
 
-    parser.add_argument("-m", "--minutes", dest="minutes",
-                        help="How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs.",
-                        type=int, default=None)  # noqa E501
     parser.add_argument("-e", "--extensions", dest="extensions",
-                        help="The extensions of products to download. Default is [.nc, .h5, .zip]", default=None,
-                        action='append')  # noqa E501
+                        help="The extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz]",
+                        default=None, action='append')  # noqa E501
     parser.add_argument("--process", dest="process_cmd",
                         help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.",
                         action='append')
@@ -102,90 +96,14 @@ def create_parser():
     parser.add_argument("--version", action="version", version='%(prog)s ' + __version__,
                         help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true", help="Verbose mode.")  # noqa E501
-
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD',
                         help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
+
+    parser.add_argument("--limit", dest="limit", default='2000', type=int,
+                        help="Integer limit for number of granules to download. Useful in testing. Defaults to " + str(
+                            page_size))  # noqa E501
+
     return parser
-
-
-def extract_checksums(granule_results):
-    """
-    Create a dictionary containing checksum information from files.
-
-    Parameters
-    ----------
-    granule_results : dict
-        The cmr granule search results (umm_json format)
-
-    Returns
-    -------
-    A dictionary where the keys are filenames and the values are
-    checksum information (checksum value and checksum algorithm).
-
-    For Example:
-    {
-        "some-granule-name.nc": { 
-            "Value": "d96387295ea979fb8f7b9aa5f231c4ab", 
-            "Algorithm": "MD5" 
-        },
-        "some-granule-name.nc.md5": {
-            "Value": '320876f087da0876edc0876ab0876b7a",
-            "Algorithm": "MD5"
-        },
-        ...
-    }
-    """
-    checksums = {}
-    for granule in granule_results["items"]:
-        try:
-            items = granule["umm"]["DataGranule"]["ArchiveAndDistributionInformation"]
-            for item in items:
-                try:
-                    checksums[item["Name"]] = item["Checksum"]
-                except:
-                    pass
-        except:
-            pass
-    return checksums
-
-
-def checksum_does_match(file_path, checksums):
-    """
-    Checks if a file's checksum matches a checksum in the checksums dict
-
-    Parameters
-    ----------
-    file_path : string
-        The relative or absolute path to an existing file
-    
-    checksums: dict
-        A dictionary where keys are filenames (not including the path)
-        and values are checksum information (checksum value and checksum algorithm)
-
-    Returns
-    -------
-    True - if the file's checksum matches a checksum in the checksum dict
-    False - if the file doesn't have a checksum, or if the checksum doesn't match
-    """
-    filename = basename(file_path)
-    checksum = checksums.get(filename)
-    if not checksum:
-        return False
-    return make_checksum(file_path, checksum["Algorithm"]) == checksum["Value"]
-
-
-def make_checksum(file_path, algorithm):
-    """
-    Create checksum of file using the specified algorithm
-    """
-    # Based on https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file#answer-3431838
-    # with modification to handle multiple algorithms
-    hash = getattr(hashlib, algorithm.lower())()
-
-    with open(file_path, 'rb') as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash.update(chunk)
-    return hash.hexdigest()
 
 
 def run():
@@ -194,7 +112,13 @@ def run():
 
     try:
         pa.validate(args)
+
+        # download specific validations
+        # cannot specify all thre options (start, end, cycle)
+        # must specify start/end togeher
+        # if cycle, then no sd/ed can be given, and vice versa
         validate(args)
+
     except ValueError as v:
         logging.error(str(v))
         exit(1)
@@ -202,20 +126,18 @@ def run():
     pa.setup_earthdata_login_auth(edl)
     token = pa.get_token(token_url, 'podaac-subscriber', edl)
 
-    mins = args.minutes  # In this case download files ingested in the last 60 minutes -- change this to whatever setting is needed
     provider = args.provider
     start_date_time = args.startDate
     end_date_time = args.endDate
+    search_cycles = args.search_cycles
     short_name = args.collection
     extensions = args.extensions
     process_cmd = args.process_cmd
     data_path = args.outputDirectory
 
-    defined_time_range = False
-    if start_date_time or end_date_time:
-        defined_time_range = True
+    if args.limit is not None:
+        page_size = args.limit
 
-    ts_shift = 0
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
 
@@ -227,80 +149,49 @@ def run():
                      'Please specify exactly one flag '
                      'from -dc, -dy, -dydoy, or -dymd')
 
-    # **The search retrieves granules ingested during the last `n` minutes.
-    # ** A file in your local data dir  file that tracks updates to your data directory,
-    # if one file exists.
-
-    # This is the default way of finding data if no other
-    if defined_time_range:
-        data_within_last_timestamp = start_date_time if start_date_time else end_date_time
-    else:
-        data_within_last_timestamp = (datetime.utcnow() - timedelta(minutes=mins)).strftime("%Y-%m-%dT%H:%M:%SZ")
-
     # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
 
     if not isdir(data_path):
         logging.info("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
         makedirs(data_path, exist_ok=True)
 
-    else:
-        update_file = get_update_file(data_path, short_name)
-        if update_file is not None:
-            try:
-                with open(update_file, "r") as f:
-                    data_within_last_timestamp = f.read().strip()
-                    logging.info(
-                        "NOTE: Update found in the data directory. (The last run was at " + data_within_last_timestamp + ".)")
-            except FileNotFoundError:
-                logging.warning("No .update in the data directory. (Is this the first run?)")
-        else:
-            logging.warning("No .update__" + short_name + " in the data directory. (Is this the first run?)")
-
     # Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
     bounding_extent = args.bbox
 
-    # There are several ways to query for CMR updates that occured during a given timeframe. Read on in the CMR Search documentation:
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#c-with-new-granules (Collections)
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#c-with-revised-granules (Collections)
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-production-date (Granules)
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-created-at (Granules)
-    # The `created_at` parameter works for our purposes. It's a granule search parameter that returns the records ingested since the input timestamp.
+    if search_cycles is not None:
+        cmr_cycles = search_cycles
+        params = [
+            ('scroll', "true"),
+            ('page_size', page_size),
+            ('sort_key', "-start_date"),
+            ('provider', provider),
+            ('ShortName', short_name),
+            ('token', token),
+            ('bounding_box', bounding_extent),
+        ]
+        for v in cmr_cycles:
+            params.append(("cycle[]", v))
+        if args.verbose:
+            logging.info("cycles: " + str(cmr_cycles))
 
-    if defined_time_range:
-        # if(data_since):
+    else:
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time,
                                                datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
-
-    params = {
-        'scroll': "true",
-        'page_size': page_size,
-        'sort_key': "-start_date",
-        'provider': provider,
-        'ShortName': short_name,
-        'updated_since': data_within_last_timestamp,
-        'token': token,
-        'bounding_box': bounding_extent,
-    }
-
-    if defined_time_range:
         params = {
             'scroll': "true",
             'page_size': page_size,
             'sort_key': "-start_date",
             'provider': provider,
-            'updated_since': data_within_last_timestamp,
             'ShortName': short_name,
             'temporal': temporal_range,
             'token': token,
             'bounding_box': bounding_extent,
         }
-
         if args.verbose:
             logging.info("Temporal Range: " + temporal_range)
 
     if args.verbose:
         logging.info("Provider: " + provider)
-        logging.info("Updated Since: " + data_within_last_timestamp)
 
     # If 401 is raised, refresh token and try one more time
     try:
@@ -314,24 +205,19 @@ def run():
             raise e
 
     if args.verbose:
-        logging.info(str(results[
-                             'hits']) + " new granules found for " + short_name + " since " + data_within_last_timestamp)  # noqa E501
+        logging.info(str(results['hits']) + " granules found for " + short_name)  # noqa E501
 
     if any([args.dy, args.dydoy, args.dymd]):
         file_start_times = pa.parse_start_times(results)
     elif args.cycle:
         cycles = pa.parse_cycles(results)
 
-    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-
     downloads_all = []
-    
     downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if
                        u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in
                       results['items']]
     downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in
                           results['items']]
-    checksums = extract_checksums(results)
 
     for f in downloads_data:
         downloads_all.append(f)
@@ -365,7 +251,7 @@ def run():
     # NEED TO REFACTOR THIS, A LOT OF STUFF in here
     # Finish by downloading the files to the data directory in a loop.
     # Overwrite `.update` with a new timestamp on success.
-    success_cnt = failure_cnt = skip_cnt = 0
+    success_cnt = failure_cnt = 0
     for f in downloads:
         try:
             # -d flag, args.outputDirectory
@@ -378,13 +264,6 @@ def run():
             if args.cycle:
                 output_path = pa.prepare_cycles_output(
                     cycles, data_path, f)
-
-            # decide if we should actually download this file (e.g. we may already have the latest version)
-            if(exists(output_path) and not args.force and checksum_does_match(output_path, checksums)):
-                logging.info(str(datetime.now()) + " SKIPPED: " + f)
-                skip_cnt += 1
-                continue
-
             urlretrieve(f, output_path)
             pa.process_file(process_cmd, output_path, args)
             logging.info(str(datetime.now()) + " SUCCESS: " + f)
@@ -393,20 +272,10 @@ def run():
             logging.warning(str(datetime.now()) + " FAILURE: " + f, exc_info=True)
             failure_cnt = failure_cnt + 1
 
-    # If there were updates to the local time series during this run and no
-    # exceptions were raised during the download loop, then overwrite the
-    #  timestamp file that tracks updates to the data folder
-    #   (`resources/nrt/.update`):
-    if len(results['items']) > 0:
-        if not failure_cnt > 0:
-            with open(data_path + "/.update__" + short_name, "w") as f:
-                f.write(timestamp)
-
-    logging.info("Downloaded Files: " + str(success_cnt))
-    logging.info("Failed Files:     " + str(failure_cnt))
-    logging.info("Skipped Files:    " + str(skip_cnt))
+    logging.info("Downloaded: " + str(success_cnt) + " files\n")
+    logging.info("Files Failed to download:" + str(failure_cnt) + "\n")
     pa.delete_token(token_url, token)
-    logging.info("END\n\n")
+    logging.info("END \n\n")
     exit(0)
 
 
