@@ -16,9 +16,10 @@ import argparse
 import logging
 import os
 from os import makedirs
-from os.path import isdir, basename, join, isfile
+from os.path import isdir, basename, join, isfile, exists
 from urllib.request import urlretrieve
 from datetime import datetime, timedelta
+import hashlib
 
 from subscriber import podaac_access as pa
 
@@ -59,6 +60,7 @@ def create_parser():
     parser.add_argument("-d", "--data-dir", dest="outputDirectory", required=True, help = "The directory where data products will be downloaded.")  # noqa E501
 
     # Adding optional arguments
+    parser.add_argument("-f", "--force", dest="force", action="store_true", help = "Flag to force downloading files that are listed in CMR query, even if the file exists and checksum matches")  # noqa E501
 
     # spatiotemporal arguments
     parser.add_argument("-sd", "--start-date", dest="startDate", help = "The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z", default=False)  # noqa E501
@@ -82,6 +84,86 @@ def create_parser():
 
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD', help="Specify a provider for collection search. Default is POCLOUD.")    # noqa E501
     return parser
+
+
+def extract_checksums(granule_results):
+    """
+    Create a dictionary containing checksum information from files.
+
+    Parameters
+    ----------
+    granule_results : dict
+        The cmr granule search results (umm_json format)
+
+    Returns
+    -------
+    A dictionary where the keys are filenames and the values are
+    checksum information (checksum value and checksum algorithm).
+
+    For Example:
+    {
+        "some-granule-name.nc": { 
+            "Value": "d96387295ea979fb8f7b9aa5f231c4ab", 
+            "Algorithm": "MD5" 
+        },
+        "some-granule-name.nc.md5": {
+            "Value": '320876f087da0876edc0876ab0876b7a",
+            "Algorithm": "MD5"
+        },
+        ...
+    }
+    """
+    checksums = {}
+    for granule in granule_results["items"]:
+        try:
+            items = granule["umm"]["DataGranule"]["ArchiveAndDistributionInformation"]
+            for item in items:
+                try:
+                    checksums[item["Name"]] = item["Checksum"]
+                except:
+                    pass
+        except:
+            pass
+    return checksums
+
+
+def checksum_does_match(file_path, checksums):
+    """
+    Checks if a file's checksum matches a checksum in the checksums dict
+
+    Parameters
+    ----------
+    file_path : string
+        The relative or absolute path to an existing file
+    
+    checksums: dict
+        A dictionary where keys are filenames (not including the path)
+        and values are checksum information (checksum value and checksum algorithm)
+
+    Returns
+    -------
+    True - if the file's checksum matches a checksum in the checksum dict
+    False - if the file doesn't have a checksum, or if the checksum doesn't match
+    """
+    filename = basename(file_path)
+    checksum = checksums.get(filename)
+    if not checksum:
+        return False
+    return make_checksum(file_path, checksum["Algorithm"]) == checksum["Value"]
+
+
+def make_checksum(file_path, algorithm):
+    """
+    Create checksum of file using the specified algorithm
+    """
+    # Based on https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file#answer-3431838
+    # with modification to handle multiple algorithms
+    hash = getattr(hashlib, algorithm.lower())()
+
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash.update(chunk)
+    return hash.hexdigest()
 
 
 def run():
@@ -211,6 +293,7 @@ def run():
     downloads_all = []
     downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in results['items']]
     downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in results['items']]
+    checksums = extract_checksums(results)
 
     for f in downloads_data:
         downloads_all.append(f)
@@ -243,7 +326,7 @@ def run():
     # NEED TO REFACTOR THIS, A LOT OF STUFF in here
     # Finish by downloading the files to the data directory in a loop.
     # Overwrite `.update` with a new timestamp on success.
-    success_cnt = failure_cnt = 0
+    success_cnt = failure_cnt = skip_cnt = 0
     for f in downloads:
         try:
             # -d flag, args.outputDirectory
@@ -256,6 +339,13 @@ def run():
             if args.cycle:
                 output_path = pa.prepare_cycles_output(
                     cycles, data_path, f)
+
+            # decide if we should actually download this file (e.g. we may already have the latest version)
+            if(exists(output_path) and not args.force and checksum_does_match(output_path, checksums)):
+                print(str(datetime.now()) + " SKIPPED: " + f)
+                skip_cnt += 1
+                continue
+
             urlretrieve(f, output_path)
             pa.process_file(process_cmd, output_path, args)
             print(str(datetime.now()) + " SUCCESS: " + f)
@@ -274,10 +364,11 @@ def run():
             with open(data_path + "/.update__" + short_name, "w") as f:
                 f.write(timestamp)
 
-    print("Downloaded: " + str(success_cnt) + " files\n")
-    print("Files Failed to download:" + str(failure_cnt) + "\n")
+    print("\nDownloaded Files: " + str(success_cnt))
+    print("Failed Files:     " + str(failure_cnt))
+    print("Skipped Files:    " + str(skip_cnt) + "\n")
     pa.delete_token(token_url, token)
-    print("END \n\n")
+    print("\nEND\n\n")
     exit(0)
 
 

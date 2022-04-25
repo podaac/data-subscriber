@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## Unreleased
 ### Added
+- check if file exists before downloading a file. [17](https://github.com/podaac/data-subscriber/issues/17)
 ### Changed
 ### Deprecated
 ### Removed
