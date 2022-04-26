@@ -5,7 +5,7 @@ import os
 import sys
 from datetime import datetime, timedelta
 from os import makedirs
-from os.path import isdir, basename, join
+from os.path import isdir, basename, join, exists
 from urllib.error import HTTPError
 from urllib.request import urlretrieve
 
@@ -66,7 +66,9 @@ def create_parser():
                         help="The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z")  # noqa E501
     parser.add_argument("-ed", "--end-date", required=False, dest="endDate",
                         help="The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z")  # noqa E501
+    
     # Adding optional arguments
+    parser.add_argument("-f", "--force", dest="force", action="store_true", help = "Flag to force downloading files that are listed in CMR query, even if the file exists and checksum matches")  # noqa E501
 
     # spatiotemporal arguments
     parser.add_argument("-b", "--bounds", dest="bbox",
@@ -216,6 +218,7 @@ def run():
                       results['items']]
     downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in
                           results['items']]
+    checksums = pa.extract_checksums(results)
 
     for f in downloads_data:
         downloads_all.append(f)
@@ -249,7 +252,7 @@ def run():
     # NEED TO REFACTOR THIS, A LOT OF STUFF in here
     # Finish by downloading the files to the data directory in a loop.
     # Overwrite `.update` with a new timestamp on success.
-    success_cnt = failure_cnt = 0
+    success_cnt = failure_cnt = skip_cnt = 0
     for f in downloads:
         try:
             # -d flag, args.outputDirectory
@@ -262,6 +265,13 @@ def run():
             if args.cycle:
                 output_path = pa.prepare_cycles_output(
                     cycles, data_path, f)
+
+            # decide if we should actually download this file (e.g. we may already have the latest version)
+            if(exists(output_path) and not args.force and pa.checksum_does_match(output_path, checksums)):
+                logging.info(str(datetime.now()) + " SKIPPED: " + f)
+                skip_cnt += 1
+                continue
+
             urlretrieve(f, output_path)
             pa.process_file(process_cmd, output_path, args)
             logging.info(str(datetime.now()) + " SUCCESS: " + f)
@@ -270,10 +280,11 @@ def run():
             logging.warning(str(datetime.now()) + " FAILURE: " + f, exc_info=True)
             failure_cnt = failure_cnt + 1
 
-    logging.info("Downloaded: " + str(success_cnt) + " files\n")
-    logging.info("Files Failed to download:" + str(failure_cnt) + "\n")
+    logging.info("Downloaded Files: " + str(success_cnt))
+    logging.info("Failed Files:     " + str(failure_cnt))
+    logging.info("Skipped Files:    " + str(skip_cnt))
     pa.delete_token(token_url, token)
-    logging.info("END \n\n")
+    logging.info("END\n\n")
     exit(0)
 
 
