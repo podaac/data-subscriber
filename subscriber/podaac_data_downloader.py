@@ -106,9 +106,10 @@ def create_parser():
     return parser
 
 
-def run():
-    parser = create_parser()
-    args = parser.parse_args()
+def run(args=None):
+    if args is None:
+        parser = create_parser()
+        args = parser.parse_args()
 
     try:
         pa.validate(args)
@@ -274,7 +275,6 @@ def run():
     logging.info("Files Failed to download:" + str(failure_cnt) + "\n")
     pa.delete_token(token_url, token)
     logging.info("END \n\n")
-    exit(0)
 
 
 def main():
