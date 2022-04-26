@@ -34,3 +34,9 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+    - name: netrc-gen
+      uses: extractions/netrc@v1
+      with:
+       machine: urs.earthdata.nasa.gov
+       username: ${{ secrets.EDL_OPS_USERNAME }}
+       password: ${{ secrets.EDL_OPS_PASSWORD }}
