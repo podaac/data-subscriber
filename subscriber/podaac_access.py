@@ -12,7 +12,7 @@ from urllib import request
 from urllib.error import HTTPError
 import subprocess
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import requests
 
@@ -291,18 +291,40 @@ def get_temporal_range(start, end, now):
                 retry=(tenacity.retry_if_exception_type(HTTPError) & tenacity.retry_if_exception(
                     lambda exc: exc.code == 500))
                 )
-def get_search_results(args, params):
+def get_search_results(params, verbose=False):
     # Get the query parameters as a string and then the complete search url:
     query = urlencode(params)
     url = "https://" + cmr + "/search/granules.umm_json?" + query
-    if args.verbose:
+    if verbose:
         logging.info(url)
 
     # Get a new timestamp that represents the UTC time of the search.
     # Then download the records in `umm_json` format for granules
     # that match our search parameters:
-    with urlopen(url) as f:
-        results = json.loads(f.read().decode())
+    results = None
+    search_after_header = None
+    while True:
+        # Build the request, add the search after header to it if it's not None (e.g. after the first iteration)
+        req = Request(url)
+        if search_after_header is not None:
+            req.add_header('CMR-Search-After', search_after_header)
+        response = urlopen(req)
+
+        # Build the results object, load entire result if it's the first time.
+        if results is None:
+            results = json.loads(response.read().decode())
+        # if not the first time, add the new items to the existing array
+        else:
+            results['items'].extend(json.loads(response.read().decode())['items'])
+
+        # get the new Search After header, if it's not set, we have all the results and we're done.
+        search_after_header = None
+        search_after_header = response.info()['CMR-Search-After']
+        if search_after_header is not None:
+            logging.debug("Search After response header defined, paging CMR for more data.")
+        else:
+            break
+    # return all of the paged CMR results.
     return results
 
 

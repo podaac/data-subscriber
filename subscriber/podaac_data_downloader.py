@@ -161,7 +161,6 @@ def run():
     if search_cycles is not None:
         cmr_cycles = search_cycles
         params = [
-            ('scroll', "true"),
             ('page_size', page_size),
             ('sort_key', "-start_date"),
             ('provider', provider),
@@ -178,7 +177,6 @@ def run():
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time,
                                                datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
         params = {
-            'scroll': "true",
             'page_size': page_size,
             'sort_key': "-start_date",
             'provider': provider,
@@ -195,12 +193,12 @@ def run():
 
     # If 401 is raised, refresh token and try one more time
     try:
-        results = pa.get_search_results(args, params)
+        results = pa.get_search_results(params, args.verbose)
     except HTTPError as e:
         if e.code == 401:
             token = pa.refresh_token(token, 'podaac-subscriber')
             params['token'] = token
-            results = pa.get_search_results(args, params)
+            results = pa.get_search_results(params, args.verbose)
         else:
             raise e
 

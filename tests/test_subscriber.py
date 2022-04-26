@@ -24,6 +24,22 @@ def cleanup_update_test():
     shutil.rmtree(data_dir_with_updates)
 
 
+def test_search_after():
+    # cmr query: https://cmr.earthdata.nasa.gov/search/granules.umm_json?page_size=2000&sort_key=-start_date&provider=POCLOUD&ShortName=JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F&temporal=2000-01-01T10%3A00%3A00Z%2C2022-04-15T00%3A00%3A00Z&bounding_box=-180%2C-90%2C180%2C90
+    # requires page-After
+    #  ends up with 3748 granules
+    params = {
+        'page_size': 2000,
+        'sort_key': "-start_date",
+        'provider': "POCLOUD",
+        'ShortName': "JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F",
+        'temporal': "2000-01-01T10:00:00Z,2022-04-15T00:00:00Z",
+        'bounding_box': "-180,-90,180,90",
+    }
+    results = pa.get_search_results(params, True)
+    assert results['hits'] == 3748
+    assert len(results['items']) == 3748
+
 def test_update_format_change(cleanup_update_test):
     print("Running Test")
     data_dir_with_updates = "./test_update_format_change"
