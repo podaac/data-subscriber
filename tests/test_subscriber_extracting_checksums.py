@@ -1,5 +1,5 @@
-from subscriber.podaac_data_subscriber import extract_checksums
 import json
+from subscriber.podaac_access import extract_checksums
 
 minimal_granule_search_results = """{
   "hits": 13,

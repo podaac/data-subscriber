@@ -21,7 +21,6 @@ from os import makedirs
 from os.path import isdir, basename, join, isfile, exists
 from urllib.error import HTTPError
 from urllib.request import urlretrieve
-import hashlib
 
 from subscriber import podaac_access as pa
 
@@ -107,85 +106,6 @@ def create_parser():
                         help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
     return parser
 
-
-def extract_checksums(granule_results):
-    """
-    Create a dictionary containing checksum information from files.
-
-    Parameters
-    ----------
-    granule_results : dict
-        The cmr granule search results (umm_json format)
-
-    Returns
-    -------
-    A dictionary where the keys are filenames and the values are
-    checksum information (checksum value and checksum algorithm).
-
-    For Example:
-    {
-        "some-granule-name.nc": {
-            "Value": "d96387295ea979fb8f7b9aa5f231c4ab",
-            "Algorithm": "MD5"
-        },
-        "some-granule-name.nc.md5": {
-            "Value": '320876f087da0876edc0876ab0876b7a",
-            "Algorithm": "MD5"
-        },
-        ...
-    }
-    """
-    checksums = {}
-    for granule in granule_results["items"]:
-        try:
-            items = granule["umm"]["DataGranule"]["ArchiveAndDistributionInformation"]
-            for item in items:
-                try:
-                    checksums[item["Name"]] = item["Checksum"]
-                except:
-                    pass
-        except:
-            pass
-    return checksums
-
-
-def checksum_does_match(file_path, checksums):
-    """
-    Checks if a file's checksum matches a checksum in the checksums dict
-
-    Parameters
-    ----------
-    file_path : string
-        The relative or absolute path to an existing file
-
-    checksums: dict
-        A dictionary where keys are filenames (not including the path)
-        and values are checksum information (checksum value and checksum algorithm)
-
-    Returns
-    -------
-    True - if the file's checksum matches a checksum in the checksum dict
-    False - if the file doesn't have a checksum, or if the checksum doesn't match
-    """
-    filename = basename(file_path)
-    checksum = checksums.get(filename)
-    if not checksum:
-        return False
-    return make_checksum(file_path, checksum["Algorithm"]) == checksum["Value"]
-
-
-def make_checksum(file_path, algorithm):
-    """
-    Create checksum of file using the specified algorithm
-    """
-    # Based on https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file#answer-3431838
-    # with modification to handle multiple algorithms
-    hash = getattr(hashlib, algorithm.lower())()
-
-    with open(file_path, 'rb') as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash.update(chunk)
-    return hash.hexdigest()
 
 
 def run(args=None):
@@ -325,13 +245,12 @@ def run(args=None):
     timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     downloads_all = []
-
     downloads_data = [[u['URL'] for u in r['umm']['RelatedUrls'] if
                        u['Type'] == "GET DATA" and ('Subtype' not in u or u['Subtype'] != "OPENDAP DATA")] for r in
                       results['items']]
     downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in
                           results['items']]
-    checksums = extract_checksums(results)
+    checksums = pa.extract_checksums(results)
 
     for f in downloads_data:
         downloads_all.append(f)
@@ -380,7 +299,7 @@ def run(args=None):
                     cycles, data_path, f)
 
             # decide if we should actually download this file (e.g. we may already have the latest version)
-            if(exists(output_path) and not args.force and checksum_does_match(output_path, checksums)):
+            if(exists(output_path) and not args.force and pa.checksum_does_match(output_path, checksums)):
                 logging.info(str(datetime.now()) + " SKIPPED: " + f)
                 skip_cnt += 1
                 continue
