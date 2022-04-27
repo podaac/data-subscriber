@@ -1,4 +1,4 @@
-from subscriber.podaac_data_subscriber import checksum_does_match
+from subscriber.podaac_access import checksum_does_match
 
 def test_checksum_does_match__positive_match_md5(tmpdir):
   output_path = str(tmpdir) + '/tmp.nc'

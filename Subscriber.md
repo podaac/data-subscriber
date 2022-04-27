@@ -112,18 +112,6 @@ machine urs.earthdata.nasa.gov
 
 **If the script cannot find the netrc file, you will be prompted to enter the username and password and the script wont be able to generate the CMR token**
 
-## How the subscriber handles download failures
-
-If any downloads fail while the subscriber is running (e.g. a network failure), the subscriber will not record the current run as complete. However many of the data-files may have successfully downloaded. It could take a lot of extra time to re-download files the next time subscriber is run.
-
-Therefore, to prevent unnecessary re-downloading of files, the subscriber does a check before downloading each file. It checks if the file already exists in the output directory, and if the file is up to date (using the checksum). If the file is already there (and up to date), the default behavior is for the subscriber to skip downloading that file.
-
-You can override this default behavior - forcing the subscriber to always download files that show up in the search step, by using --force/-f.
-
-```
-podaac-data-subscriber -c SENTINEL-1A_SLC -d myData -f
-```
-
 
 ## Advanced Usage
 
@@ -153,6 +141,22 @@ The subscriber allows the placement of downloaded files into one of several dire
 * -dc - optional, if 'cycle' information exists in the product metadata, download it to the data directory and use a relative c<CYCLE> path to store granules. The relative path is 0 padded to 4 total digits (e.g. c0001)
 * -dydoy - optional, relative paths use the start time of a granule to layout data in a YEAR/DAY-OF-YEAR path
 * -dymd  - optional, relative paths use the start time of a granule to layout data in a YEAR/MONTH/DAY path
+
+### Subscriber behavior when a file already exists
+
+By default, when the subscriber is about to download a file, it first:
+- Checks if the file already exists in the target location
+- Creates a checksum for the file and sees if it matches the checksum for that file in CMR
+
+If the file already exists AND the checksum matches, the subscriber will skip downloading that file.
+
+This can drastically reduce the time for the subscriber to complete. Also, since the checksum is verified, files will still be re-downloaded if for some reason the file has changed (or the file already on disk is corrupted).
+
+You can override this default behavior - forcing the subscriber to always download matching files, by using --force/-f.
+
+```
+podaac-data-subscriber -c SENTINEL-1A_SLC -d myData -f
+```
 
 ### Running as a Cron job
 

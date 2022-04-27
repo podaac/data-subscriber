@@ -6,9 +6,7 @@ For installation and dependency information, please see the [top-level README](R
 
 ```
 $> podaac-data-downloader -h
-usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE]
-                                    [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [--process PROCESS_CMD]
-                                    [--version] [--verbose] [-p PROVIDER] [--limit LIMIT]
+usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER] [--limit LIMIT]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -22,6 +20,8 @@ optional arguments:
                         The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z
   -ed ENDDATE, --end-date ENDDATE
                         The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z
+   -f, --force          
+                        Flag to force downloading files that are listed in CMR query, even if the file exists and checksum matches
   -b BBOX, --bounds BBOX
                         The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without
                         spaces. Due to an issue with parsing arguments, to use this command, please use the -b="-180,-90,180,90" syntax
@@ -50,7 +50,7 @@ optional arguments:
 
 Usage:
 ```
-usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE]
+usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f]
                                     [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [--process PROCESS_CMD]
                                     [--version] [--verbose] [-p PROVIDER] [--limit LIMIT]
 ```
@@ -162,6 +162,22 @@ The subscriber allows the placement of downloaded files into one of several dire
 * -dydoy - optional, relative paths use the start time of a granule to layout data in a YEAR/DAY-OF-YEAR path
 * -dymd  - optional, relative paths use the start time of a granule to layout data in a YEAR/MONTH/DAY path
 
+
+### Downloader behavior when a file already exists
+
+By default, when the downloader is about to download a file, it first:
+- Checks if the file already exists in the target location
+- Creates a checksum for the file and sees if it matches the checksum for that file in CMR
+
+If the file already exists AND the checksum matches, the downloader will skip downloading that file.
+
+This can drastically reduce the time for the downloader to complete. Also, since the checksum is verified, files will still be re-downloaded if for some reason the file has changed (or the file already on disk is corrupted).
+
+You can override this default behavior - forcing the downloader to always download matching files, by using --force/-f.
+
+```
+podaac-data-downloader -c SENTINEL-1A_SLC -d myData -f
+```
 
 ### Setting a bounding rectangle for filtering results
 
