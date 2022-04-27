@@ -108,9 +108,10 @@ def create_parser():
     return parser
 
 
-def run():
-    parser = create_parser()
-    args = parser.parse_args()
+def run(args=None):
+    if args is None:
+        parser = create_parser()
+        args = parser.parse_args()
 
     try:
         pa.validate(args)
@@ -285,7 +286,8 @@ def run():
     logging.info("Skipped Files:    " + str(skip_cnt))
     pa.delete_token(token_url, token)
     logging.info("END\n\n")
-    exit(0)
+
+
 
 
 def main():

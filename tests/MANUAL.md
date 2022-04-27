@@ -3,7 +3,7 @@
 ## Subscriber
 
 
-### Test 1
+### Test 1 - added to test_regression.py
 use to test:
 * download to `this` directory.
 * download using only 'enddate'
@@ -29,7 +29,7 @@ ls -rth .update__ECCO_L4_ATM_STATE_05DEG_DAILY_V4R4
 .update__ECCO_L4_ATM_STATE_05DEG_DAILY_V4R4
 ```
 
-### Test 2
+### Test 2 - added to regression test
 use to test:
 * cycle based directory layouts
 * Bounding box limiting search results
@@ -54,7 +54,7 @@ JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F/
 ```
 
 
-### Test 3
+### Test 3 -- added to regression, but not the .update file log message portion
 use to test:
 * offset Usage
 * start/end date is working
@@ -137,7 +137,7 @@ MUR25-JPL-L4-GLOB-v04.2/
 
 4 directories, 2 files
 ```
-
+### Test 1
 Download by cycle
 ```
 rm -r JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F

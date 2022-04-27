@@ -4,3 +4,7 @@ requires = [
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
+[tool.pytest.ini_options]
+markers = [
+    "regression: marks a test as a regression, requires netrc file (deselect with '-m \"not regresion\"')"
+]
