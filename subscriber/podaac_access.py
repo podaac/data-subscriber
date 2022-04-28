@@ -21,7 +21,7 @@ import requests
 import tenacity
 from datetime import datetime
 
-__version__ = "1.8.0"
+__version__ = "1.9.0"
 extensions = [".nc", ".h5", ".zip", ".tar.gz"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"

@@ -3,6 +3,7 @@ import os
 from os.path import exists
 from subscriber import podaac_data_downloader as pdd
 import shutil
+from pathlib import Path
 
 # REGRESSION TEST CURRENTLY REQUIRES A .NETRC file for CMR/Data Download
 
@@ -25,11 +26,16 @@ def test_downloader_MUR():
     t2 = os.path.getmtime('./MUR25-JPL-L4-GLOB-v04.2/2020/01/02/20200102090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
 
     # this part of the test should not re-download the files unless the --force
-    # option is used. Currently that's not implemented in Downloader, so we'll
-    # have to update this when that is implemented (that is, the t1/t2 should
-    # be equal to the gettime of the file)
+    # option is used.
+    pdd.run(args2)
+    assert t1 == os.path.getmtime('./MUR25-JPL-L4-GLOB-v04.2/2020/01/01/20200101090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
+    assert t2 == os.path.getmtime('./MUR25-JPL-L4-GLOB-v04.2/2020/01/02/20200102090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
+
+    # Update a file to change the checksum, then re-download
+    os.remove('./MUR25-JPL-L4-GLOB-v04.2/2020/01/01/20200101090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
+    Path('./MUR25-JPL-L4-GLOB-v04.2/2020/01/01/20200101090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc').touch()
     pdd.run(args2)
     assert t1 != os.path.getmtime('./MUR25-JPL-L4-GLOB-v04.2/2020/01/01/20200101090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
-    assert t2 != os.path.getmtime('./MUR25-JPL-L4-GLOB-v04.2/2020/01/02/20200102090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
+    assert t2 == os.path.getmtime('./MUR25-JPL-L4-GLOB-v04.2/2020/01/02/20200102090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
 
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2')
