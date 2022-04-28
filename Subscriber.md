@@ -6,7 +6,7 @@ For installation and dependency information, please see the [top-level README](R
 
 ```
 $> podaac-data-subscriber -h
-usage: PO.DAAC data subscriber [-h] -c COLLECTION -d OUTPUTDIRECTORY [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-m MINUTES] [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER]
+usage: PO.DAAC data subscriber [-h] -c COLLECTION -d OUTPUTDIRECTORY [-f] [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-m MINUTES] [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -14,6 +14,7 @@ optional arguments:
                         The collection shortname for which you want to retrieve data.
   -d OUTPUTDIRECTORY, --data-dir OUTPUTDIRECTORY
                         The directory where data products will be downloaded.
+  -f, --force           Flag to force downloading files that are listed in CMR query, even if the file exists and checksum matches
   -sd STARTDATE, --start-date STARTDATE
                         The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z
   -ed ENDDATE, --end-date ENDDATE
@@ -37,12 +38,11 @@ optional arguments:
                         Specify a provider for collection search. Default is POCLOUD.
 ```
 
-##Run the Script
+## Run the Script
 
 Usage:
 ```
-usage: podaac_data_subscriber.py [-h] -c COLLECTION -d OUTPUTDIRECTORY [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET]
-                                 [-m MINUTES] [-e EXTENSIONS] [--version] [--verbose] [-p PROVIDER]
+usage: podaac_data_subscriber.py [-h] -c COLLECTION -d OUTPUTDIRECTORY [-f] [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-m MINUTES] [-e EXTENSIONS] [--version] [--verbose] [-p PROVIDER]
 ```
 
 To run the script, the following parameters are required:
@@ -112,6 +112,7 @@ machine urs.earthdata.nasa.gov
 
 **If the script cannot find the netrc file, you will be prompted to enter the username and password and the script wont be able to generate the CMR token**
 
+
 ## Advanced Usage
 
 ### Request data from another DAAC...
@@ -140,6 +141,22 @@ The subscriber allows the placement of downloaded files into one of several dire
 * -dc - optional, if 'cycle' information exists in the product metadata, download it to the data directory and use a relative c<CYCLE> path to store granules. The relative path is 0 padded to 4 total digits (e.g. c0001)
 * -dydoy - optional, relative paths use the start time of a granule to layout data in a YEAR/DAY-OF-YEAR path
 * -dymd  - optional, relative paths use the start time of a granule to layout data in a YEAR/MONTH/DAY path
+
+### Subscriber behavior when a file already exists
+
+By default, when the subscriber is about to download a file, it first:
+- Checks if the file already exists in the target location
+- Creates a checksum for the file and sees if it matches the checksum for that file in CMR
+
+If the file already exists AND the checksum matches, the subscriber will skip downloading that file.
+
+This can drastically reduce the time for the subscriber to complete. Also, since the checksum is verified, files will still be re-downloaded if for some reason the file has changed (or the file already on disk is corrupted).
+
+You can override this default behavior - forcing the subscriber to always download matching files, by using --force/-f.
+
+```
+podaac-data-subscriber -c SENTINEL-1A_SLC -d myData -f
+```
 
 ### Running as a Cron job
 

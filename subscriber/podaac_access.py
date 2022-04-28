@@ -1,22 +1,34 @@
-from urllib import request
-from http.cookiejar import CookieJar
-import netrc
-import requests
 import json
+import logging
+import netrc
+import subprocess
+from datetime import datetime
+from http.cookiejar import CookieJar
 from os import makedirs
 from os.path import isdir, basename, join, splitext
+from urllib import request
+from typing import Dict
+from urllib import request
+from urllib.error import HTTPError
 import subprocess
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
+import hashlib
+
+import requests
+
+import requests
+import tenacity
 from datetime import datetime
 
-__version__ = "1.8.0"
+__version__ = "1.9.0"
 extensions = [".nc", ".h5", ".zip", ".tar.gz"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + cmr + "/legacy-services/rest/tokens"
 
 IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
+
 
 # ## Authentication setup
 #
@@ -60,7 +72,7 @@ def setup_earthdata_login_auth(endpoint):
         # FileNotFound = There's no .netrc file
         # TypeError = The endpoint isn't in the netrc file,
         #  causing the above to try unpacking None
-        print("There's no .netrc file or the The endpoint isn't in the netrc file")  # noqa E501
+        logging.warning("There's no .netrc file or the The endpoint isn't in the netrc file")
 
     manager = request.HTTPPasswordMgrWithDefaultRealm()
     manager.add_password(None, endpoint, username, password)
@@ -82,15 +94,15 @@ def get_token(url: str, client_id: str, endpoint: str) -> str:
         username, _, password = netrc.netrc().authenticators(endpoint)
         xml: str = """<?xml version='1.0' encoding='utf-8'?>
         <token><username>{}</username><password>{}</password><client_id>{}</client_id>
-        <user_ip_address>{}</user_ip_address></token>""".format(username, password, client_id, IPAddr)   # noqa E501
-        headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}   # noqa E501
+        <user_ip_address>{}</user_ip_address></token>""".format(username, password, client_id, IPAddr)  # noqa E501
+        headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}  # noqa E501
         resp = requests.post(url, headers=headers, data=xml)
         response_content: Dict = json.loads(resp.content)
         token = response_content['token']['id']
 
     # What error is thrown here? Value Error? Request Errors?
     except:  # noqa E722
-        print("Error getting the token - check user name and password")
+        logging.warning("Error getting the token - check user name and password")
     return token
 
 
@@ -99,45 +111,56 @@ def get_token(url: str, client_id: str, endpoint: str) -> str:
 ###############################################################################
 def delete_token(url: str, token: str) -> None:
     try:
-        headers: Dict = {'Content-Type': 'application/xml','Accept': 'application/json'}   # noqa E501
+        headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}  # noqa E501
         url = '{}/{}'.format(url, token)
         resp = requests.request('DELETE', url, headers=headers)
         if resp.status_code == 204:
-            print("CMR token successfully deleted")
+            logging.info("CMR token successfully deleted")
         else:
-            print("CMR token deleting failed.")
+            logging.info("CMR token deleting failed.")
     except:  # noqa E722
-        print("Error deleting the token")
+        logging.warning("Error deleting the token")
+
+
+def refresh_token(old_token: str, client_id: str):
+    setup_earthdata_login_auth(edl)
+    delete_token(token_url, old_token)
+    return get_token(token_url, client_id, edl)
 
 
 def validate(args):
     bounds = args.bbox.split(',')
     if len(bounds) != 4:
-        raise ValueError("Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")   # noqa E501
+        raise ValueError(
+            "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
     for b in bounds:
         try:
             float(b)
         except ValueError:
-            raise ValueError("Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")   # noqa E501
+            raise ValueError(
+                "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
 
     if args.startDate:
         try:
             datetime.strptime(args.startDate, '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
-            raise ValueError("Error parsing '--start-date' date: " + args.startDate + ". Format must be like 2021-01-14T00:00:00Z")   # noqa E501
+            raise ValueError(
+                "Error parsing '--start-date' date: " + args.startDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
 
     if args.endDate:
         try:
             datetime.strptime(args.endDate, '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
-            raise ValueError("Error parsing '--end-date' date: " + args.endDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
+            raise ValueError(
+                "Error parsing '--end-date' date: " + args.endDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
 
     if 'minutes' in args:
         if args.minutes:
             try:
                 int(args.minutes)
             except ValueError:
-                raise ValueError("Error parsing '--minutes': " + args.minutes + ". Number must be an integer.")  # noqa E501
+                raise ValueError(
+                    "Error parsing '--minutes': " + args.minutes + ". Number must be an integer.")  # noqa E501
 
     # Error catching for output directory specifications
     # Must specify -d output path or one time-based output directory flag
@@ -243,9 +266,9 @@ def process_file(process_cmd, output_path, args):
     else:
         for cmd in process_cmd:
             if args.verbose:
-                print(f'Running: {cmd} {output_path}')
+                logging.info(f'Running: {cmd} {output_path}')
             subprocess.run(cmd.split() + [output_path],
-                           check=True)
+                           check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def get_temporal_range(start, end, now):
@@ -262,24 +285,55 @@ def get_temporal_range(start, end, now):
     raise ValueError("One of start-date or end-date must be specified.")
 
 
-def get_search_results(args, params):
+# Retry using random exponential backoff if a 500 error is raised. Maximum 10 attempts.
+@tenacity.retry(wait=tenacity.wait_random_exponential(multiplier=1, max=60),
+                stop=tenacity.stop_after_attempt(10),
+                reraise=True,
+                retry=(tenacity.retry_if_exception_type(HTTPError) & tenacity.retry_if_exception(
+                    lambda exc: exc.code == 500))
+                )
+def get_search_results(params, verbose=False):
     # Get the query parameters as a string and then the complete search url:
     query = urlencode(params)
     url = "https://" + cmr + "/search/granules.umm_json?" + query
-    if args.verbose:
-        print(url)
+    if verbose:
+        logging.info(url)
 
     # Get a new timestamp that represents the UTC time of the search.
     # Then download the records in `umm_json` format for granules
     # that match our search parameters:
-    with urlopen(url) as f:
-        results = json.loads(f.read().decode())
+    results = None
+    search_after_header = None
+    while True:
+        # Build the request, add the search after header to it if it's not None (e.g. after the first iteration)
+        req = Request(url)
+        if search_after_header is not None:
+            req.add_header('CMR-Search-After', search_after_header)
+        response = urlopen(req)
+
+        # Build the results object, load entire result if it's the first time.
+        if results is None:
+            results = json.loads(response.read().decode())
+        # if not the first time, add the new items to the existing array
+        else:
+            results['items'].extend(json.loads(response.read().decode())['items'])
+
+        # get the new Search After header, if it's not set, we have all the results and we're done.
+        search_after_header = None
+        search_after_header = response.info()['CMR-Search-After']
+        if search_after_header is not None:
+            logging.debug("Search After response header defined, paging CMR for more data.")
+        else:
+            break
+    # return all of the paged CMR results.
     return results
 
 
 def parse_start_times(results):
     try:
-        file_start_times = [(r['meta']['native-id'], datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']), "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]  # noqa E501
+        file_start_times = [(r['meta']['native-id'],
+                             datetime.strptime((r['umm']['TemporalExtent']['RangeDateTime']['BeginningDateTime']),
+                                               "%Y-%m-%dT%H:%M:%S.%fZ")) for r in results['items']]  # noqa E501
     except KeyError:
         raise ValueError('Could not locate start time for data.')
     return file_start_times
@@ -287,9 +341,92 @@ def parse_start_times(results):
 
 def parse_cycles(results):
     try:
-        cycles = [(splitext(r['meta']['native-id'])[0],str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in results['items']]  # noqa E501
+        cycles = [(splitext(r['meta']['native-id'])[0],
+                   str(r['umm']['SpatialExtent']['HorizontalSpatialDomain']['Track']['Cycle'])) for r in
+                  results['items']]  # noqa E501
     except KeyError:
         raise ValueError('No cycles found within collection granules. '
                          'Specify an output directory or '
                          'choose another output directory flag other than -dc.')  # noqa E501
     return cycles
+
+
+
+def extract_checksums(granule_results):
+    """
+    Create a dictionary containing checksum information from files.
+
+    Parameters
+    ----------
+    granule_results : dict
+        The cmr granule search results (umm_json format)
+
+    Returns
+    -------
+    A dictionary where the keys are filenames and the values are
+    checksum information (checksum value and checksum algorithm).
+
+    For Example:
+    {
+        "some-granule-name.nc": {
+            "Value": "d96387295ea979fb8f7b9aa5f231c4ab",
+            "Algorithm": "MD5"
+        },
+        "some-granule-name.nc.md5": {
+            "Value": '320876f087da0876edc0876ab0876b7a",
+            "Algorithm": "MD5"
+        },
+        ...
+    }
+    """
+    checksums = {}
+    for granule in granule_results["items"]:
+        try:
+            items = granule["umm"]["DataGranule"]["ArchiveAndDistributionInformation"]
+            for item in items:
+                try:
+                    checksums[item["Name"]] = item["Checksum"]
+                except:
+                    pass
+        except:
+            pass
+    return checksums
+
+
+def checksum_does_match(file_path, checksums):
+    """
+    Checks if a file's checksum matches a checksum in the checksums dict
+
+    Parameters
+    ----------
+    file_path : string
+        The relative or absolute path to an existing file
+
+    checksums: dict
+        A dictionary where keys are filenames (not including the path)
+        and values are checksum information (checksum value and checksum algorithm)
+
+    Returns
+    -------
+    True - if the file's checksum matches a checksum in the checksum dict
+    False - if the file doesn't have a checksum, or if the checksum doesn't match
+    """
+    filename = basename(file_path)
+    checksum = checksums.get(filename)
+    if not checksum:
+        return False
+    return make_checksum(file_path, checksum["Algorithm"]) == checksum["Value"]
+
+
+def make_checksum(file_path, algorithm):
+    """
+    Create checksum of file using the specified algorithm
+    """
+    # Based on https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file#answer-3431838
+    # with modification to handle multiple algorithms
+    hash = getattr(hashlib, algorithm.lower())()
+
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash.update(chunk)
+    return hash.hexdigest()
