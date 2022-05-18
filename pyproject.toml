@@ -18,6 +18,7 @@ tenacity = "^8.0.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
+flake8 = "^4.0.1"
 
 [tool.poetry.scripts]
 podaac-data-subscriber = 'subscriber.podaac_data_subscriber:main'
