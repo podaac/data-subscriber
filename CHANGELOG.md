@@ -7,10 +7,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Changed
 - Switched to [poetry](https://python-poetry.org/) as the build tool for the project
 
-<<<<<<< HEAD
-=======
-
->>>>>>> main
 ## [1.9.0]
 ### Added
 - check if file exists before downloading a file. [17](https://github.com/podaac/data-subscriber/issues/17)
