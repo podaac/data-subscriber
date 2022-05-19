@@ -1,10 +1,34 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
+[tool.poetry]
+name = "podaac-data-subscriber"
+version = "1.9.1"
+description = "PO.DAAC Data Subscriber Command Line Tool"
+authors = ["PO.DAAC <podaac@podaac.jpl.nasa.gov>"]
+readme = "README.md"
+license = "Apache-2.0"
+repository = "https://github.com/podaac/data-subscriber"
+exclude = ['cmr', 'img', 'tests']
+packages = [
+    { include = "subscriber" },
 ]
-build-backend = "setuptools.build_meta"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = "^2.27.1"
+tenacity = "^8.0.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+flake8 = "^4.0.1"
+
+[tool.poetry.scripts]
+podaac-data-subscriber = 'subscriber.podaac_data_subscriber:main'
+podaac-data-downloader = 'subscriber.podaac_data_downloader:main'
+
 [tool.pytest.ini_options]
 markers = [
     "regression: marks a test as a regression, requires netrc file (deselect with '-m \"not regresion\"')"
 ]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

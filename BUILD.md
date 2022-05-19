@@ -1,21 +1,46 @@
-# Manually building
+If you are interested in contributing to this project, you will need to be able to manually build it.
 
-## Make sure we have all the build Dependencies
+However, if you just want to download and use this project, please refer back to the [Installation](./README.md#installation) instructions in the README file.
+
+# Manually building (for development)
+
+This project is built with [Poetry](https://python-poetry.org/). 
+In order to build it, please follow the [installation instructions](https://python-poetry.org/docs/#installation) for poetry first. 
+If you are unfamiliar with poetry as a build tool, it is recommended to review the [Basic Usage](https://python-poetry.org/docs/basic-usage/) documentation before continuing.
+
+## Installing
 ```
-python3 -m pip install --upgrade build
-python3 -m pip install --upgrade pip
-python3 -m pip install --upgrade twine
+poetry install
 ```
+
+## Running tests
+All tests
+```
+poetry run pytest
+```
+
+Exclude regression tests
+```
+poetry run pytest -m "not regression"
+```
+
+Only regression tests
+```
+poetry run pytest -m "regression"
+```
+
 
 ## Clean, build, and upload
 ```
 rm -r dist
-python3 -m build
+poetry install
+poetry build
 # pypi test upload
-# python3 -m twine upload --repository testpypi dist/*
+# poetry config repositories.testpypi https://test.pypi.org/legacy/
+# poetry publish -r testpypi
 
 #pypi upload
-python3 -m twine upload dist/*
+poetry publish
 ```
 
 ## Install a specific version

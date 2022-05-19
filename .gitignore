@@ -7,3 +7,5 @@ dist/
 podaac_data_subscriber.egg-info/
 .idea/
 venv
+.pytest_cache
+MUR25-JPL-L4-GLOB-v04.2

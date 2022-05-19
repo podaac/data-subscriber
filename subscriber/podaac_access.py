@@ -21,7 +21,7 @@ import requests
 import tenacity
 from datetime import datetime
 
-__version__ = "1.9.0"
+__version__ = "1.9.1"
 extensions = [".nc", ".h5", ".zip", ".tar.gz"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
@@ -351,7 +351,6 @@ def parse_cycles(results):
     return cycles
 
 
-
 def extract_checksums(granule_results):
     """
     Create a dictionary containing checksum information from files.
@@ -415,7 +414,12 @@ def checksum_does_match(file_path, checksums):
     checksum = checksums.get(filename)
     if not checksum:
         return False
-    return make_checksum(file_path, checksum["Algorithm"]) == checksum["Value"]
+
+    computed_checksum = make_checksum(file_path, checksum["Algorithm"])
+    checksums_match = computed_checksum == checksum["Value"]
+    if not checksums_match:
+        logging.warning(f'Computed checksum {computed_checksum} does not match expected checksum {checksum["Value"]}')
+    return checksums_match
 
 
 def make_checksum(file_path, algorithm):
@@ -424,9 +428,9 @@ def make_checksum(file_path, algorithm):
     """
     # Based on https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file#answer-3431838
     # with modification to handle multiple algorithms
-    hash = getattr(hashlib, algorithm.lower())()
+    hash_alg = getattr(hashlib, algorithm.lower())()
 
     with open(file_path, 'rb') as f:
         for chunk in iter(lambda: f.read(4096), b""):
-            hash.update(chunk)
-    return hash.hexdigest()
+            hash_alg.update(chunk)
+    return hash_alg.hexdigest()
