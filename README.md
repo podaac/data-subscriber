@@ -26,7 +26,7 @@ The subscriber is useful for users who need to continuously pull the latest data
 
 ## Installation
 
-Both subscriber and download require Python >= 3.8.
+Both subscriber and downloader require Python >= 3.7.
 
 The subscriber and downloader scripts are available in the [pypi python repository](https://pypi.org/project/podaac-data-subscriber/), it can be installed via pip:
 
