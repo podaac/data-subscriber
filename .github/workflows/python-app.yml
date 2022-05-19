@@ -49,19 +49,3 @@ jobs:
     - name: Regression Test with pytest
       run: |
         poetry run pytest -m "regression"
-  verify:
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ "3.7", "3.8", "3.9", "3.10" ]
-        os: [ ubuntu-18.04, macos-latest, windows-latest ]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install and Verify
-        run: |
-          python -m pip install --upgrade pip
-          pip install git+${{ github.repositoryUrl }}@${{ github.sha }}
