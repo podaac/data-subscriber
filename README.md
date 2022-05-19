@@ -23,17 +23,12 @@ The Downloader is useful if you need to download PO.DAAC data once in a while or
 
 The subscriber is useful for users who need to continuously pull the latest data from the PO.DAAC archive. If you feed data into a model or real time process, the subscriber allows you to repeatedly run the script and only download the latest data.
 
-## Dependencies
-
-Aside from **python 3**, the only dependency is the python 'requests' module, which can be installed via pip. Pip is the `package installer for python`. you don't need to know much of anything about python or pip, as long as you have it installed on the machine you're using.
-
-```
-python -m pip install requests
-```
 
 ## Installation
 
-The subscriber and downloader scripes are available in the [pypi python repository](https://pypi.org/project/podaac-data-subscriber/), it can be installed via pip:
+Both subscriber and download require Python >= 3.8.
+
+The subscriber and downloader scripts are available in the [pypi python repository](https://pypi.org/project/podaac-data-subscriber/), it can be installed via pip:
 
 ```
 pip install podaac-data-subscriber
