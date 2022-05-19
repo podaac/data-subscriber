@@ -12,7 +12,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.7"
 requests = "^2.27.1"
 tenacity = "^8.0.1"
 
