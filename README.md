@@ -26,7 +26,7 @@ The subscriber is useful for users who need to continuously pull the latest data
 
 ## Installation
 
-Both subscriber and download require Python >= 3.8.
+Both subscriber and downloader require Python >= 3.7.
 
 The subscriber and downloader scripts are available in the [pypi python repository](https://pypi.org/project/podaac-data-subscriber/), it can be installed via pip:
 
@@ -50,6 +50,8 @@ usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cyc
 
 ...
 ```
+
+**Note:** If after installation, the `podaac-data-subscriber` or `podaac-data-downloader` commands are not available, you may need to add the script location to the PATH. This could be due to a *User Install* of the python package, which is common on shared systems where python packages are installed for the user (not the system). See [Installing to the User Site](https://packaging.python.org/en/latest/tutorials/installing-packages/#installing-to-the-user-site) and [User Installs](https://pip.pypa.io/en/latest/user_guide/#user-installs) for more information on finding the location of installed scripts and adding them to the PATH.
 
 ## Step 1:  Get Earthdata Login     
 This step is needed only if you dont have an Earthdata login already.
