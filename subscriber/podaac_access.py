@@ -429,7 +429,7 @@ def make_checksum(file_path, algorithm):
     # Based on https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file#answer-3431838
     # with modification to handle multiple algorithms
     hashlib_algorithm_name = algorithm.lower().replace("-", "")
-    hash_alg = getattr(hashlib, hashlib_algorithm_name)()
+    hash_alg = hashlib.new(hashlib_algorithm_name)
 
     with open(file_path, 'rb') as f:
         for chunk in iter(lambda: f.read(4096), b""):
