@@ -21,7 +21,7 @@ import requests
 import tenacity
 from datetime import datetime
 
-__version__ = "1.10.0"
+__version__ = "1.10.1"
 extensions = [".nc", ".h5", ".zip", ".tar.gz"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
@@ -428,7 +428,8 @@ def make_checksum(file_path, algorithm):
     """
     # Based on https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file#answer-3431838
     # with modification to handle multiple algorithms
-    hash_alg = getattr(hashlib, algorithm.lower())()
+    hashlib_algorithm_name = algorithm.lower().replace("-", "")
+    hash_alg = hashlib.new(hashlib_algorithm_name)
 
     with open(file_path, 'rb') as f:
         for chunk in iter(lambda: f.read(4096), b""):

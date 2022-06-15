@@ -47,3 +47,24 @@ def test_downloader_MUR():
     assert t2 != os.path.getmtime('./MUR25-JPL-L4-GLOB-v04.2/2020/01/02/20200102090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
 
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2')
+
+
+@pytest.mark.regression
+def test_downloader_GRACE_with_SHA_512(tmpdir):
+    # start with empty directory
+    directory_str = str(tmpdir)
+    assert len( os.listdir(directory_str) ) == 0
+
+    # run the command once -> should download the file. Note the modified time for the file
+    args = create_downloader_args(f"-c GRACEFO_L2_CSR_MONTHLY_0060 -sd 2020-01-01T00:00:00Z -ed 2020-01-02T00:00:01Z -d {str(tmpdir)} --limit 1 --verbose -e 00".split())
+    pdd.run(args)
+    assert len( os.listdir(directory_str) ) > 0
+    filename = directory_str + "/" + os.listdir(directory_str)[0]
+    modified_time_1 = os.path.getmtime(filename)
+    print( modified_time_1 )
+
+    # run the command again -> should not redownload the file. The modified time for the file should not change
+    pdd.run(args)
+    modified_time_2 = os.path.getmtime(filename)
+    print( modified_time_2 )
+    assert modified_time_1 == modified_time_2
