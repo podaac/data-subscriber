@@ -14,15 +14,12 @@ from subscriber import podaac_access as pa
 __version__ = pa.__version__
 
 page_size = 2000
-download_limit_global = -1
 edl = pa.edl
 cmr = pa.cmr
 token_url = pa.token_url
 
-
 # The lines below are to get the IP address. You can make this static and
 # assign a fixed value to the IPAddr variable
-
 
 def parse_cycles(cycle_input):
     # if cycle_input is None:
@@ -137,10 +134,9 @@ def run(args=None):
     process_cmd = args.process_cmd
     data_path = args.outputDirectory
 
-    if args.limit is not None:
+    download_limit = None
+    if args.limit is not None and args.limit > 0:
         download_limit = args.limit
-    else:
-        download_limit = download_limit_global
 
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
@@ -244,7 +240,7 @@ def run(args=None):
     # Make this a non-verbose message
     # if args.verbose:
     logging.info("Found " + str(len(downloads)) + " total files to download")
-    if args.limit is not None:
+    if download_limit:
         logging.info("Limiting downloads to " + str(args.limit) + " total files")
     if args.verbose:
         logging.info("Downloading files with extensions: " + str(extensions))
@@ -278,7 +274,7 @@ def run(args=None):
             success_cnt = success_cnt + 1
 
             #if limit is set and we're at or over it, stop downloading
-            if download_limit != -1 and success_cnt >= download_limit:
+            if download_limit and success_cnt >= download_limit:
                 break
 
         except Exception:
