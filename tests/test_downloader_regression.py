@@ -12,6 +12,19 @@ def create_downloader_args(args):
     args2 = parser.parse_args(args)
     return args2
 
+
+#Test the downlaoder on MUR25 data for start/stop/, yyyy/mmm/dd dir structure,
+# and offset. Running it a second time to ensure it downlaods the files again-
+# the downloader doesn't care about updates.
+@pytest.mark.regression
+def test_downloader_limit_MUR():
+    shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2', ignore_errors=True)
+    args2 = create_downloader_args('-c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2  -sd 2020-01-01T00:00:00Z -ed 2020-01-30T00:00:00Z --limit 1'.split())
+    pdd.run(args2)
+    # count number of files downloaded...
+    assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name)])==1
+    shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2')
+
 #Test the downlaoder on MUR25 data for start/stop/, yyyy/mmm/dd dir structure,
 # and offset. Running it a second time to ensure it downlaods the files again-
 # the downloader doesn't care about updates.

@@ -14,15 +14,12 @@ from subscriber import podaac_access as pa
 __version__ = pa.__version__
 
 page_size = 2000
-
 edl = pa.edl
 cmr = pa.cmr
 token_url = pa.token_url
 
-
 # The lines below are to get the IP address. You can make this static and
 # assign a fixed value to the IPAddr variable
-
 
 def parse_cycles(cycle_input):
     # if cycle_input is None:
@@ -101,9 +98,8 @@ def create_parser():
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD',
                         help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
 
-    parser.add_argument("--limit", dest="limit", default='2000', type=int,
-                        help="Integer limit for number of granules to download. Useful in testing. Defaults to " + str(
-                            page_size))  # noqa E501
+    parser.add_argument("--limit", dest="limit", default=None, type=int,
+                        help="Integer limit for number of granules to download. Useful in testing. Defaults to no limit.")  # noqa E501
 
     return parser
 
@@ -138,8 +134,9 @@ def run(args=None):
     process_cmd = args.process_cmd
     data_path = args.outputDirectory
 
-    if args.limit is not None:
-        page_size = args.limit
+    download_limit = None
+    if args.limit is not None and args.limit > 0:
+        download_limit = args.limit
 
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
@@ -243,6 +240,8 @@ def run(args=None):
     # Make this a non-verbose message
     # if args.verbose:
     logging.info("Found " + str(len(downloads)) + " total files to download")
+    if download_limit:
+        logging.info("Limiting downloads to " + str(args.limit) + " total files")
     if args.verbose:
         logging.info("Downloading files with extensions: " + str(extensions))
 
@@ -273,6 +272,11 @@ def run(args=None):
             pa.process_file(process_cmd, output_path, args)
             logging.info(str(datetime.now()) + " SUCCESS: " + f)
             success_cnt = success_cnt + 1
+
+            #if limit is set and we're at or over it, stop downloading
+            if download_limit and success_cnt >= download_limit:
+                break
+
         except Exception:
             logging.warning(str(datetime.now()) + " FAILURE: " + f, exc_info=True)
             failure_cnt = failure_cnt + 1
