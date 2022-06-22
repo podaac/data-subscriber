@@ -73,7 +73,7 @@ def create_parser():
                         default=False)  # noqa E501
     parser.add_argument("-b", "--bounds", dest="bbox",
                         help="The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".",
-                        default="-180,-90,180,90")  # noqa E501
+                        default=None)  # noqa E501
 
     # Arguments for how data are stored locally - much processing is based on
     # the underlying directory structure (e.g. year/Day-of-year)
@@ -178,45 +178,35 @@ def run(args=None):
         else:
             logging.warning("No .update__" + short_name + " in the data directory. (Is this the first run?)")
 
-    # Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
-    bounding_extent = args.bbox
-
-    # There are several ways to query for CMR updates that occured during a given timeframe. Read on in the CMR Search documentation:
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#c-with-new-granules (Collections)
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#c-with-revised-granules (Collections)
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-production-date (Granules)
-    # * https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#g-created-at (Granules)
-    # The `created_at` parameter works for our purposes. It's a granule search parameter that returns the records ingested since the input timestamp.
-
     if defined_time_range:
         # if(data_since):
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time,
                                                datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
 
-    params = {
-        'page_size': page_size,
-        'sort_key': "-start_date",
-        'provider': provider,
-        'ShortName': short_name,
-        'updated_since': data_within_last_timestamp,
-        'token': token,
-        'bounding_box': bounding_extent,
-    }
+    params = [
+        ('page_size',page_size),
+        ('sort_key', "-start_date"),
+        ('provider', provider),
+        ('ShortName', short_name),
+        ('updated_since', data_within_last_timestamp),
+        ('token', token),
+    ]
 
     if defined_time_range:
-        params = {
-            'page_size': page_size,
-            'sort_key': "-start_date",
-            'provider': provider,
-            'updated_since': data_within_last_timestamp,
-            'ShortName': short_name,
-            'temporal': temporal_range,
-            'token': token,
-            'bounding_box': bounding_extent,
-        }
-
+        params = [
+            ('page_size', page_size),
+            ('sort_key', "-start_date"),
+            ('provider', provider),
+            ('updated_since', data_within_last_timestamp),
+            ('ShortName', short_name),
+            ('temporal', temporal_range),
+            ('token', token),
+        ]
         if args.verbose:
             logging.info("Temporal Range: " + temporal_range)
+
+    if args.bbox is not None:
+        params.append(('bounding_box', args.bbox))
 
     if args.verbose:
         logging.info("Provider: " + provider)

@@ -73,7 +73,7 @@ def create_parser():
     # spatiotemporal arguments
     parser.add_argument("-b", "--bounds", dest="bbox",
                         help="The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".",
-                        default="-180,-90,180,90")  # noqa E501
+                        default=None)  # noqa E501
 
     # Arguments for how data are stored locally - much processing is based on
     # the underlying directory structure (e.g. year/Day-of-year)
@@ -159,9 +159,6 @@ def run(args=None):
         logging.info("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
         makedirs(data_path, exist_ok=True)
 
-    # Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
-    bounding_extent = args.bbox
-
     if search_cycles is not None:
         cmr_cycles = search_cycles
         params = [
@@ -170,7 +167,6 @@ def run(args=None):
             ('provider', provider),
             ('ShortName', short_name),
             ('token', token),
-            ('bounding_box', bounding_extent),
         ]
         for v in cmr_cycles:
             params.append(("cycle[]", v))
@@ -180,20 +176,20 @@ def run(args=None):
     else:
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time,
                                                datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
-        params = {
-            'page_size': page_size,
-            'sort_key': "-start_date",
-            'provider': provider,
-            'ShortName': short_name,
-            'temporal': temporal_range,
-            'token': token,
-            'bounding_box': bounding_extent,
-        }
+        params = [
+            ('page_size', page_size),
+            ('sort_key', "-start_date"),
+            ('provider', provider),
+            ('ShortName', short_name),
+            ('temporal', temporal_range),
+        ]
         if args.verbose:
             logging.info("Temporal Range: " + temporal_range)
 
     if args.verbose:
         logging.info("Provider: " + provider)
+    if args.bbox is not None:
+        params.append(('bounding_box', args.bbox))
 
     # If 401 is raised, refresh token and try one more time
     try:
