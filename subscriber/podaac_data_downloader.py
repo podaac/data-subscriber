@@ -14,7 +14,7 @@ from subscriber import podaac_access as pa
 __version__ = pa.__version__
 
 page_size = 2000
-
+download_limit_global = -1
 edl = pa.edl
 cmr = pa.cmr
 token_url = pa.token_url
@@ -66,7 +66,7 @@ def create_parser():
                         help="The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z")  # noqa E501
     parser.add_argument("-ed", "--end-date", required=False, dest="endDate",
                         help="The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z")  # noqa E501
-    
+
     # Adding optional arguments
     parser.add_argument("-f", "--force", dest="force", action="store_true", help = "Flag to force downloading files that are listed in CMR query, even if the file exists and checksum matches")  # noqa E501
 
@@ -101,9 +101,8 @@ def create_parser():
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD',
                         help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
 
-    parser.add_argument("--limit", dest="limit", default='2000', type=int,
-                        help="Integer limit for number of granules to download. Useful in testing. Defaults to " + str(
-                            page_size))  # noqa E501
+    parser.add_argument("--limit", dest="limit", default=None, type=int,
+                        help="Integer limit for number of granules to download. Useful in testing. Defaults to no limit.")  # noqa E501
 
     return parser
 
@@ -139,7 +138,9 @@ def run(args=None):
     data_path = args.outputDirectory
 
     if args.limit is not None:
-        page_size = args.limit
+        download_limit = args.limit
+    else:
+        download_limit = download_limit_global
 
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
@@ -247,6 +248,8 @@ def run(args=None):
     # Make this a non-verbose message
     # if args.verbose:
     logging.info("Found " + str(len(downloads)) + " total files to download")
+    if args.limit is not None:
+        logging.info("Limiting downloads to " + str(args.limit) + " total files")
     if args.verbose:
         logging.info("Downloading files with extensions: " + str(extensions))
 
@@ -277,6 +280,11 @@ def run(args=None):
             pa.process_file(process_cmd, output_path, args)
             logging.info(str(datetime.now()) + " SUCCESS: " + f)
             success_cnt = success_cnt + 1
+
+            #if limit is set and we're at or over it, stop downloading
+            if download_limit != -1 and success_cnt >= download_limit:
+                break
+
         except Exception:
             logging.warning(str(datetime.now()) + " FAILURE: " + f, exc_info=True)
             failure_cnt = failure_cnt + 1
