@@ -21,7 +21,7 @@ import requests
 import tenacity
 from datetime import datetime
 
-__version__ = "1.10.1"
+__version__ = "1.10.2"
 extensions = [".nc", ".h5", ".zip", ".tar.gz"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
@@ -129,16 +129,17 @@ def refresh_token(old_token: str, client_id: str):
 
 
 def validate(args):
-    bounds = args.bbox.split(',')
-    if len(bounds) != 4:
-        raise ValueError(
-            "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
-    for b in bounds:
-        try:
-            float(b)
-        except ValueError:
+    if args.bbox is not None:
+        bounds = args.bbox.split(',')
+        if len(bounds) != 4:
             raise ValueError(
                 "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
+        for b in bounds:
+            try:
+                float(b)
+            except ValueError:
+                raise ValueError(
+                    "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
 
     if args.startDate:
         try:

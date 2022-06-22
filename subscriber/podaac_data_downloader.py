@@ -14,15 +14,12 @@ from subscriber import podaac_access as pa
 __version__ = pa.__version__
 
 page_size = 2000
-
 edl = pa.edl
 cmr = pa.cmr
 token_url = pa.token_url
 
-
 # The lines below are to get the IP address. You can make this static and
 # assign a fixed value to the IPAddr variable
-
 
 def parse_cycles(cycle_input):
     # if cycle_input is None:
@@ -66,14 +63,14 @@ def create_parser():
                         help="The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z")  # noqa E501
     parser.add_argument("-ed", "--end-date", required=False, dest="endDate",
                         help="The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z")  # noqa E501
-    
+
     # Adding optional arguments
     parser.add_argument("-f", "--force", dest="force", action="store_true", help = "Flag to force downloading files that are listed in CMR query, even if the file exists and checksum matches")  # noqa E501
 
     # spatiotemporal arguments
     parser.add_argument("-b", "--bounds", dest="bbox",
                         help="The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".",
-                        default="-180,-90,180,90")  # noqa E501
+                        default=None)  # noqa E501
 
     # Arguments for how data are stored locally - much processing is based on
     # the underlying directory structure (e.g. year/Day-of-year)
@@ -101,9 +98,8 @@ def create_parser():
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD',
                         help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
 
-    parser.add_argument("--limit", dest="limit", default='2000', type=int,
-                        help="Integer limit for number of granules to download. Useful in testing. Defaults to " + str(
-                            page_size))  # noqa E501
+    parser.add_argument("--limit", dest="limit", default=None, type=int,
+                        help="Integer limit for number of granules to download. Useful in testing. Defaults to no limit.")  # noqa E501
 
     return parser
 
@@ -138,8 +134,9 @@ def run(args=None):
     process_cmd = args.process_cmd
     data_path = args.outputDirectory
 
-    if args.limit is not None:
-        page_size = args.limit
+    download_limit = None
+    if args.limit is not None and args.limit > 0:
+        download_limit = args.limit
 
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
@@ -158,9 +155,6 @@ def run(args=None):
         logging.info("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
         makedirs(data_path, exist_ok=True)
 
-    # Change this to whatever extent you need. Format is W Longitude,S Latitude,E Longitude,N Latitude
-    bounding_extent = args.bbox
-
     if search_cycles is not None:
         cmr_cycles = search_cycles
         params = [
@@ -169,7 +163,6 @@ def run(args=None):
             ('provider', provider),
             ('ShortName', short_name),
             ('token', token),
-            ('bounding_box', bounding_extent),
         ]
         for v in cmr_cycles:
             params.append(("cycle[]", v))
@@ -179,20 +172,20 @@ def run(args=None):
     else:
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time,
                                                datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
-        params = {
-            'page_size': page_size,
-            'sort_key': "-start_date",
-            'provider': provider,
-            'ShortName': short_name,
-            'temporal': temporal_range,
-            'token': token,
-            'bounding_box': bounding_extent,
-        }
+        params = [
+            ('page_size', page_size),
+            ('sort_key', "-start_date"),
+            ('provider', provider),
+            ('ShortName', short_name),
+            ('temporal', temporal_range),
+        ]
         if args.verbose:
             logging.info("Temporal Range: " + temporal_range)
 
     if args.verbose:
         logging.info("Provider: " + provider)
+    if args.bbox is not None:
+        params.append(('bounding_box', args.bbox))
 
     # If 401 is raised, refresh token and try one more time
     try:
@@ -247,6 +240,8 @@ def run(args=None):
     # Make this a non-verbose message
     # if args.verbose:
     logging.info("Found " + str(len(downloads)) + " total files to download")
+    if download_limit:
+        logging.info("Limiting downloads to " + str(args.limit) + " total files")
     if args.verbose:
         logging.info("Downloading files with extensions: " + str(extensions))
 
@@ -277,6 +272,11 @@ def run(args=None):
             pa.process_file(process_cmd, output_path, args)
             logging.info(str(datetime.now()) + " SUCCESS: " + f)
             success_cnt = success_cnt + 1
+
+            #if limit is set and we're at or over it, stop downloading
+            if download_limit and success_cnt >= download_limit:
+                break
+
         except Exception:
             logging.warning(str(datetime.now()) + " FAILURE: " + f, exc_info=True)
             failure_cnt = failure_cnt + 1
