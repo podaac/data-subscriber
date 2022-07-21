@@ -317,9 +317,9 @@ def run(args=None):
 
     if success_cnt > 0:
         try:
-            pa.create_citation_file(short_name, provider, data_path, token)
+            pa.create_citation_file(short_name, provider, data_path, token, args.verbose)
         except:
-            logging.debug("Error generating citation")
+            logging.warning("Error generating citation")
 
     pa.delete_token(token_url, token)
     logging.info("END\n\n")

@@ -288,7 +288,7 @@ def run(args=None):
     #create citation file if success > 0
     if success_cnt > 0:
         try:
-            pa.create_citation_file(short_name, provider, data_path, token)
+            pa.create_citation_file(short_name, provider, data_path, token, args.verbose)
         except:
             logging.debug("Error generating citation")
 

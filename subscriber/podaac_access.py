@@ -465,7 +465,7 @@ def create_citation(collection_json, access_date):
     year = datetime.strptime(release_date, "%Y-%m-%dT%H:%M:%S.000Z").year
     return citation_template.format(creator=creator, year=year, title=title, version=version, doi_authority=doi_authority, doi=doi, access_date=access_date)
 
-def create_citation_file(short_name, provider, data_path, token=None):
+def create_citation_file(short_name, provider, data_path, token=None, verbose=False):
     # get collection umm-c METADATA
     params = [
         ('provider', provider),
@@ -474,7 +474,7 @@ def create_citation_file(short_name, provider, data_path, token=None):
     if token is not None:
         params.append(('token', token))
 
-    collection = get_cmr_collections(params, True)['items'][0]
+    collection = get_cmr_collections(params, verbose)['items'][0]
 
     access_date = datetime.now().strftime("%Y-%m-%d")
 
