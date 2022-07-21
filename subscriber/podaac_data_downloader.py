@@ -284,6 +284,14 @@ def run(args=None):
     logging.info("Downloaded Files: " + str(success_cnt))
     logging.info("Failed Files:     " + str(failure_cnt))
     logging.info("Skipped Files:    " + str(skip_cnt))
+
+    #create citation file if success > 0
+    if success_cnt > 0:
+        try:
+            pa.create_citation_file(short_name, provider, data_path, token)
+        except:
+            logging.debug("Error generating citation")
+
     pa.delete_token(token_url, token)
     logging.info("END\n\n")
 

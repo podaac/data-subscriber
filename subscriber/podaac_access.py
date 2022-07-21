@@ -14,6 +14,7 @@ import subprocess
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import hashlib
+from datetime import datetime
 
 import requests
 
@@ -436,3 +437,50 @@ def make_checksum(file_path, algorithm):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_alg.update(chunk)
     return hash_alg.hexdigest()
+
+def get_cmr_collections(params, verbose=False):
+    query = urlencode(params)
+    url = "https://" + cmr + "/search/collections.umm_json?" + query
+    if verbose:
+        logging.info(url)
+
+    # Build the request, add the search after header to it if it's not None (e.g. after the first iteration)
+    req = Request(url)
+    response = urlopen(req)
+    result = json.loads(response.read().decode())
+    return result
+
+
+def create_citation(collection_json, access_date):
+    citation_template = "{creator}. {year}. {title}. Ver. {version}. PO.DAAC, CA, USA. Dataset accessed {access_date} at {doi_authority}/{doi}"
+
+    # Better error handling here may be needed...
+    doi = collection_json['DOI']["DOI"]
+    doi_authority = collection_json['DOI']["Authority"]
+    citation = collection_json["CollectionCitations"][0]
+    creator = citation["Creator"]
+    release_date = citation["ReleaseDate"]
+    title = citation["Title"]
+    version = citation["Version"]
+    year = datetime.strptime(release_date, "%Y-%m-%dT%H:%M:%S.000Z").year
+    return citation_template.format(creator=creator, year=year, title=title, version=version, doi_authority=doi_authority, doi=doi, access_date=access_date)
+
+def create_citation_file(short_name, provider, data_path, token=None):
+    # get collection umm-c METADATA
+    params = [
+        ('provider', provider),
+        ('ShortName', short_name)
+    ]
+    if token is not None:
+        params.append(('token', token))
+
+    collection = get_cmr_collections(params, True)['items'][0]
+
+    access_date = datetime.now().strftime("%Y-%m-%d")
+
+    # create citation from umm-c metadata
+    citation = create_citation(collection['umm'], access_date)
+    # write file
+
+    with open(data_path + "/" + short_name + ".citation.txt", "w") as text_file:
+        text_file.write(citation)
