@@ -192,7 +192,7 @@ def test_param_update():
 
     for i,p in enumerate(params) :
         if p[1] == "token":
-            assert f2 == "newToken"
+            assert p[2] == "newToken"
 
 
 
