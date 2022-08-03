@@ -22,7 +22,8 @@ def test_downloader_limit_MUR():
     args2 = create_downloader_args('-c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2  -sd 2020-01-01T00:00:00Z -ed 2020-01-30T00:00:00Z --limit 1'.split())
     pdd.run(args2)
     # count number of files downloaded...
-    assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name)])==1
+    # Also include the citation file here (1+1 = 2)
+    assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name)])==2
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2')
 
 #Test the downlaoder on MUR25 data for start/stop/, yyyy/mmm/dd dir structure,
@@ -73,6 +74,10 @@ def test_downloader_GRACE_with_SHA_512(tmpdir):
     pdd.run(args)
     assert len( os.listdir(directory_str) ) > 0
     filename = directory_str + "/" + os.listdir(directory_str)[0]
+    #if the citation file was chosen above, get the next file since citation file is updated on successful run
+    if "citation.txt" in filename:
+        filename = directory_str + "/" + os.listdir(directory_str)[1]
+
     modified_time_1 = os.path.getmtime(filename)
     print( modified_time_1 )
 

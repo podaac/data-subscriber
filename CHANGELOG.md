@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [unreleased]
+### Added
+- Added citation file creation when data are downloaded [91](https://github.com/podaac/data-subscriber/issues/91). Required some updates to the regression testing.
+
 ## [1.10.2]
 ### Fixed
 - Fixed an issue where using a default global bounding box prevented download of data that didn't use the horizontal spatial domain [87](https://github.com/podaac/data-subscriber/issues/87)
