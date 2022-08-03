@@ -179,6 +179,23 @@ def test_validate():
     # with pytest.raises(SystemExit):
     #     a = validate(["-c", "viirs", "-d", "/data", "-m","60b"])
 
+def test_param_update():
+    params = [
+        ('sort_key', "-start_date"),
+        ('provider', "'POCLOUD'"),
+        ('token', "123"),
+    ]
+
+    for  i, p in enumerate(params) :
+        if p[1] == "token":
+            params[i] = ("token", "newToken")
+
+    for i,p in enumerate(params) :
+        if p[1] == "token":
+            assert f2 == "newToken"
+
+
+
 
 def validate(args):
     parser = pds.create_parser()

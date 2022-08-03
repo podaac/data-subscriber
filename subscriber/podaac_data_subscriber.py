@@ -218,7 +218,12 @@ def run(args=None):
     except HTTPError as e:
         if e.code == 401:
             token = pa.refresh_token(token, 'podaac-subscriber')
-            params['token'] = token
+            # Updated: This is not always a dictionary...
+            # in fact, here it's always a list of tuples
+            for  i, p in enumerate(params) :
+                if p[1] == "token":
+                    params[i] = ("token", token)
+            #params['token'] = token
             results = pa.get_search_results(params, args.verbose)
         else:
             raise e
@@ -319,7 +324,7 @@ def run(args=None):
         try:
             pa.create_citation_file(short_name, provider, data_path, token, args.verbose)
         except:
-            logging.warning("Error generating citation")
+            logging.warning("Error generating citation", exc_info=True)
 
     pa.delete_token(token_url, token)
     logging.info("END\n\n")
