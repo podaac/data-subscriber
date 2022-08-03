@@ -178,6 +178,7 @@ def run(args=None):
             ('provider', provider),
             ('ShortName', short_name),
             ('temporal', temporal_range),
+            ('token', token),
         ]
         if args.verbose:
             logging.info("Temporal Range: " + temporal_range)
