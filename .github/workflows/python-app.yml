@@ -47,5 +47,7 @@ jobs:
        username: ${{ secrets.EDL_OPS_USERNAME }}
        password: ${{ secrets.EDL_OPS_PASSWORD }}
     - name: Regression Test with pytest
+      env:
+        PODAAC_LOGLEVEL: debug
       run: |
-        poetry run pytest -m "regression"
+        poetry run pytest -s -m "regression"
