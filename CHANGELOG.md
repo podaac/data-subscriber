@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [unreleased]
 ### Fixed
 - Fixed an issue where token-refresh was expecting a dictionary, not a list of tuples
+- Fixed an issue with 503 errors on data download not being re-tried. [97](https://github.com/podaac/data-subscriber/issues/97)
 ### Added
 - Added citation file creation when data are downloaded [91](https://github.com/podaac/data-subscriber/issues/91). Required some updates to the regression testing.
 
