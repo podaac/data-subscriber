@@ -21,9 +21,9 @@ def test_downloader_limit_MUR():
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2', ignore_errors=True)
     args2 = create_downloader_args('-c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2  -sd 2020-01-01T00:00:00Z -ed 2020-01-30T00:00:00Z --limit 1 --verbose'.split())
     pdd.run(args2)
-    # count number of files downloaded...
-    # Also include the citation file here (1+1 = 2)
-    assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name)])==2
+    # So running the test in parallel, sometimes we get a 401 on the token...
+    # Let's ensure we're only looking for data files here
+    assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name) and "citation.txt" not in name ])==1
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2')
 
 #Test the downlaoder on MUR25 data for start/stop/, yyyy/mmm/dd dir structure,
