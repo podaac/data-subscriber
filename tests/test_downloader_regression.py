@@ -19,10 +19,11 @@ def create_downloader_args(args):
 @pytest.mark.regression
 def test_downloader_limit_MUR():
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2', ignore_errors=True)
-    args2 = create_downloader_args('-c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2  -sd 2020-01-01T00:00:00Z -ed 2020-01-30T00:00:00Z --limit 1'.split())
+    args2 = create_downloader_args('-c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2  -sd 2020-01-01T00:00:00Z -ed 2020-01-30T00:00:00Z --limit 1 --verbose'.split())
     pdd.run(args2)
-    # count number of files downloaded...
-    assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name)])==1
+    # So running the test in parallel, sometimes we get a 401 on the token...
+    # Let's ensure we're only looking for data files here
+    assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name) and "citation.txt" not in name ])==1
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2')
 
 #Test the downlaoder on MUR25 data for start/stop/, yyyy/mmm/dd dir structure,
@@ -31,7 +32,7 @@ def test_downloader_limit_MUR():
 @pytest.mark.regression
 def test_downloader_MUR():
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2', ignore_errors=True)
-    args2 = create_downloader_args('-c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2  -sd 2020-01-01T00:00:00Z -ed 2020-01-02T00:00:00Z -dymd --offset 4'.split())
+    args2 = create_downloader_args('-c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2  -sd 2020-01-01T00:00:00Z -ed 2020-01-02T00:00:00Z -dymd --offset 4 --verbose'.split())
     pdd.run(args2)
     assert exists('./MUR25-JPL-L4-GLOB-v04.2/2020/01/01/20200101090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
     assert exists('./MUR25-JPL-L4-GLOB-v04.2/2020/01/02/20200102090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
@@ -54,7 +55,7 @@ def test_downloader_MUR():
     t1 = os.path.getmtime('./MUR25-JPL-L4-GLOB-v04.2/2020/01/01/20200101090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
 
     # Set the args to --force to re-download those data
-    args2 = create_downloader_args('-c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2  -sd 2020-01-01T00:00:00Z -ed 2020-01-02T00:00:00Z -dymd --offset 4 -f'.split())
+    args2 = create_downloader_args('-c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2  -sd 2020-01-01T00:00:00Z -ed 2020-01-02T00:00:00Z -dymd --offset 4 -f --verbose'.split())
     pdd.run(args2)
     assert t1 != os.path.getmtime('./MUR25-JPL-L4-GLOB-v04.2/2020/01/01/20200101090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
     assert t2 != os.path.getmtime('./MUR25-JPL-L4-GLOB-v04.2/2020/01/02/20200102090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc')
@@ -73,6 +74,10 @@ def test_downloader_GRACE_with_SHA_512(tmpdir):
     pdd.run(args)
     assert len( os.listdir(directory_str) ) > 0
     filename = directory_str + "/" + os.listdir(directory_str)[0]
+    #if the citation file was chosen above, get the next file since citation file is updated on successful run
+    if "citation.txt" in filename:
+        filename = directory_str + "/" + os.listdir(directory_str)[1]
+
     modified_time_1 = os.path.getmtime(filename)
     print( modified_time_1 )
 

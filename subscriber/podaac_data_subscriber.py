@@ -218,7 +218,12 @@ def run(args=None):
     except HTTPError as e:
         if e.code == 401:
             token = pa.refresh_token(token, 'podaac-subscriber')
-            params['token'] = token
+            # Updated: This is not always a dictionary...
+            # in fact, here it's always a list of tuples
+            for  i, p in enumerate(params) :
+                if p[1] == "token":
+                    params[i] = ("token", token)
+            #params['token'] = token
             results = pa.get_search_results(params, args.verbose)
         else:
             raise e
@@ -294,7 +299,9 @@ def run(args=None):
                 skip_cnt += 1
                 continue
 
-            urlretrieve(f, output_path)
+            #urlretrieve(f, output_path)
+            pa.download_file(f,output_path)
+
             pa.process_file(process_cmd, output_path, args)
             logging.info(str(datetime.now()) + " SUCCESS: " + f)
             success_cnt = success_cnt + 1
@@ -314,6 +321,13 @@ def run(args=None):
     logging.info("Downloaded Files: " + str(success_cnt))
     logging.info("Failed Files:     " + str(failure_cnt))
     logging.info("Skipped Files:    " + str(skip_cnt))
+
+    if success_cnt > 0:
+        try:
+            pa.create_citation_file(short_name, provider, data_path, token, args.verbose)
+        except:
+            logging.debug("Error generating citation", exc_info=True)
+
     pa.delete_token(token_url, token)
     logging.info("END\n\n")
     #exit(0)
