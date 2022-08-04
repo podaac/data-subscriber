@@ -10,11 +10,14 @@ from urllib import request
 from typing import Dict
 from urllib import request
 from urllib.error import HTTPError
+from urllib.request import urlretrieve
 import subprocess
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import hashlib
 from datetime import datetime
+import time
+
 
 import requests
 
@@ -285,6 +288,26 @@ def get_temporal_range(start, end, now):
         return "1900-01-01T00:00:00Z,{}".format(end)
 
     raise ValueError("One of start-date or end-date must be specified.")
+
+
+def download_file(remote_file, output_path, retries=3):
+    failed = False
+    for r in range(retries):
+        try:
+            urlretrieve(remote_file, output_path)
+        except HTTPError as e:
+            if e.code == 503:
+                logging.warning(f'Error downloading {remote_file}. Retrying download.')
+                # back off on sleep time each error...
+                time.sleep(r)
+                if r >= retries:
+                    failed = True
+        else:
+            #downlaoded fie without 503
+            break
+
+        if failed:
+            raise Exception("Could not download file.")
 
 
 # Retry using random exponential backoff if a 500 error is raised. Maximum 10 attempts.

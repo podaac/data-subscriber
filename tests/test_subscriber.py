@@ -1,5 +1,7 @@
 from subscriber import podaac_data_subscriber as pds
 from subscriber import podaac_access as pa
+
+from urllib.error import HTTPError
 import pytest
 import os
 from pathlib import Path
@@ -194,8 +196,10 @@ def test_param_update():
         if p[1] == "token":
             assert p[2] == "newToken"
 
-
-
+def test_downloader_retry(mocker):
+    mck = mocker.patch('subscriber.podaac_access.urlretrieve', side_effect=HTTPError("url", 503, "msg", None, None))
+    pa.download_file("myUrl", "outputPath")
+    assert mck.call_count == 3
 
 def validate(args):
     parser = pds.create_parser()

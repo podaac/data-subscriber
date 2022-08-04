@@ -299,7 +299,9 @@ def run(args=None):
                 skip_cnt += 1
                 continue
 
-            urlretrieve(f, output_path)
+            #urlretrieve(f, output_path)
+            pa.download_file(f,output_path)
+
             pa.process_file(process_cmd, output_path, args)
             logging.info(str(datetime.now()) + " SUCCESS: " + f)
             success_cnt = success_cnt + 1
