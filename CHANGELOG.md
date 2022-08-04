@@ -3,9 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
+## [unreleased]
 ### Fixed
-- Fixed issues where token was not propagated to downloader CMR query
+- Fixed an issue where token-refresh was expecting a dictionary, not a list of tuples
+- Fixed issues where token was not propagated to downloader CMR query [94](https://github.com/podaac/data-subscriber/issues/94)
+- Fixed an issue with 503 errors on data download not being re-tried. [97](https://github.com/podaac/data-subscriber/issues/97)
+### Added
+- Added citation file creation when data are downloaded [91](https://github.com/podaac/data-subscriber/issues/91). Required some updates to the regression testing.
 
 ## [1.10.2]
 ### Fixed
