@@ -226,10 +226,6 @@ def run(args=None):
 
     downloads = [item for sublist in downloads_all for item in sublist]
 
-    if len(downloads) >= page_size:
-        logging.warning("Only the most recent " + str(
-            page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
-
     # filter list based on extension
     if not extensions:
         extensions = pa.extensions
