@@ -17,6 +17,8 @@ from urllib.request import Request, urlopen
 import hashlib
 from datetime import datetime
 import time
+from requests.auth import HTTPBasicAuth
+
 
 
 import requests
@@ -29,7 +31,8 @@ __version__ = "1.10.2"
 extensions = [".nc", ".h5", ".zip", ".tar.gz"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
-token_url = "https://" + cmr + "/legacy-services/rest/tokens"
+token_url = "https://" + edl + "/api/users"
+
 
 IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
 
@@ -92,17 +95,26 @@ def setup_earthdata_login_auth(endpoint):
 ###############################################################################
 # GET TOKEN FROM CMR
 ###############################################################################
-def get_token(url: str, client_id: str, endpoint: str) -> str:
+@tenacity.retry(wait=tenacity.wait_random_exponential(multiplier=1, max=60),
+                stop=tenacity.stop_after_attempt(3),
+                reraise=True,
+                retry=(tenacity.retry_if_result(lambda x: x == ''))
+                )
+def get_token(url: str) -> str:
     try:
         token: str = ''
-        username, _, password = netrc.netrc().authenticators(endpoint)
-        xml: str = """<?xml version='1.0' encoding='utf-8'?>
-        <token><username>{}</username><password>{}</password><client_id>{}</client_id>
-        <user_ip_address>{}</user_ip_address></token>""".format(username, password, client_id, IPAddr)  # noqa E501
-        headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}  # noqa E501
-        resp = requests.post(url, headers=headers, data=xml)
+        username, _, password = netrc.netrc().authenticators(edl)
+        headers: Dict = {'Accept': 'application/json'}  # noqa E501
+        resp = requests.post(url+"/token", headers=headers, auth=HTTPBasicAuth(username, password))
         response_content: Dict = json.loads(resp.content)
-        token = response_content['token']['id']
+        if "error" in response_content:
+            if response_content["error"] == "max_token_limit":
+                logging.error("Max tokens acquired from URS. Deleting existing tokens")
+                for t in list_tokens(url):
+                    delete_token(token_url,t)
+                return ''
+        #logging.debug("Status: {}".format(resp.status_code))
+        token = response_content['access_token']
 
     # What error is thrown here? Value Error? Request Errors?
     except:  # noqa E722
@@ -113,23 +125,45 @@ def get_token(url: str, client_id: str, endpoint: str) -> str:
 ###############################################################################
 # DELETE TOKEN FROM CMR
 ###############################################################################
-def delete_token(url: str, token: str) -> None:
+def delete_token(url: str, token: str) -> bool:
     try:
-        headers: Dict = {'Content-Type': 'application/xml', 'Accept': 'application/json'}  # noqa E501
-        url = '{}/{}'.format(url, token)
-        resp = requests.request('DELETE', url, headers=headers)
-        if resp.status_code == 204:
-            logging.info("CMR token successfully deleted")
+        username, _, password = netrc.netrc().authenticators(edl)
+        headers: Dict = {'Accept': 'application/json'}
+        resp = requests.post(url+"/revoke_token",params={"token":token}, headers=headers, auth=HTTPBasicAuth(username, password))
+
+        if resp.status_code == 200:
+            logging.info("EDL token successfully deleted")
+            return True
         else:
-            logging.info("CMR token deleting failed.")
+            logging.info("EDL token deleting failed.")
+
     except:  # noqa E722
         logging.warning("Error deleting the token")
 
+    return False
 
-def refresh_token(old_token: str, client_id: str):
+def list_tokens(url: str):
+    try:
+        tokens = []
+        username, _, password = netrc.netrc().authenticators(edl)
+        headers: Dict = {'Accept': 'application/json'}  # noqa E501
+        resp = requests.get(url+"/tokens", headers=headers, auth=HTTPBasicAuth(username, password))
+        response_content = json.loads(resp.content)
+
+        for x in response_content:
+            tokens.append(x['access_token'])
+
+    except:  # noqa E722
+        logging.warning("Error getting the token - check user name and password")
+    return tokens
+
+
+
+
+def refresh_token(old_token: str):
     setup_earthdata_login_auth(edl)
-    delete_token(token_url, old_token)
-    return get_token(token_url, client_id, edl)
+    delete_token(token_url,old_token)
+    return get_token(token_url)
 
 
 def validate(args):
