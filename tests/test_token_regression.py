@@ -21,6 +21,7 @@ def teardown_module(module):
 
 # REGRESSION TEST CURRENTLY REQUIRES A .NETRC file for CMR/Data Download
 # token API can be found here: https://wiki.earthdata.nasa.gov/display/EL/API+Documentation
+# explore https://urs.earthdata.nasa.gov/documentation/for_integrators/api_documentation#/oauth/token
 def test_list_tokens():
     tokens = pa.list_tokens(pa.token_url)
     for x in tokens:
