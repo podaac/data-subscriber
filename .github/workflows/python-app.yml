@@ -13,9 +13,10 @@ jobs:
   build:
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         python-version: [ "3.7", "3.8", "3.9", "3.10" ]
-        poetry-version: [ "1.1" ]
+        poetry-version: [ "1.1.14" ]
         os: [ ubuntu-18.04, macos-latest, windows-latest ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -47,5 +48,7 @@ jobs:
        username: ${{ secrets.EDL_OPS_USERNAME }}
        password: ${{ secrets.EDL_OPS_PASSWORD }}
     - name: Regression Test with pytest
+      env:
+        PODAAC_LOGLEVEL: "DEBUG"
       run: |
-        poetry run pytest -m "regression"
+        poetry run pytest -o log_cli=true --log-cli-level=DEBUG -m "regression"

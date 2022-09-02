@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## 1.11.0
+### Fixed
+- Fixed an issue where token-refresh was expecting a dictionary, not a list of tuples
+- Fixed issues where token was not propagated to downloader CMR query [94](https://github.com/podaac/data-subscriber/issues/94)
+- Fixed an issue with 503 errors on data download not being re-tried. [97](https://github.com/podaac/data-subscriber/issues/9797)
+- added ".tiff" to default extensions to address #[100](https://github.com/podaac/data-subscriber/issues/100)
+- removed erroneous 'warning' message on not downloading all data to close [99](https://github.com/podaac/data-subscriber/issues/99)
+- updated help documentation for start/end times to close [79](https://github.com/podaac/data-subscriber/issues/79)
+### Added
+- Added citation file creation when data are downloaded [91](https://github.com/podaac/data-subscriber/issues/91). Required some updates to the regression testing.
+
 ## [1.10.2]
 ### Fixed
 - Fixed an issue where using a default global bounding box prevented download of data that didn't use the horizontal spatial domain [87](https://github.com/podaac/data-subscriber/issues/87)

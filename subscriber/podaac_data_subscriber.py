@@ -66,10 +66,10 @@ def create_parser():
 
     # spatiotemporal arguments
     parser.add_argument("-sd", "--start-date", dest="startDate",
-                        help="The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z",
+                        help="The ISO date time after which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z",
                         default=False)  # noqa E501
     parser.add_argument("-ed", "--end-date", dest="endDate",
-                        help="The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z",
+                        help="The ISO date time before which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z",
                         default=False)  # noqa E501
     parser.add_argument("-b", "--bounds", dest="bbox",
                         help="The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".",
@@ -218,7 +218,12 @@ def run(args=None):
     except HTTPError as e:
         if e.code == 401:
             token = pa.refresh_token(token, 'podaac-subscriber')
-            params['token'] = token
+            # Updated: This is not always a dictionary...
+            # in fact, here it's always a list of tuples
+            for  i, p in enumerate(params) :
+                if p[1] == "token":
+                    params[i] = ("token", token)
+            #params['token'] = token
             results = pa.get_search_results(params, args.verbose)
         else:
             raise e
@@ -248,10 +253,6 @@ def run(args=None):
         downloads_all.append(f)
 
     downloads = [item for sublist in downloads_all for item in sublist]
-
-    if len(downloads) >= page_size:
-        logging.warning("Only the most recent " + str(
-            page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
 
     # filter list based on extension
     if not extensions:
@@ -294,7 +295,9 @@ def run(args=None):
                 skip_cnt += 1
                 continue
 
-            urlretrieve(f, output_path)
+            #urlretrieve(f, output_path)
+            pa.download_file(f,output_path)
+
             pa.process_file(process_cmd, output_path, args)
             logging.info(str(datetime.now()) + " SUCCESS: " + f)
             success_cnt = success_cnt + 1
@@ -314,6 +317,13 @@ def run(args=None):
     logging.info("Downloaded Files: " + str(success_cnt))
     logging.info("Failed Files:     " + str(failure_cnt))
     logging.info("Skipped Files:    " + str(skip_cnt))
+
+    if success_cnt > 0:
+        try:
+            pa.create_citation_file(short_name, provider, data_path, token, args.verbose)
+        except:
+            logging.debug("Error generating citation", exc_info=True)
+
     pa.delete_token(token_url, token)
     logging.info("END\n\n")
     #exit(0)

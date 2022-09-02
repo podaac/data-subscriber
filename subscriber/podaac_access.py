@@ -10,10 +10,14 @@ from urllib import request
 from typing import Dict
 from urllib import request
 from urllib.error import HTTPError
+from urllib.request import urlretrieve
 import subprocess
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import hashlib
+from datetime import datetime
+import time
+
 
 import requests
 
@@ -21,8 +25,8 @@ import requests
 import tenacity
 from datetime import datetime
 
-__version__ = "1.10.2"
-extensions = [".nc", ".h5", ".zip", ".tar.gz"]
+__version__ = "1.11.0"
+extensions = [".nc", ".h5", ".zip", ".tar.gz", ".tiff"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + cmr + "/legacy-services/rest/tokens"
@@ -286,6 +290,26 @@ def get_temporal_range(start, end, now):
     raise ValueError("One of start-date or end-date must be specified.")
 
 
+def download_file(remote_file, output_path, retries=3):
+    failed = False
+    for r in range(retries):
+        try:
+            urlretrieve(remote_file, output_path)
+        except HTTPError as e:
+            if e.code == 503:
+                logging.warning(f'Error downloading {remote_file}. Retrying download.')
+                # back off on sleep time each error...
+                time.sleep(r)
+                if r >= retries:
+                    failed = True
+        else:
+            #downlaoded fie without 503
+            break
+
+        if failed:
+            raise Exception("Could not download file.")
+
+
 # Retry using random exponential backoff if a 500 error is raised. Maximum 10 attempts.
 @tenacity.retry(wait=tenacity.wait_random_exponential(multiplier=1, max=60),
                 stop=tenacity.stop_after_attempt(10),
@@ -436,3 +460,50 @@ def make_checksum(file_path, algorithm):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_alg.update(chunk)
     return hash_alg.hexdigest()
+
+def get_cmr_collections(params, verbose=False):
+    query = urlencode(params)
+    url = "https://" + cmr + "/search/collections.umm_json?" + query
+    if verbose:
+        logging.info(url)
+
+    # Build the request, add the search after header to it if it's not None (e.g. after the first iteration)
+    req = Request(url)
+    response = urlopen(req)
+    result = json.loads(response.read().decode())
+    return result
+
+
+def create_citation(collection_json, access_date):
+    citation_template = "{creator}. {year}. {title}. Ver. {version}. PO.DAAC, CA, USA. Dataset accessed {access_date} at {doi_authority}/{doi}"
+
+    # Better error handling here may be needed...
+    doi = collection_json['DOI']["DOI"]
+    doi_authority = collection_json['DOI']["Authority"]
+    citation = collection_json["CollectionCitations"][0]
+    creator = citation["Creator"]
+    release_date = citation["ReleaseDate"]
+    title = citation["Title"]
+    version = citation["Version"]
+    year = datetime.strptime(release_date, "%Y-%m-%dT%H:%M:%S.000Z").year
+    return citation_template.format(creator=creator, year=year, title=title, version=version, doi_authority=doi_authority, doi=doi, access_date=access_date)
+
+def create_citation_file(short_name, provider, data_path, token=None, verbose=False):
+    # get collection umm-c METADATA
+    params = [
+        ('provider', provider),
+        ('ShortName', short_name)
+    ]
+    if token is not None:
+        params.append(('token', token))
+
+    collection = get_cmr_collections(params, verbose)['items'][0]
+
+    access_date = datetime.now().strftime("%Y-%m-%d")
+
+    # create citation from umm-c metadata
+    citation = create_citation(collection['umm'], access_date)
+    # write file
+
+    with open(data_path + "/" + short_name + ".citation.txt", "w") as text_file:
+        text_file.write(citation)
