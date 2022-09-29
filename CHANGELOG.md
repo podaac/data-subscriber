@@ -3,11 +3,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [unreleased]
+##[Unreleased]
+### changed
+- Updated authorization to use EDL Tokens instead of CMR Tokens [98](https://github.com/podaac/data-subscriber/issues/98)
+  - includes using existing EDL token if available, generating one if needed, and leaving it for re-use.
+
+## 1.11.0
 ### Fixed
 - Fixed an issue where token-refresh was expecting a dictionary, not a list of tuples
 - Fixed issues where token was not propagated to downloader CMR query [94](https://github.com/podaac/data-subscriber/issues/94)
-- Fixed an issue with 503 errors on data download not being re-tried. [97](https://github.com/podaac/data-subscriber/issues/97)
+- Fixed an issue with 503 errors on data download not being re-tried. [97](https://github.com/podaac/data-subscriber/issues/9797)
+- added ".tiff" to default extensions to address #[100](https://github.com/podaac/data-subscriber/issues/100)
+- removed erroneous 'warning' message on not downloading all data to close [99](https://github.com/podaac/data-subscriber/issues/99)
+- updated help documentation for start/end times to close [79](https://github.com/podaac/data-subscriber/issues/79)
 ### Added
 - Added citation file creation when data are downloaded [91](https://github.com/podaac/data-subscriber/issues/91). Required some updates to the regression testing.
 

@@ -66,10 +66,10 @@ def create_parser():
 
     # spatiotemporal arguments
     parser.add_argument("-sd", "--start-date", dest="startDate",
-                        help="The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z",
+                        help="The ISO date time after which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z",
                         default=False)  # noqa E501
     parser.add_argument("-ed", "--end-date", dest="endDate",
-                        help="The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z",
+                        help="The ISO date time before which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z",
                         default=False)  # noqa E501
     parser.add_argument("-b", "--bounds", dest="bbox",
                         help="The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b=\"-180,-90,180,90\" syntax when calling from the command line. Default: \"-180,-90,180,90\".",
@@ -253,10 +253,6 @@ def run(args=None):
         downloads_all.append(f)
 
     downloads = [item for sublist in downloads_all for item in sublist]
-
-    if len(downloads) >= page_size:
-        logging.warning("Only the most recent " + str(
-            page_size) + " granules will be downloaded; try adjusting your search criteria (suggestion: reduce time period or spatial region of search) to ensure you retrieve all granules.")
 
     # filter list based on extension
     if not extensions:
