@@ -17,6 +17,8 @@ from urllib.request import Request, urlopen
 import hashlib
 from datetime import datetime
 import time
+from packaging import version
+
 
 
 import requests
@@ -507,3 +509,18 @@ def create_citation_file(short_name, provider, data_path, token=None, verbose=Fa
 
     with open(data_path + "/" + short_name + ".citation.txt", "w") as text_file:
         text_file.write(citation)
+
+def get_latest_release():
+    github_url = "https://api.github.com/repos/podaac/data-subscriber/releases/latest"
+    return requests.get(github_url).json()['tag_name']
+
+def release_is_current(latest_release, this_version):
+    return  not (version.parse(this_version) < version.parse(latest_release))
+
+def check_for_latest():
+    try:
+        latest_version = get_latest_release()
+        if not release_is_current(latest_version,__version__):
+            print(f'You are currently using version {__version__} of the PO.DAAC Data Subscriber/Downloader. Please run:\n\n pip install podaac-data-subscriber --upgrade \n\n to upgrade to the latest version.')
+    except:
+        print("Error checking for new version of the po.daac data subscriber. Continuing")

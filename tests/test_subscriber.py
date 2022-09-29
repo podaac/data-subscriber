@@ -9,6 +9,9 @@ import shutil
 import json
 import tempfile
 from os.path import exists
+from packaging import version
+
+
 
 def test_temporal_range():
 
@@ -206,3 +209,16 @@ def validate(args):
     args2 = parser.parse_args(args)
     pa.validate(args2)
     return args2
+
+def test_check_updates():
+    version.parse(pa.get_latest_release())
+
+def test_compare_release():
+    tag="1.11.0"
+    assert pa.release_is_current(tag,"1.11.0")
+    assert pa.release_is_current(tag,"2.10.0")
+    assert pa.release_is_current(tag,"1.11.1")
+
+    assert not pa.release_is_current(tag,"1.10.0")
+    assert not pa.release_is_current(tag,"1.10.5")
+    assert not pa.release_is_current(tag,"0.9000.5")
