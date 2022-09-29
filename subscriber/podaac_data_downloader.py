@@ -123,7 +123,7 @@ def run(args=None):
         exit(1)
 
     pa.setup_earthdata_login_auth(edl)
-    token = pa.get_token(token_url, 'podaac-subscriber', edl)
+    token = pa.get_token(token_url)
 
     provider = args.provider
     start_date_time = args.startDate
@@ -298,8 +298,8 @@ def run(args=None):
             pa.create_citation_file(short_name, provider, data_path, token, args.verbose)
         except:
             logging.debug("Error generating citation",exc_info=True)
-
-    pa.delete_token(token_url, token)
+    # Do't delete the token...
+    #pa.delete_token(token_url, token)
     logging.info("END\n\n")
 
 
