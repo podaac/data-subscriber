@@ -92,6 +92,14 @@ def setup_earthdata_login_auth(endpoint):
     request.install_opener(opener)
 
 
+
+def get_token(url: str) -> str:
+    tokens = list_tokens(url)
+    if len(tokens) == 0 :
+        return create_token(url)
+    else:
+        return tokens[0]
+
 ###############################################################################
 # GET TOKEN FROM CMR
 ###############################################################################
@@ -100,19 +108,20 @@ def setup_earthdata_login_auth(endpoint):
                 reraise=True,
                 retry=(tenacity.retry_if_result(lambda x: x == ''))
                 )
-def get_token(url: str) -> str:
+def create_token(url: str) -> str:
     try:
         token: str = ''
         username, _, password = netrc.netrc().authenticators(edl)
         headers: Dict = {'Accept': 'application/json'}  # noqa E501
+
+
         resp = requests.post(url+"/token", headers=headers, auth=HTTPBasicAuth(username, password))
         response_content: Dict = json.loads(resp.content)
         if "error" in response_content:
             if response_content["error"] == "max_token_limit":
                 logging.error("Max tokens acquired from URS. Deleting existing tokens")
-                for t in list_tokens(url):
-                    delete_token(token_url,t)
-                return ''
+                tokens=list_tokens(url)
+                return tokens[0]
         #logging.debug("Status: {}".format(resp.status_code))
         token = response_content['access_token']
 
