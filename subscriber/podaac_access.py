@@ -146,7 +146,7 @@ def delete_token(url: str, token: str) -> bool:
             logging.info("EDL token deleting failed.")
 
     except:  # noqa E722
-        logging.warning("Error deleting the token")
+        logging.warning("Error deleting the token", exc_info=True)
 
     return False
 
