@@ -119,14 +119,17 @@ def create_token(url: str) -> str:
         response_content: Dict = json.loads(resp.content)
         if "error" in response_content:
             if response_content["error"] == "max_token_limit":
-                logging.error("Max tokens acquired from URS. Deleting existing tokens")
+                logging.error("Max tokens acquired from URS. Using existing token")
                 tokens=list_tokens(url)
                 return tokens[0]
         token = response_content['access_token']
 
-    # What error is thrown here? Value Error? Request Errors?
+    # Add better error handling there
+    # Max tokens
+    # Wrong Username/Passsword
+    # Other
     except:  # noqa E722
-        logging.warning("Error getting the token - check user name and password")
+        logging.warning("Error getting the token - check user name and password", exc_info=True)
     return token
 
 
@@ -164,8 +167,6 @@ def list_tokens(url: str):
     except:  # noqa E722
         logging.warning("Error getting the token - check user name and password", exc_info=True)
     return tokens
-
-
 
 
 def refresh_token(old_token: str):

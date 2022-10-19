@@ -7,15 +7,15 @@ import shutil
 from pathlib import Path
 
 @pytest.mark.regression
-def setup_module(module):
-    print('*****SETUP*****')
+def setup_function(method):
+    # Deletes all known tokens
     tokens = pa.list_tokens(pa.token_url)
     for x in tokens:
         pa.delete_token(pa.token_url, x)
 
 @pytest.mark.regression
-def teardown_module(module):
-    print('*****TEARDOWN*****')
+def teardown_function(method):
+    # Deletes all known tokens
     tokens = pa.list_tokens(pa.token_url)
     for x in tokens:
         pa.delete_token(pa.token_url, x)
@@ -26,8 +26,10 @@ def teardown_module(module):
 @pytest.mark.regression
 def test_list_tokens():
     tokens = pa.list_tokens(pa.token_url)
-    for x in tokens:
-        pa.delete_token(pa.token_url, x)
+    assert len(tokens) == 0
+    pa.get_token(pa.token_url)
+    tokens = pa.list_tokens(pa.token_url)
+    assert len(tokens) == 1
 
 @pytest.mark.regression
 def test_edl_getToken():
@@ -42,13 +44,3 @@ def test_edl_getToken():
         assert x != ""
 
     assert True == pa.delete_token(pa.token_url, token)
-
-@pytest.mark.regression
-def test_edl_max_token():
-    #call this 3 times since we're capped out at 2 total...
-    token = pa.get_token(pa.token_url)
-    assert token != ""
-    token = pa.get_token(pa.token_url)
-    assert token != ""
-    token = pa.get_token(pa.token_url)
-    assert token != ""

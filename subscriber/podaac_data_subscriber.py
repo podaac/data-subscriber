@@ -217,7 +217,7 @@ def run(args=None):
         results = pa.get_search_results(params, args.verbose)
     except HTTPError as e:
         if e.code == 401:
-            token = pa.refresh_token(token, 'podaac-subscriber')
+            token = pa.refresh_token(token)
             # Updated: This is not always a dictionary...
             # in fact, here it's always a list of tuples
             for  i, p in enumerate(params) :
