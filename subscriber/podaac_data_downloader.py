@@ -294,8 +294,6 @@ def run(args=None):
             pa.create_citation_file(short_name, provider, data_path, token, args.verbose)
         except:
             logging.debug("Error generating citation",exc_info=True)
-    # Do't delete the token...
-    #pa.delete_token(token_url, token)
     logging.info("END\n\n")
 
 
