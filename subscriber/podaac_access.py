@@ -122,7 +122,6 @@ def create_token(url: str) -> str:
                 logging.error("Max tokens acquired from URS. Deleting existing tokens")
                 tokens=list_tokens(url)
                 return tokens[0]
-        #logging.debug("Status: {}".format(resp.status_code))
         token = response_content['access_token']
 
     # What error is thrown here? Value Error? Request Errors?
