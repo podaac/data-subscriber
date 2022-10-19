@@ -325,7 +325,6 @@ def run(args=None):
             logging.debug("Error generating citation", exc_info=True)
 
     logging.info("END\n\n")
-    #exit(0)
 
 
 def main():
