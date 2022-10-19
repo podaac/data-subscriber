@@ -162,7 +162,7 @@ def list_tokens(url: str):
             tokens.append(x['access_token'])
 
     except:  # noqa E722
-        logging.warning("Error getting the token - check user name and password")
+        logging.warning("Error getting the token - check user name and password", exc_info=True)
     return tokens
 
 
