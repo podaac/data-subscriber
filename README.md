@@ -17,7 +17,7 @@ There are 2 tools in this repository, the data subscriber and the data downloade
 
 **Downloader** - [Documentation](Downloader.md)
 
-The Downloader is useful if you need to download PO.DAAC data once in a while or prefer to do it "on-demand". The subscriber makes no assumptions about the last time run or what is new in the archive, it simply uses the provided requests and downloads all matching data.
+The Downloader is useful if you need to download PO.DAAC data once in a while or prefer to do it "on-demand". The Downloader makes no assumptions about the last time run or what is new in the archive, it simply uses the provided requests and downloads all matching data.
 
 **Subscriber** - [Documentation](Subscriber.md)
 
