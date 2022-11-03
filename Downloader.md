@@ -6,7 +6,7 @@ For installation and dependency information, please see the [top-level README](R
 
 ```
 $> podaac-data-downloader -h
-usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER] [--limit LIMIT]
+usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [--granule-name GRANULE] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER] [--limit LIMIT]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -34,6 +34,8 @@ optional arguments:
   --offset OFFSET       Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.
   -e EXTENSIONS, --extensions EXTENSIONS
                         The extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz]
+  -gr GRANULE, --granule-name GRANULE
+  						The name of the granule to download. Only one granule name can be specified. Script will download all files matching similar granule name sans extension.
   --process PROCESS_CMD
                         Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.
   --version             Display script version information and exit.
