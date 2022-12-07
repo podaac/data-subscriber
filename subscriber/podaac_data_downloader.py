@@ -88,13 +88,13 @@ def create_parser():
     parser.add_argument("-e", "--extensions", dest="extensions",
                         help="The extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz]",
                         default=None, action='append')  # noqa E501
-                        
+
    # Get specific granule from the search
    # https://github.com/podaac/data-subscriber/issues/109
     parser.add_argument("-gr", "--granule-name", dest="granulename",
                         help="Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied",
                         default=None)
-                        
+
     parser.add_argument("--process", dest="process_cmd",
                         help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.",
                         action='append')
@@ -130,7 +130,7 @@ def run(args=None):
         exit(1)
 
     pa.setup_earthdata_login_auth(edl)
-    token = pa.get_token(token_url, 'podaac-subscriber', edl)
+    token = pa.get_token(token_url)
 
     provider = args.provider
     start_date_time = args.startDate
@@ -177,7 +177,7 @@ def run(args=None):
             logging.info("cycles: " + str(cmr_cycles))
 
     elif granule is not None:
-        #This line is added to strip out the extensions. Not sure if this works across the board for all collections but it seem to work on few collections that were tested. 
+        #This line is added to strip out the extensions. Not sure if this works across the board for all collections but it seem to work on few collections that were tested.
         cmr_granule = granule.rsplit( ".", 1 )[ 0 ]
         params = [
             ('page_size', page_size),
@@ -190,7 +190,7 @@ def run(args=None):
         if args.verbose:
             logging.info("Granule: " + str(cmr_granule))
 
-    else: 
+    else:
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time,
                                                datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
         params = [
@@ -214,7 +214,7 @@ def run(args=None):
         results = pa.get_search_results(params, args.verbose)
     except HTTPError as e:
         if e.code == 401:
-            token = pa.refresh_token(token, 'podaac-subscriber')
+            token = pa.refresh_token(token)
             # Updated: This is not always a dictionary...
             # in fact, here it's always a list of tuples
             for  i, p in enumerate(params) :
@@ -315,8 +315,6 @@ def run(args=None):
             pa.create_citation_file(short_name, provider, data_path, token, args.verbose)
         except:
             logging.debug("Error generating citation",exc_info=True)
-
-    pa.delete_token(token_url, token)
     logging.info("END\n\n")
 
 
