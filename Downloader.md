@@ -123,6 +123,20 @@ machine urs.earthdata.nasa.gov
 
 ## Advanced Usage
 
+### Download data by filename
+
+If you're aware of a file you want to download, you can use the `-gr` option to download by a filename. The `-c` (COLLECTION) and `-d` (directory) options are still required.
+
+The `-gr` option works by taking the file name, removing the suffix and searching for a CMR entry called the granuleUR. Some examples of this include:
+
+| Collection | Filename      | CMR GranuleUR |
+| --- | ----------- | ----------- |
+| MUR25-JPL-L4-GLOB-v04.2  | 20221206090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc      | 20221206090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2       |
+| JASON_CS_S6A_L2_ALT_HR_STD_OST_NRT_F | S6A_P4_2__HR_STD__NR_077_039_20221212T181728_20221212T182728_F07.nc   | S6A_P4_2__HR_STD__NR_077_039_20221212T181728_20221212T182728_F07        |
+
+Because of this behavior, granules without data suffixes and granules where the the UR does not directly follow this convention may not work as anticipated. We will be adding the ability to download by granuleUR in a future enhancement.
+
+
 ### Download data by cycle
 
 Some PO.DAAC datasets are better suited for cycles based search instead of start and end times. To enabled this, we've added 'cycle' based downloading to the data-downloader. The following example will download data from cycle 42:
