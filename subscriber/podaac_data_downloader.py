@@ -31,16 +31,16 @@ def parse_cycles(cycle_input):
 
 
 def validate(args):
-    if args.search_cycles is None and args.startDate is None and args.endDate is None:
+    if args.search_cycles is None and args.startDate is None and args.endDate is None and args.granulename is None:
         raise ValueError(
-            "Error parsing command line arguments: one of [--start-date and --end-date] or [--cycles] are required")  # noqa E501
+            "Error parsing command line arguments: one of [--start-date and --end-date] or [--cycles] or [--granule-name] are required ")  # noqa E501
     if args.search_cycles is not None and args.startDate is not None:
         raise ValueError(
             "Error parsing command line arguments: only one of -sd/--start-date and --cycles are allowed")  # noqa E501
     if args.search_cycles is not None and args.endDate is not None:
         raise ValueError(
             "Error parsing command line arguments: only one of -ed/--end-date and --cycles are allowed")  # noqa E50
-    if None in [args.endDate, args.startDate] and args.search_cycles is None:
+    if None in [args.endDate, args.startDate] and args.search_cycles is None and args.granulename is None:
         raise ValueError(
             "Error parsing command line arguments: Both --start-date and --end-date must be specified")  # noqa E50
 
@@ -88,6 +88,13 @@ def create_parser():
     parser.add_argument("-e", "--extensions", dest="extensions",
                         help="The extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz]",
                         default=None, action='append')  # noqa E501
+
+   # Get specific granule from the search
+   # https://github.com/podaac/data-subscriber/issues/109
+    parser.add_argument("-gr", "--granule-name", dest="granulename",
+                        help="Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied",
+                        default=None)
+
     parser.add_argument("--process", dest="process_cmd",
                         help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.",
                         action='append')
@@ -132,6 +139,7 @@ def run(args=None):
     short_name = args.collection
     extensions = args.extensions
     process_cmd = args.process_cmd
+    granule=args.granulename
     data_path = args.outputDirectory
 
     download_limit = None
@@ -159,7 +167,6 @@ def run(args=None):
         cmr_cycles = search_cycles
         params = [
             ('page_size', page_size),
-            ('sort_key', "-start_date"),
             ('provider', provider),
             ('ShortName', short_name),
             ('token', token),
@@ -168,6 +175,20 @@ def run(args=None):
             params.append(("cycle[]", v))
         if args.verbose:
             logging.info("cycles: " + str(cmr_cycles))
+
+    elif granule is not None:
+        #This line is added to strip out the extensions. Not sure if this works across the board for all collections but it seem to work on few collections that were tested.
+        cmr_granule = granule.rsplit( ".", 1 )[ 0 ]
+        params = [
+            ('page_size', page_size),
+            ('sort_key', "-start_date"),
+            ('provider', provider),
+            ('ShortName', short_name),
+            ('GranuleUR[]', cmr_granule),
+            ('token', token),
+        ]
+        if args.verbose:
+            logging.info("Granule: " + str(cmr_granule))
 
     else:
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time,
