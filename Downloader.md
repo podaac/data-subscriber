@@ -6,7 +6,7 @@ For installation and dependency information, please see the [top-level README](R
 
 ```
 $> podaac-data-downloader -h
-usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER] [--limit LIMIT]
+usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [--granule-name GRANULE] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER] [--limit LIMIT]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -34,6 +34,8 @@ optional arguments:
   --offset OFFSET       Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.
   -e EXTENSIONS, --extensions EXTENSIONS
                         The extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz]
+  -gr GRANULE, --granule-name GRANULE
+  						The name of the granule to download. Only one granule name can be specified. Script will download all files matching similar granule name sans extension.
   --process PROCESS_CMD
                         Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.
   --version             Display script version information and exit.
@@ -120,6 +122,20 @@ machine urs.earthdata.nasa.gov
 **If the script cannot find the netrc file, you will be prompted to enter the username and password and the script wont be able to generate the CMR token**
 
 ## Advanced Usage
+
+### Download data by filename
+
+If you're aware of a file you want to download, you can use the `-gr` option to download by a filename. The `-c` (COLLECTION) and `-d` (directory) options are still required.
+
+The `-gr` option works by taking the file name, removing the suffix and searching for a CMR entry called the granuleUR. Some examples of this include:
+
+| Collection | Filename      | CMR GranuleUR |
+| --- | ----------- | ----------- |
+| MUR25-JPL-L4-GLOB-v04.2  | 20221206090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2.nc      | 20221206090000-JPL-L4_GHRSST-SSTfnd-MUR25-GLOB-v02.0-fv04.2       |
+| JASON_CS_S6A_L2_ALT_HR_STD_OST_NRT_F | S6A_P4_2__HR_STD__NR_077_039_20221212T181728_20221212T182728_F07.nc   | S6A_P4_2__HR_STD__NR_077_039_20221212T181728_20221212T182728_F07        |
+
+Because of this behavior, granules without data suffixes and granules where the the UR does not directly follow this convention may not work as anticipated. We will be adding the ability to download by granuleUR in a future enhancement.
+
 
 ### Download data by cycle
 
