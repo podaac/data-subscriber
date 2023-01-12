@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import os
+import os, re
 import sys
 from datetime import datetime, timedelta
 from os import makedirs
@@ -86,7 +86,7 @@ def create_parser():
                         help="Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.")  # noqa E501
 
     parser.add_argument("-e", "--extensions", dest="extensions",
-                        help="The extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz]",
+                        help="Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]",
                         default=None, action='append')  # noqa E501
 
    # Get specific granule from the search
@@ -253,7 +253,7 @@ def run(args=None):
     filtered_downloads = []
     for f in downloads:
         for extension in extensions:
-            if f.lower().endswith(extension):
+            if re.search(extension + "$", f) is not None:
                 filtered_downloads.append(f)
 
     downloads = filtered_downloads

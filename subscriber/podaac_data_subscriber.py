@@ -14,7 +14,7 @@
 # Accounts are free to create and take just a moment to set up.
 import argparse
 import logging
-import os
+import os, re
 import sys
 from datetime import datetime, timedelta
 from os import makedirs
@@ -92,7 +92,7 @@ def create_parser():
                         help="How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs.",
                         type=int, default=None)  # noqa E501
     parser.add_argument("-e", "--extensions", dest="extensions",
-                        help="The extensions of products to download. Default is [.nc, .h5, .zip]", default=None,
+                        help="Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]", default=None,
                         action='append')  # noqa E501
     parser.add_argument("--process", dest="process_cmd",
                         help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.",
@@ -260,7 +260,7 @@ def run(args=None):
     filtered_downloads = []
     for f in downloads:
         for extension in extensions:
-            if f.lower().endswith(extension):
+            if re.search(extension + "$", f) is not None:
                 filtered_downloads.append(f)
 
     downloads = filtered_downloads
