@@ -17,11 +17,8 @@ from urllib.request import Request, urlopen
 import hashlib
 from datetime import datetime
 import time
-<<<<<<< HEAD
-from packaging import version
-=======
 from requests.auth import HTTPBasicAuth
->>>>>>> develop
+from packaging import version
 
 
 
