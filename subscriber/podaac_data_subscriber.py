@@ -122,7 +122,7 @@ def run(args=None):
         exit(1)
 
     pa.setup_earthdata_login_auth(edl)
-    token = pa.get_token(token_url, 'podaac-subscriber', edl)
+    token = pa.get_token(token_url)
 
     mins = args.minutes  # In this case download files ingested in the last 60 minutes -- change this to whatever setting is needed
     provider = args.provider
@@ -217,7 +217,7 @@ def run(args=None):
         results = pa.get_search_results(params, args.verbose)
     except HTTPError as e:
         if e.code == 401:
-            token = pa.refresh_token(token, 'podaac-subscriber')
+            token = pa.refresh_token(token)
             # Updated: This is not always a dictionary...
             # in fact, here it's always a list of tuples
             for  i, p in enumerate(params) :
@@ -324,9 +324,7 @@ def run(args=None):
         except:
             logging.debug("Error generating citation", exc_info=True)
 
-    pa.delete_token(token_url, token)
     logging.info("END\n\n")
-    #exit(0)
 
 
 def main():
