@@ -328,7 +328,6 @@ def run(args=None):
 
 
 def main():
-    pa.check_for_latest()
     log_level = os.environ.get('PODAAC_LOGLEVEL', 'INFO').upper()
     logging.basicConfig(stream=sys.stdout,
                         format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s',
@@ -343,4 +342,5 @@ def main():
 
 
 if __name__ == '__main__':
+    pa.check_for_latest()
     main()
