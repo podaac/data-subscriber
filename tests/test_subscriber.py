@@ -206,3 +206,11 @@ def validate(args):
     args2 = parser.parse_args(args)
     pa.validate(args2)
     return args2
+
+def test_extensions():
+    assert pa.search_extension('.tiff', "myfile.tiff") == True
+    assert pa.search_extension('.tiff', "myfile.tif") == False
+    assert pa.search_extension('PTM_\\d+', "myfile.PTM_1") == True
+    assert pa.search_extension('PTM_\\d+', "myfile.PTM_10") == True
+    assert pa.search_extension('PTM_\\d+', "myfile.PTM_09") == True
+    assert pa.search_extension('PTM_\\d+', "myfile.PTM_9") == True

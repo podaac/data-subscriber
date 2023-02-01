@@ -260,7 +260,7 @@ def run(args=None):
     filtered_downloads = []
     for f in downloads:
         for extension in extensions:
-            if re.search(extension + "$", f) is not None:
+            if pa.search_extension(extension, f):
                 filtered_downloads.append(f)
 
     downloads = filtered_downloads
