@@ -29,7 +29,7 @@ import tenacity
 from datetime import datetime
 
 __version__ = "1.12.0"
-extensions = [".nc", ".h5", ".zip", ".tar.gz", ".tiff"]
+extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + edl + "/api/users"
