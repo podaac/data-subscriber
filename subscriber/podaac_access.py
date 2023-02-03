@@ -2,6 +2,7 @@ import json
 import logging
 import netrc
 import subprocess
+import re
 from datetime import datetime
 from http.cookiejar import CookieJar
 from os import makedirs
@@ -28,7 +29,7 @@ import tenacity
 from datetime import datetime
 
 __version__ = "1.12.0"
-extensions = [".nc", ".h5", ".zip", ".tar.gz", ".tiff"]
+extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + edl + "/api/users"
@@ -530,6 +531,11 @@ def create_citation(collection_json, access_date):
     version = citation["Version"]
     year = datetime.strptime(release_date, "%Y-%m-%dT%H:%M:%S.000Z").year
     return citation_template.format(creator=creator, year=year, title=title, version=version, doi_authority=doi_authority, doi=doi, access_date=access_date)
+
+def search_extension(extension, filename):
+    if re.search(extension + "$", filename) is not None:
+        return True
+    return False
 
 def create_citation_file(short_name, provider, data_path, token=None, verbose=False):
     # get collection umm-c METADATA
