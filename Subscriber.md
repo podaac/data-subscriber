@@ -28,8 +28,8 @@ optional arguments:
   --offset OFFSET       Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.
   -m MINUTES, --minutes MINUTES
                         How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).
-  -e EXTENSIONS, --extensions EXTENSIONS
-                        The extensions of products to download. Default is [.nc, .h5, .zip]
+-e EXTENSIONS, --extensions EXTENSIONS
+                        Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
   --process PROCESS_CMD
                         Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.
   --version             Display script version information and exit.
@@ -193,13 +193,22 @@ Some collections have many files. To download a specific set of files, you can s
 
 ```
 -e EXTENSIONS, --extensions EXTENSIONS
-                       The extensions of products to download. Default is [.nc, .h5, .zip]
+                      Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
 ```
 
 An example of the -e usage- note the -e option is additive:
 ```
 podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e .nc -e .h5
 ```
+
+One may also specify a regular expression to select files. For example, the following are equivalent:
+
+`podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e PTM_1, -e PTM_2, ...,  -e PMT_10 -sd 2020-06-01T00:46:02Z -ed 2020-07-01T00:46:02Z`
+
+and
+
+`podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e PTM_\\d+ -sd 2020-06-01T00:46:02Z -ed 2020-07-01T00:46:02Z`
+
 ### run a post download process
 
 Using the `--process` option, you can run a simple command agaisnt the "just" downloaded file. This will take the format of "<command> <path/to/file>". This means you can run a command like `--process gzip` to gzip all downloaded files. We do not support more advanced processes at this time (piping, running a process on a directory, etc).

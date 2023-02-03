@@ -222,3 +222,13 @@ def test_compare_release():
     assert not pa.release_is_current(tag,"1.10.0")
     assert not pa.release_is_current(tag,"1.10.5")
     assert not pa.release_is_current(tag,"0.9000.5")
+
+def test_extensions():
+    assert pa.search_extension('\\.tiff', "myfile.tiff") == True
+    assert pa.search_extension('\\.tiff', "myfile.tif") == False
+    assert pa.search_extension('\\.tiff', "myfile.gtiff") == False
+    assert pa.search_extension('PTM_\\d+', "myfile.PTM_1") == True
+    assert pa.search_extension('PTM_\\d+', "myfile.PTM_10") == True
+    assert pa.search_extension('PTM_\\d+', "myfile.PTM_09") == True
+    assert pa.search_extension('PTM_\\d+', "myfile.PTM_9") == True
+

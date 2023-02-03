@@ -33,7 +33,7 @@ optional arguments:
   -dy                   Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.
   --offset OFFSET       Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.
   -e EXTENSIONS, --extensions EXTENSIONS
-                        The extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz]
+                      Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
   -gr GRANULE, --granule-name GRANULE
   						The name of the granule to download. Only one granule name can be specified. Script will download all files matching similar granule name sans extension.
   --process PROCESS_CMD
@@ -219,13 +219,23 @@ Some collections have many files. To download a specific set of files, you can s
 
 ```
 -e EXTENSIONS, --extensions EXTENSIONS
-                       The extensions of products to download. Default is [.nc, .h5, .zip]
+                      Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
 ```
 
 An example of the -e usage- note the -e option is additive:
 ```
 podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e .nc -e .h5 -sd 2020-06-01T00:46:02Z -ed 2020-07-01T00:46:02Z
 ```
+
+One may also specify a regular expression to select files. For example, the following are equivalent:
+
+`podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e PTM_1, -e PTM_2, ...,  -e PMT_10 -sd 2020-06-01T00:46:02Z -ed 2020-07-01T00:46:02Z`
+
+and
+
+`podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -e PTM_\\d+ -sd 2020-06-01T00:46:02Z -ed 2020-07-01T00:46:02Z`
+
+
 ### run a post download process
 
 Using the `--process` option, you can run a simple command agaisnt the "just" downloaded file. This will take the format of "<command> <path/to/file>". This means you can run a command like `--process gzip` to gzip all downloaded files. We do not support more advanced processes at this time (piping, running a process on a directory, etc).
