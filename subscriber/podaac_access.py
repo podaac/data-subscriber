@@ -559,11 +559,21 @@ def create_citation_file(short_name, provider, data_path, token=None, verbose=Fa
         text_file.write(citation)
 
 def get_latest_release():
-    github_url = "https://api.github.com/repos/podaac/data-subscriber/releases/latest"
-    return requests.get(github_url).json()['tag_name']
+    github_url = "https://api.github.com/repos/podaac/data-subscriber/releases"
+    releases_json = requests.get(github_url).json()
+    latest_release = get_latest_release_from_json(releases_json)
+    return latest_release
 
 def release_is_current(latest_release, this_version):
     return  not (version.parse(this_version) < version.parse(latest_release))
+
+def get_latest_release_from_json(releases_json):
+    releases = []
+    for x in releases_json:
+        releases.append(x['tag_name'])
+    sorted(releases, key=lambda x: version.Version(x)).reverse()
+    return releases[0]
+
 
 def check_for_latest():
     try:

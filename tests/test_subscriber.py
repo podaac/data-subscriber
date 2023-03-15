@@ -232,3 +232,9 @@ def test_extensions():
     assert pa.search_extension('PTM_\\d+', "myfile.PTM_09") == True
     assert pa.search_extension('PTM_\\d+', "myfile.PTM_9") == True
 
+
+def test_get_latest_release_from_json():
+    f = open('tests/releases.json')
+    release_json = json.load(f)
+    latest_release = pa.get_latest_release_from_json(release_json)
+    assert latest_release == "1.12.0"
