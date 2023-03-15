@@ -198,7 +198,10 @@ def test_param_update():
 
 def test_downloader_retry(mocker):
     mck = mocker.patch('subscriber.podaac_access.urlretrieve', side_effect=HTTPError("url", 503, "msg", None, None))
-    pa.download_file("myUrl", "outputPath")
+    try:
+        pa.download_file("myUrl", "outputPath")
+    except Exception:
+        pass
     assert mck.call_count == 3
 
 def validate(args):
