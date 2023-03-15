@@ -104,6 +104,8 @@ def create_parser():
 
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD',
                         help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
+    parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Search and identify files to download, but do not actually download them")  # noqa E501
+
     return parser
 
 
@@ -271,6 +273,14 @@ def run(args=None):
     logging.info("Found " + str(len(downloads)) + " total files to download")
     if args.verbose:
         logging.info("Downloading files with extensions: " + str(extensions))
+
+    if args.dry_run:
+        logging.info("Dry-run option specified. Listing Downloads.")
+        for download in downloads:
+            logging.info(download)
+        logging.info("Dry-run option specific. Exiting.")
+        return
+
 
     # NEED TO REFACTOR THIS, A LOT OF STUFF in here
     # Finish by downloading the files to the data directory in a loop.

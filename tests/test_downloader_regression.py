@@ -37,6 +37,17 @@ def test_downloader_limit_MUR():
     assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name) and "citation.txt" not in name ])==1
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2')
 
+# Test the downlaoder on SWOT Simulated single file download
+@pytest.mark.regression
+def test_downloader_limit_dry_run():
+    shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2', ignore_errors=True)
+    args2 = create_downloader_args('-c MUR25-JPL-L4-GLOB-v04.2 -d ./MUR25-JPL-L4-GLOB-v04.2 --dry-run  -sd 2020-01-01T00:00:00Z -ed 2020-01-30T00:00:00Z --limit 1 --verbose'.split())
+    pdd.run(args2)
+    # So running the test in parallel, sometimes we get a 401 on the token...
+    # Let's ensure we're only looking for data files here
+    assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name) and "citation.txt" not in name ])==0
+    shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2')
+
 
 #Test the downlaoder on MUR25 data for start/stop/, yyyy/mmm/dd dir structure,
 # and offset. Running it a second time to ensure it downlaods the files again-

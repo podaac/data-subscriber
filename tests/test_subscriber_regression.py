@@ -23,6 +23,14 @@ def test_subscriber_ecco_only_enddate():
     assert exists('./ECCO_L4_ATM_STATE_05DEG_DAILY_V4R4/1992/003/ATM_SURFACE_TEMP_HUM_WIND_PRES_day_mean_1992-01-03_ECCO_V4r4_latlon_0p50deg.nc')
     shutil.rmtree('./ECCO_L4_ATM_STATE_05DEG_DAILY_V4R4')
 
+# Test to ensure nothing is downloaded via dry-run
+@pytest.mark.regression
+def test_subscriber_ecco_dry_run():
+    args2 = create_args('-c ECCO_L4_ATM_STATE_05DEG_DAILY_V4R4 -ed 1992-01-03T00:00:00Z -d ./ECCO_L4_ATM_STATE_05DEG_DAILY_V4R4  -dydoy --dry-run'.split())
+    pds.run(args2)
+    assert len(os.listdir('./ECCO_L4_ATM_STATE_05DEG_DAILY_V4R4')) == 0 
+    shutil.rmtree('./ECCO_L4_ATM_STATE_05DEG_DAILY_V4R4')
+
 # test to download S6 data by start/stop time, and bbox, and put it in the
 # cycle based directory structure
 @pytest.mark.regression
