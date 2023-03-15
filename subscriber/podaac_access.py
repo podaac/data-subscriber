@@ -5,6 +5,7 @@ import subprocess
 import re
 from datetime import datetime
 from http.cookiejar import CookieJar
+import os
 from os import makedirs
 from os.path import isdir, basename, join, splitext
 from urllib import request
@@ -560,7 +561,12 @@ def create_citation_file(short_name, provider, data_path, token=None, verbose=Fa
 
 def get_latest_release():
     github_url = "https://api.github.com/repos/podaac/data-subscriber/releases"
-    releases_json = requests.get(github_url).json()
+    headers = {}
+    ghtoken = os.environ.get('GITHUB_TOKEN', None)
+    if ghtoken is not None:
+        headers = {"Authorization": "Bearer " + ghtoken}
+
+    releases_json = requests.get(github_url, headers=headers).json()
     latest_release = get_latest_release_from_json(releases_json)
     return latest_release
 
