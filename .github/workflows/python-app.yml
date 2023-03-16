@@ -42,7 +42,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        poetry run pytest -m "not regression"
+        poetry run pytest -m "not regression and not token"
     - name: netrc-gen
       uses: extractions/netrc@v1
       with:
@@ -55,3 +55,38 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         poetry run pytest -o log_cli=true --log-cli-level=DEBUG -m "regression"
+
+  auth_regression:
+    needs: build
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        python-version: [ "3.7", "3.8", "3.9", "3.10" ]
+        poetry-version: [ "1.1.14" ]
+        os: [ ubuntu-18.04, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Poetry
+      uses: abatilo/actions-poetry@v2.0.0
+      with:
+        poetry-version: ${{ matrix.poetry-version }}
+    - name: Install dependencies
+      run: |
+        poetry install
+    - name: netrc-gen
+      uses: extractions/netrc@v1
+      with:
+       machine: urs.earthdata.nasa.gov
+       username: ${{ secrets.EDL_OPS_USERNAME }}
+       password: ${{ secrets.EDL_OPS_PASSWORD }}
+    - name: Regression Test with pytest
+      env:
+        PODAAC_LOGLEVEL: "DEBUG"
+      run: |
+        poetry run pytest -o log_cli=true --log-cli-level=DEBUG -m "token"
