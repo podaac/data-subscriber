@@ -346,7 +346,9 @@ def download_file(remote_file, output_path, retries=3):
                 logging.warning(f'Error downloading {remote_file}. Retrying download.')
                 # back off on sleep time each error...
                 time.sleep(r)
-                if r >= retries:
+                # range is exclusive, so range(3): 0,1,2 so retries will
+                # never be >= 3; need to subtract 1 (doh)
+                if r >= retries-1:
                     failed = True
         else:
             #downlaoded fie without 503
