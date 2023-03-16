@@ -107,8 +107,8 @@ def create_parser():
 
     parser.add_argument("--limit", dest="limit", default=None, type=int,
                         help="Integer limit for number of granules to download. Useful in testing. Defaults to no limit.")  # noqa E501
-    parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Search and identify files to download, but do not actually download them")  # noqa E501
-
+    parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Search and identify files to download, but do not actually download them.")  # noqa E501
+    parser.add_argument("--subset", dest="subset", action="store_true", help="Subset the data via Harmony calls.")  # noqa E501
 
     return parser
 
@@ -120,7 +120,6 @@ def run(args=None):
 
     try:
         pa.validate(args)
-
         # download specific validations
         # cannot specify all thre options (start, end, cycle)
         # must specify start/end togeher
@@ -134,6 +133,51 @@ def run(args=None):
     pa.setup_earthdata_login_auth(edl)
     token = pa.get_token(token_url)
 
+    data_path = args.outputDirectory
+    if not isdir(data_path):
+        logging.info("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
+        makedirs(data_path, exist_ok=True)
+
+
+    subsettable = False
+    if args.subset:
+        #get the collection info
+        params = [
+            ('provider', args.provider),
+            ('ShortName', args.collection)
+        ]
+        if token is not None:
+            params.append(('token', token))
+
+        # handle errors here
+        collection_id = pa.get_cmr_collections(params, args.verbose)['items'][0]["meta"]["concept-id"]
+        subsettable = pa.is_collection_harmony_subsettable(collection_id)
+        if not subsettable:
+            logging.info("Collection is not harmony subsettable, proceeding with traditional download")
+            subsettable = False #i'll set it a 3rd time if it makes me comfortable...
+        else:
+            subsettable = True
+
+
+    # Traditional downloader
+    if not subsettable:
+        success_cnt = cmr_downloader(args, token, data_path)
+    else:
+        success_cnt = subset(collection_id, args, token, data_path)
+
+    logging.info("Success Count: " + str(success_cnt))
+
+    #create citation file if success > 0
+    if success_cnt > 0:
+        try:
+            logging.debug("Creating citation file.")
+            pa.create_citation_file(args.collection, args.provider, data_path, token, args.verbose)
+        except:
+            logging.debug("Error generating citation",exc_info=True)
+    logging.info("END\n\n")
+
+
+def cmr_downloader(args, token, data_path):
     provider = args.provider
     start_date_time = args.startDate
     end_date_time = args.endDate
@@ -142,14 +186,11 @@ def run(args=None):
     extensions = args.extensions
     process_cmd = args.process_cmd
     granule=args.granulename
-    data_path = args.outputDirectory
 
     download_limit = None
     if args.limit is not None and args.limit > 0:
         download_limit = args.limit
 
-    if args.offset:
-        ts_shift = timedelta(hours=int(args.offset))
 
     # Error catching for output directory specifications
     # Must specify -d output path or one time-based output directory flag
@@ -159,11 +200,8 @@ def run(args=None):
                      'Please specify exactly one flag '
                      'from -dc, -dy, -dydoy, or -dymd')
 
-    # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
-
-    if not isdir(data_path):
-        logging.info("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
-        makedirs(data_path, exist_ok=True)
+    if args.offset:
+        ts_shift = timedelta(hours=int(args.offset))
 
     if search_cycles is not None:
         cmr_cycles = search_cycles
@@ -275,9 +313,7 @@ def run(args=None):
         for download in downloads[:download_limit]:
             logging.info(download)
         logging.info("Dry-run option specific. Exiting.")
-        return
-
-
+        return 0
 
     # NEED TO REFACTOR THIS, A LOT OF STUFF in here
     # Finish by downloading the files to the data directory in a loop.
@@ -320,17 +356,32 @@ def run(args=None):
     logging.info("Downloaded Files: " + str(success_cnt))
     logging.info("Failed Files:     " + str(failure_cnt))
     logging.info("Skipped Files:    " + str(skip_cnt))
+    return success_cnt
 
-    #create citation file if success > 0
-    if success_cnt > 0:
-        try:
-            pa.create_citation_file(short_name, provider, data_path, token, args.verbose)
-        except:
-            logging.debug("Error generating citation",exc_info=True)
-    logging.info("END\n\n")
+def subset(collection_id, args, token, data_path):
+    provider = args.provider
+    start_date_time = args.startDate
+    end_date_time = args.endDate
+    search_cycles = args.search_cycles
+    short_name = args.collection
+    extensions = args.extensions
+    process_cmd = args.process_cmd
+    granule=args.granulename
 
+    download_limit = None
+    if args.limit is not None and args.limit > 0:
+        download_limit = args.limit
+    success_cnt = 0
+    job_id = pa.find_harmony_runs(collection_id, args.bbox, start_date_time, end_date_time, data_path, None)
+    if not job_id:
+        job_id = pa.subset(collection_id, args.bbox, start_date_time, end_date_time, data_path)
+        pa.save_harmony_run(collection_id, args.bbox, start_date_time, end_date_time, job_id, data_path, None)
+    else:
+        logging.info("Resuming existing harmony job id...")
 
-
+    pa.download_subsetted_files(job_id,data_path, args.force)
+    success_cnt = 1
+    return success_cnt
 
 def main():
     log_level = os.environ.get('PODAAC_LOGLEVEL', 'INFO').upper()

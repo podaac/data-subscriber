@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from http.cookiejar import CookieJar
 from os import makedirs
-from os.path import isdir, basename, join, splitext
+from os.path import isdir, basename, join, splitext, isfile
 from urllib import request
 from typing import Dict
 from urllib import request
@@ -19,8 +19,11 @@ import hashlib
 from datetime import datetime
 import time
 from requests.auth import HTTPBasicAuth
-
-
+import harmony
+import datetime as dt
+import os
+import concurrent.futures
+from dateutil.parser import *
 
 import requests
 
@@ -32,6 +35,8 @@ __version__ = "1.12.0"
 extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
+graph = "graphql.earthdata.nasa.gov"
+graph_url = "https://"+graph+"/api"
 token_url = "https://" + edl + "/api/users"
 
 
@@ -558,3 +563,100 @@ def create_citation_file(short_name, provider, data_path, token=None, verbose=Fa
 
     with open(data_path + "/" + short_name + ".citation.txt", "w") as text_file:
         text_file.write(citation)
+
+# Function to determine if a collection has an applicable harmony subsetter
+def is_collection_harmony_subsettable(concept_id, token=None):
+    graph_query_template = '''
+    query Collection {
+      collection(conceptId: "$TEMPLATE_CONCEPT_ID") {
+        services{
+          items {
+            name
+            serviceKeywords
+            type
+          }
+        }
+      }
+    }
+    '''
+    query = graph_query_template.replace("$TEMPLATE_CONCEPT_ID",concept_id)
+    headers = {}
+    if token:
+        headers = {"Authorization" : "Bearer " + token}
+    r = requests.post(graph_url, json={'query': query}, headers=headers, timeout=(10,60))
+    collection_services = r.json()['data']['collection']['services']['items']
+    harmony_subsetter = False
+    if collection_services is None:
+        return False
+    for svc in collection_services:
+        if svc['type'] == "Harmony":
+            for kw in svc['serviceKeywords']:
+                if kw['serviceTerm'] == "SUBSETTING/SUPERSETTING":
+                    harmony_subsetter = True
+
+    return harmony_subsetter
+
+def get_harmony_file(data_dir):
+    if isfile(data_dir + "/.harmony"):
+        return data_dir + "/.harmony"
+    return None
+
+def find_harmony_runs(collection, bbox, starttime, endtime, output_dir, granules=None,):
+    harmony_file = get_harmony_file(output_dir)
+    if harmony_file is None:
+        return None
+    else:
+        try:
+            with open(harmony_file, "r") as f:
+                harmony_json = json.load(f)
+                for x in harmony_json:
+                    if x["collection_id"] == collection and x['starttime'] == starttime and x['endtime'] == endtime and x['bbox'] == bbox:
+                        return x['jobid']
+
+        except FileNotFoundError:
+                logging.warning("No .update in the data directory. (Is this the first run?)")
+    return None
+
+def save_harmony_run(collection, bbox, starttime, endtime, job_id, output_dir, granules=None,):
+    harmony_file = get_harmony_file(output_dir)
+    harmony_json = []
+    if harmony_file:
+        f = open(harmony_file, "r")
+        harmony_json = json.load(f)
+        f.close()
+    harmony_run = {}
+    harmony_run["collection_id"] = collection
+    harmony_run['starttime'] = starttime
+    harmony_run['endtime'] = endtime
+    harmony_run['bbox'] = bbox
+    harmony_run['jobid'] = job_id
+    harmony_json.append(harmony_run)
+
+    with open(output_dir + "/.harmony", "w") as outfile:
+        json.dump(harmony_json, outfile)
+
+# Function to utilize Harmony for subsetting a collection
+def subset(concept_id, bbox, starttime, stoptime, output_dir,  granules=None):
+
+    harmony_client = harmony.Client()
+    bbox_ary = [float(x) for x in bbox.split(",")]
+    collection = harmony.Collection(id=concept_id)
+    request = harmony.Request(
+        collection=collection,
+        spatial=harmony.BBox(bbox_ary[0], bbox_ary[1], bbox_ary[2], bbox_ary[3]),
+        temporal={
+            'start': isoparse(starttime),
+            'stop': isoparse(stoptime)
+        }
+    )
+    request.is_valid()
+    job_id = harmony_client.submit(request)
+    return job_id
+
+
+def download_subsetted_files(job_id, output_dir, force_download = False):
+    harmony_client = harmony.Client()
+    iter = harmony_client.iterator(job_id, output_dir, force_download)
+    os.environ['VERBOSE'] = 'true'
+    futures = list(map(lambda x: x['path'], iter))
+    (done_futures, _) = concurrent.futures.wait(futures)
