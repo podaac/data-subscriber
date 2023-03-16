@@ -6,7 +6,8 @@ For installation and dependency information, please see the [top-level README](R
 
 ```
 $> podaac-data-downloader -h
-usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [--granule-name GRANULE] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER] [--limit LIMIT]
+usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [-gr GRANULENAME] [--process PROCESS_CMD] [--version] [--verbose]
+                                    [-p PROVIDER] [--limit LIMIT] [--dry-run]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -17,32 +18,30 @@ optional arguments:
   --cycle SEARCH_CYCLES
                         Cycle number for determining downloads. can be repeated for multiple cycles
   -sd STARTDATE, --start-date STARTDATE
-                        The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z
+                        The ISO date time after which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z
   -ed ENDDATE, --end-date ENDDATE
-                        The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z
-   -f, --force          
-                        Flag to force downloading files that are listed in CMR query, even if the file exists and checksum matches
+                        The ISO date time before which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z
+  -f, --force           Flag to force downloading files that are listed in CMR query, even if the file exists and checksum matches
   -b BBOX, --bounds BBOX
-                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without
-                        spaces. Due to an issue with parsing arguments, to use this command, please use the -b="-180,-90,180,90" syntax
-                        when calling from the command line. Default: "-180,-90,180,90".
+                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b="-180,-90,180,90" syntax when calling from the command line.
+                        Default: "-180,-90,180,90".
   -dc                   Flag to use cycle number for directory where data products will be downloaded.
   -dydoy                Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.
-  -dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be
-                        downloaded.
+  -dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.
   -dy                   Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.
   --offset OFFSET       Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.
   -e EXTENSIONS, --extensions EXTENSIONS
-                      Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
-  -gr GRANULE, --granule-name GRANULE
-  						The name of the granule to download. Only one granule name can be specified. Script will download all files matching similar granule name sans extension.
+                        Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
+  -gr GRANULENAME, --granule-name GRANULENAME
+                        Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied
   --process PROCESS_CMD
                         Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.
   --version             Display script version information and exit.
   --verbose             Verbose mode.
   -p PROVIDER, --provider PROVIDER
                         Specify a provider for collection search. Default is POCLOUD.
-  --limit LIMIT         Integer limit for number of granules to download. Useful in testing. Defaults to 2000
+  --limit LIMIT         Integer limit for number of granules to download. Useful in testing. Defaults to no limit.
+  --dry-run             Search and identify files to download, but do not actually download them
 
 ```
 
@@ -52,9 +51,8 @@ optional arguments:
 
 Usage:
 ```
-usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f]
-                                    [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [--process PROCESS_CMD]
-                                    [--version] [--verbose] [-p PROVIDER] [--limit LIMIT]
+usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [-gr GRANULENAME] [--process PROCESS_CMD] [--version] [--verbose]
+                                    [-p PROVIDER] [--limit LIMIT] [--dry-run]
 ```
 
 To run the script, the following parameters are required:

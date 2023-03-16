@@ -6,43 +6,42 @@ For installation and dependency information, please see the [top-level README](R
 
 ```
 $> podaac-data-subscriber -h
-usage: PO.DAAC data subscriber [-h] -c COLLECTION -d OUTPUTDIRECTORY [-f] [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-m MINUTES] [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -c COLLECTION, --collection-shortname COLLECTION
-                        The collection shortname for which you want to retrieve data.
-  -d OUTPUTDIRECTORY, --data-dir OUTPUTDIRECTORY
-                        The directory where data products will be downloaded.
-  -f, --force           Flag to force downloading files that are listed in CMR query, even if the file exists and checksum matches
-  -sd STARTDATE, --start-date STARTDATE
-                        The ISO date time before which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z
-  -ed ENDDATE, --end-date ENDDATE
-                        The ISO date time after which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z
-  -b BBOX, --bounds BBOX
-                        The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b="-180,-90,180,90" syntax when calling from the command line. Default: "-180,-90,180,90".
-  -dc                   Flag to use cycle number for directory where data products will be downloaded.
-  -dydoy                Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.
-  -dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.
-  -dy                   Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.
-  --offset OFFSET       Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.
-  -m MINUTES, --minutes MINUTES
-                        How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs (default: 60 minutes).
+-h, --help            show this help message and exit
+-c COLLECTION, --collection-shortname COLLECTION
+                      The collection shortname for which you want to retrieve data.
+-d OUTPUTDIRECTORY, --data-dir OUTPUTDIRECTORY
+                      The directory where data products will be downloaded.
+-f, --force           Flag to force downloading files that are listed in CMR query, even if the file exists and checksum matches
+-sd STARTDATE, --start-date STARTDATE
+                      The ISO date time after which data should be retrieved. For Example, --start-date 2021-01-14T00:00:00Z
+-ed ENDDATE, --end-date ENDDATE
+                      The ISO date time before which data should be retrieved. For Example, --end-date 2021-01-14T00:00:00Z
+-b BBOX, --bounds BBOX
+                      The bounding rectangle to filter result in. Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces. Due to an issue with parsing arguments, to use this command, please use the -b="-180,-90,180,90" syntax when calling from the command line.
+                      Default: "-180,-90,180,90".
+-dc                   Flag to use cycle number for directory where data products will be downloaded.
+-dydoy                Flag to use start time (Year/DOY) of downloaded data for directory where data products will be downloaded.
+-dymd                 Flag to use start time (Year/Month/Day) of downloaded data for directory where data products will be downloaded.
+-dy                   Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.
+--offset OFFSET       Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.
+-m MINUTES, --minutes MINUTES
+                      How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs.
 -e EXTENSIONS, --extensions EXTENSIONS
-                        Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
-  --process PROCESS_CMD
-                        Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.
-  --version             Display script version information and exit.
-  --verbose             Verbose mode.
-  -p PROVIDER, --provider PROVIDER
-                        Specify a provider for collection search. Default is POCLOUD.
+                      Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
+--process PROCESS_CMD
+                      Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.
+--version             Display script version information and exit.
+--verbose             Verbose mode.
+-p PROVIDER, --provider PROVIDER
+                      Specify a provider for collection search. Default is POCLOUD.
+--dry-run             Search and identify files to download, but do not actually download them
 ```
 
 ## Run the Script
 
 Usage:
 ```
-usage: podaac_data_subscriber.py [-h] -c COLLECTION -d OUTPUTDIRECTORY [-f] [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-m MINUTES] [-e EXTENSIONS] [--version] [--verbose] [-p PROVIDER]
+usage: PO.DAAC data subscriber [-h] -c COLLECTION -d OUTPUTDIRECTORY [-f] [-sd STARTDATE] [-ed ENDDATE] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-m MINUTES] [-e EXTENSIONS] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER] [--dry-run]
 ```
 
 To run the script, the following parameters are required:
