@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## Unreleased
 ### Added
-- Added new feature allowing regex to be used in `--extension` `-e` options. For example using -e `PTM_\\d+` would match data files like `filename.PTM_1`, `filename.PTM_2` and `filename.PTM_10`, instead of specifying all possible combinations (``-e PTM_1, -e PTM_2, ...,  -e PMT_10`)
+- Added --dry-run option to subscriber and downloader to view the files that _would_ be downloaded without actuall downloading them. [102](https://github.com/podaac/data-subscriber/issues/102)
+- Added new feature allowing regex to be used in `--extension` `-e` options. For example using -e `PTM_\\d+` would match data files like `filename.PTM_1`, `filename.PTM_2` and `filename.PTM_10`, instead of specifying all possible combinations (``-e PTM_1, -e PTM_2, ...,  -e PMT_10`) [115](https://github.com/podaac/data-subscriber/issues/115)
 - Added check for updated version [70](https://github.com/podaac/data-subscriber/issues/70)
 
 

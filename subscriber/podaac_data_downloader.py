@@ -107,6 +107,8 @@ def create_parser():
 
     parser.add_argument("--limit", dest="limit", default=None, type=int,
                         help="Integer limit for number of granules to download. Useful in testing. Defaults to no limit.")  # noqa E501
+    parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Search and identify files to download, but do not actually download them")  # noqa E501
+
 
     return parser
 
@@ -264,8 +266,18 @@ def run(args=None):
     logging.info("Found " + str(len(downloads)) + " total files to download")
     if download_limit:
         logging.info("Limiting downloads to " + str(args.limit) + " total files")
+
     if args.verbose:
         logging.info("Downloading files with extensions: " + str(extensions))
+
+    if args.dry_run:
+        logging.info("Dry-run option specified. Listing Downloads.")
+        for download in downloads[:download_limit]:
+            logging.info(download)
+        logging.info("Dry-run option specific. Exiting.")
+        return
+
+
 
     # NEED TO REFACTOR THIS, A LOT OF STUFF in here
     # Finish by downloading the files to the data directory in a loop.
