@@ -272,12 +272,8 @@ def run(args=None):
 
     if args.dry_run:
         logging.info("Dry-run option specified. Listing Downloads.")
-        if download_limit:
-            for x in range(0, min(download_limit, len(downloads))):
-                logging.info(downloads[x])
-        else:
-            for download in downloads:
-                logging.info(download)
+        for download in downloads[:download_limit]:
+            logging.info(download)
         logging.info("Dry-run option specific. Exiting.")
         return
 
