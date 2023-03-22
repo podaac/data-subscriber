@@ -617,6 +617,22 @@ def find_harmony_runs(collection, bbox, starttime, endtime, output_dir, granules
                 logging.warning("No .update in the data directory. (Is this the first run?)")
     return None
 
+#In the event we need to delete a harmony run from the save file, this method can do that using a jobID
+def remove_harmony_run(job_id, output_dir):
+    harmony_file = get_harmony_file(output_dir)
+    harmony_json = []
+    if harmony_file:
+        f = open(harmony_file, "r")
+        harmony_json = json.load(f)
+        f.close()
+    #should create a new array of non-mathcing jobids
+    harmony_json = [x for x in harmony_json if x['jobid'] != job_id]
+
+    with open(output_dir + "/.harmony", "w") as outfile:
+        json.dump(harmony_json, outfile)
+
+
+
 def save_harmony_run(collection, bbox, starttime, endtime, job_id, output_dir, granules=None,):
     harmony_file = get_harmony_file(output_dir)
     harmony_json = []
@@ -655,8 +671,21 @@ def subset(concept_id, bbox, starttime, stoptime, output_dir,  granules=None):
 
 
 def download_subsetted_files(job_id, output_dir, force_download = False):
-    harmony_client = harmony.Client()
-    iter = harmony_client.iterator(job_id, output_dir, force_download)
-    os.environ['VERBOSE'] = 'true'
-    futures = list(map(lambda x: x['path'], iter))
-    (done_futures, _) = concurrent.futures.wait(futures)
+
+    # Need to catch various exceptions here...
+    #
+    # WorkItem Duration
+    #   File "/Users/gangl/miniconda3/lib/python3.8/site-packages/harmony/harmony.py", line 1124, in iterator
+    #   raise Exception(response.get('message'))
+    #   Exception: WorkItem [4928744] failed with error: Work item 4928744 has exceeded the 1095020 ms duration threshold.
+    try:
+        harmony_client = harmony.Client()
+        iter = harmony_client.iterator(job_id, output_dir, force_download)
+        os.environ['VERBOSE'] = 'true'
+        futures = list(map(lambda x: x['path'], iter))
+        (done_futures, _) = concurrent.futures.wait(futures)
+    except Exception as e:
+        logging.error("Error processing harmony subsetting request: {}".format(str(e)))
+        logging.error("Removing job id [{0}] from harmony statefile {1}".format(job_id, output_dir+"/.harmony"))
+        remove_harmony_run(job_id, output_dir)
+    # If an error occurs, should we "retry" it? Should we remove this from the .harmony file?

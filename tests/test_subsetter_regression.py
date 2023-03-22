@@ -17,8 +17,10 @@ def create_downloader_args(args):
 # -c VIIRS_N20-STAR-L2P-v2.80 -d ./data -b="52,52,55,55" -sd 2020-06-01T00:46:02Z -ed 2020-06-02T00:46:02Z --verbose --subset --limit 1
 
 # Valid Subsetters
-# -c MODIS_A-JPL-L2P-v2019.0 -d ./data -b="52,52,55,55" -sd 2020-06-01T00:46:02Z -ed 2020-06-02T00:46:02Z --verbose --subset --limit 1
+# -c MODIS_A-JPL-L2P-v2019.0  -d ./data -b="52,52,55,55" -sd 2020-06-01T00:46:02Z -ed 2020-06-02T00:46:02Z --verbose --subset --limit 1 --verbose --force
 # -c AMSR2-REMSS-L2P-v8.2 -d ./data -b="52,52,55,55" -sd 2020-06-01T00:46:02Z -ed 2020-06-02T00:46:02Z --verbose --subset --limit 1
+# -c SWOT_SIMULATED_L2_KARIN_SSH_GLORYS_SCIENCE_V1  -d ./data -b="-125.469,15.820,-99.453,35.859" -sd 2014-03-10T00:46:02Z -ed 2014-05-16T00:46:02Z --verbose --subset
+# -c JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F  -d ./data -b="-125.469,15.820,-99.453,35.859" -sd 2023-03-10T00:46:02Z -ed 2023-03-16T00:46:02Z --verbose --subset
 
 
 #Test the downlaoder on MUR25 data for start/stop/, yyyy/mmm/dd dir structure,
