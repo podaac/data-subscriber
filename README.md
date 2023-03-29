@@ -114,6 +114,14 @@ export PODAAC_LOGLEVEL=DEBUG
 
 And then run the script. This should give you more verbose output on URL requests to CMR, tokens, etc.
 
+### OTHER OPTIONS
+
+The podaac downloader and subscriber make calls to github for checking recent releases. Unauthenticated requests are limited to 60 per hour. If you start seeing errors like:
+```
+releases_json = {'documentation_url': 'https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting', 'message': "API... here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)"}
+```
+You'll want to set the environment variable GITHUB_TOKEN to a github personal access token- this allows for up to 5000 calls per hour. This requires a free github account. Most users will not run in to this issue.
+
 
 ### In need of Help?
 The PO.DAAC User Services Office is the primary point of contact for answering your questions concerning data and information held by the PO.DAAC. User Services staff members are knowledgeable about both the data ordering system and the data products themselves. We answer questions about data, route requests to other DAACs, and direct questions we cannot answer to the appropriate information source.

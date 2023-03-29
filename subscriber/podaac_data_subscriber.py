@@ -352,4 +352,5 @@ def main():
 
 
 if __name__ == '__main__':
+    pa.check_for_latest()
     main()

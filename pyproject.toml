@@ -27,7 +27,8 @@ podaac-data-downloader = 'subscriber.podaac_data_downloader:main'
 
 [tool.pytest.ini_options]
 markers = [
-    "regression: marks a test as a regression, requires netrc file (deselect with '-m \"not regresion\"')"
+    "regression: marks a test as a regression, requires netrc file (deselect with '-m \"not regresion\"')",
+    "token: marks a test as a token regression, requires netrc file and relies on enterprise URS (deselect with '-m \"not token\"')"
 ]
 
 [build-system]
