@@ -663,7 +663,9 @@ def subset(concept_id, bbox, starttime, stoptime, output_dir,  granules=None):
         temporal={
             'start': isoparse(starttime),
             'stop': isoparse(stoptime)
-        }
+        },
+        skip_preview = True,
+        # ignoreErrors = True
     )
     request.is_valid()
     job_id = harmony_client.submit(request)
