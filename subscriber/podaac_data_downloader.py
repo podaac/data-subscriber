@@ -10,6 +10,7 @@ from urllib.error import HTTPError
 from urllib.request import urlretrieve
 
 from subscriber import podaac_access as pa
+from subscriber import token_formatter
 
 __version__ = pa.__version__
 
@@ -333,10 +334,14 @@ def run(args=None):
 
 
 def main():
+    log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
     log_level = os.environ.get('PODAAC_LOGLEVEL', 'INFO').upper()
     logging.basicConfig(stream=sys.stdout,
-                        format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s',
+                        format=log_format,
                         level=log_level)
+
+    for handler in logging.root.handlers:
+        handler.setFormatter(token_formatter.TokenFormatter(log_format))
     logging.debug("Log level set to " + log_level)
 
     try:
