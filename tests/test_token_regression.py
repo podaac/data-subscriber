@@ -6,22 +6,15 @@ from subscriber import podaac_access as pa
 import shutil
 from pathlib import Path
 
-<<<<<<< HEAD
 @pytest.mark.token
-=======
-@pytest.mark.regression
->>>>>>> main
 def setup_function(method):
     # Deletes all known tokens
     tokens = pa.list_tokens(pa.token_url)
     for x in tokens:
         pa.delete_token(pa.token_url, x)
 
-<<<<<<< HEAD
+
 @pytest.mark.token
-=======
-@pytest.mark.regression
->>>>>>> main
 def teardown_function(method):
     # Deletes all known tokens
     tokens = pa.list_tokens(pa.token_url)
@@ -31,11 +24,7 @@ def teardown_function(method):
 # REGRESSION TEST CURRENTLY REQUIRES A .NETRC file for CMR/Data Download
 # token API can be found here: https://wiki.earthdata.nasa.gov/display/EL/API+Documentation
 # explore https://urs.earthdata.nasa.gov/documentation/for_integrators/api_documentation#/oauth/token
-<<<<<<< HEAD
 @pytest.mark.token
-=======
-@pytest.mark.regression
->>>>>>> main
 def test_list_tokens():
     tokens = pa.list_tokens(pa.token_url)
     assert len(tokens) == 0
@@ -43,11 +32,7 @@ def test_list_tokens():
     tokens = pa.list_tokens(pa.token_url)
     assert len(tokens) == 1
 
-<<<<<<< HEAD
 @pytest.mark.token
-=======
-@pytest.mark.regression
->>>>>>> main
 def test_edl_getToken():
     token = pa.get_token(pa.token_url)
     assert token != ""

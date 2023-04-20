@@ -44,8 +44,6 @@ optional arguments:
 
 ```
 
-##Run the Script
-
 ## Step 2:  Run the Script
 
 Usage:
