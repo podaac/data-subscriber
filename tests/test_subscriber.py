@@ -85,8 +85,8 @@ def test_search_after():
         'bounding_box': "-180,-90,180,90",
     }
     results = pa.get_search_results(params, True)
-    assert results['hits'] == 3748
-    assert len(results['items']) == 3748
+    assert results['hits'] == 3751
+    assert len(results['items']) == 3751
 
 def test_update_format_change(cleanup_update_test):
     print("Running Test")
