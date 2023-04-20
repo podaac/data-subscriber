@@ -37,6 +37,7 @@ def test_downloader_limit_MUR():
     assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name) and "citation.txt" not in name ])==1
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2')
 
+<<<<<<< HEAD
 # Test the downlaoder on SWOT Simulated single file download
 @pytest.mark.regression
 def test_downloader_limit_dry_run():
@@ -48,6 +49,8 @@ def test_downloader_limit_dry_run():
     assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name) and "citation.txt" not in name ])==0
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2')
 
+=======
+>>>>>>> main
 
 #Test the downlaoder on MUR25 data for start/stop/, yyyy/mmm/dd dir structure,
 # and offset. Running it a second time to ensure it downlaods the files again-

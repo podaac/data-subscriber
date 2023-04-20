@@ -6,8 +6,7 @@ For installation and dependency information, please see the [top-level README](R
 
 ```
 $> podaac-data-downloader -h
-usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [-gr GRANULENAME] [--process PROCESS_CMD] [--version] [--verbose]
-                                    [-p PROVIDER] [--limit LIMIT] [--dry-run]
+usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [-gr GRANULENAME] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER] [--limit LIMIT] [--dry-run]
 
 optional arguments:
   -h, --help            show this help message and exit
