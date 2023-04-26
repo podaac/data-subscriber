@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "podaac-data-subscriber"
-version = "1.12.0"
+version = "1.13.0"
 description = "PO.DAAC Data Subscriber Command Line Tool"
 authors = ["PO.DAAC <podaac@podaac.jpl.nasa.gov>"]
 readme = "README.md"
@@ -27,7 +27,8 @@ podaac-data-downloader = 'subscriber.podaac_data_downloader:main'
 
 [tool.pytest.ini_options]
 markers = [
-    "regression: marks a test as a regression, requires netrc file (deselect with '-m \"not regresion\"')"
+    "regression: marks a test as a regression, requires netrc file (deselect with '-m \"not regresion\"')",
+    "token: marks a test as a token regression, requires netrc file and relies on enterprise URS (deselect with '-m \"not token\"')"
 ]
 
 [build-system]

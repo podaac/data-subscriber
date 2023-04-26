@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import os
+import os, re
 import sys
 from datetime import datetime, timedelta
 from os import makedirs
@@ -10,6 +10,7 @@ from urllib.error import HTTPError
 from urllib.request import urlretrieve
 
 from subscriber import podaac_access as pa
+from subscriber import token_formatter
 
 __version__ = pa.__version__
 
@@ -86,7 +87,7 @@ def create_parser():
                         help="Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.")  # noqa E501
 
     parser.add_argument("-e", "--extensions", dest="extensions",
-                        help="The extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz]",
+                        help="Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]",
                         default=None, action='append')  # noqa E501
 
    # Get specific granule from the search
@@ -107,6 +108,8 @@ def create_parser():
 
     parser.add_argument("--limit", dest="limit", default=None, type=int,
                         help="Integer limit for number of granules to download. Useful in testing. Defaults to no limit.")  # noqa E501
+    parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Search and identify files to download, but do not actually download them")  # noqa E501
+
 
     return parser
 
@@ -253,7 +256,7 @@ def run(args=None):
     filtered_downloads = []
     for f in downloads:
         for extension in extensions:
-            if f.lower().endswith(extension):
+            if pa.search_extension(extension, f):
                 filtered_downloads.append(f)
 
     downloads = filtered_downloads
@@ -264,8 +267,18 @@ def run(args=None):
     logging.info("Found " + str(len(downloads)) + " total files to download")
     if download_limit:
         logging.info("Limiting downloads to " + str(args.limit) + " total files")
+
     if args.verbose:
         logging.info("Downloading files with extensions: " + str(extensions))
+
+    if args.dry_run:
+        logging.info("Dry-run option specified. Listing Downloads.")
+        for download in downloads[:download_limit]:
+            logging.info(download)
+        logging.info("Dry-run option specific. Exiting.")
+        return
+
+
 
     # NEED TO REFACTOR THIS, A LOT OF STUFF in here
     # Finish by downloading the files to the data directory in a loop.
@@ -321,10 +334,14 @@ def run(args=None):
 
 
 def main():
+    log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
     log_level = os.environ.get('PODAAC_LOGLEVEL', 'INFO').upper()
     logging.basicConfig(stream=sys.stdout,
-                        format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s',
+                        format=log_format,
                         level=log_level)
+
+    for handler in logging.root.handlers:
+        handler.setFormatter(token_formatter.TokenFormatter(log_format))
     logging.debug("Log level set to " + log_level)
 
     try:
@@ -335,4 +352,5 @@ def main():
 
 
 if __name__ == '__main__':
+    pa.check_for_latest()
     main()

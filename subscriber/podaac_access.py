@@ -2,8 +2,10 @@ import json
 import logging
 import netrc
 import subprocess
+import re
 from datetime import datetime
 from http.cookiejar import CookieJar
+import os
 from os import makedirs
 from os.path import isdir, basename, join, splitext
 from urllib import request
@@ -18,6 +20,7 @@ import hashlib
 from datetime import datetime
 import time
 from requests.auth import HTTPBasicAuth
+from packaging import version
 
 
 
@@ -27,8 +30,8 @@ import requests
 import tenacity
 from datetime import datetime
 
-__version__ = "1.12.0"
-extensions = [".nc", ".h5", ".zip", ".tar.gz", ".tiff"]
+__version__ = "1.13.0"
+extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 token_url = "https://" + edl + "/api/users"
@@ -343,7 +346,9 @@ def download_file(remote_file, output_path, retries=3):
                 logging.warning(f'Error downloading {remote_file}. Retrying download.')
                 # back off on sleep time each error...
                 time.sleep(r)
-                if r >= retries:
+                # range is exclusive, so range(3): 0,1,2 so retries will
+                # never be >= 3; need to subtract 1 (doh)
+                if r >= retries-1:
                     failed = True
         else:
             #downlaoded fie without 503
@@ -531,6 +536,11 @@ def create_citation(collection_json, access_date):
     year = datetime.strptime(release_date, "%Y-%m-%dT%H:%M:%S.000Z").year
     return citation_template.format(creator=creator, year=year, title=title, version=version, doi_authority=doi_authority, doi=doi, access_date=access_date)
 
+def search_extension(extension, filename):
+    if re.search(extension + "$", filename) is not None:
+        return True
+    return False
+
 def create_citation_file(short_name, provider, data_path, token=None, verbose=False):
     # get collection umm-c METADATA
     params = [
@@ -550,3 +560,33 @@ def create_citation_file(short_name, provider, data_path, token=None, verbose=Fa
 
     with open(data_path + "/" + short_name + ".citation.txt", "w") as text_file:
         text_file.write(citation)
+
+def get_latest_release():
+    github_url = "https://api.github.com/repos/podaac/data-subscriber/releases"
+    headers = {}
+    ghtoken = os.environ.get('GITHUB_TOKEN', None)
+    if ghtoken is not None:
+        headers = {"Authorization": "Bearer " + ghtoken}
+
+    releases_json = requests.get(github_url, headers=headers).json()
+    latest_release = get_latest_release_from_json(releases_json)
+    return latest_release
+
+def release_is_current(latest_release, this_version):
+    return  not (version.parse(this_version) < version.parse(latest_release))
+
+def get_latest_release_from_json(releases_json):
+    releases = []
+    for x in releases_json:
+        releases.append(x['tag_name'])
+    sorted(releases, key=lambda x: version.Version(x)).reverse()
+    return releases[0]
+
+
+def check_for_latest():
+    try:
+        latest_version = get_latest_release()
+        if not release_is_current(latest_version,__version__):
+            print(f'You are currently using version {__version__} of the PO.DAAC Data Subscriber/Downloader. Please run:\n\n pip install podaac-data-subscriber --upgrade \n\n to upgrade to the latest version.')
+    except:
+        print("Error checking for new version of the po.daac data subscriber. Continuing")
