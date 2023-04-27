@@ -3,13 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-<<<<<<< HEAD
 ## 1.13.1
 ### Fixed
 - Fixed an issue where a required library wasn't being included in the installation.
 
-=======
->>>>>>> main
 ## 1.13.0
 ### Added
 - Added --dry-run option to subscriber and downloader to view the files that _would_ be downloaded without actuall downloading them. [102](https://github.com/podaac/data-subscriber/issues/102)

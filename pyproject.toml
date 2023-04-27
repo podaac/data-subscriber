@@ -1,10 +1,6 @@
 [tool.poetry]
 name = "podaac-data-subscriber"
-<<<<<<< HEAD
 version = "1.13.1"
-=======
-version = "1.13.0"
->>>>>>> main
 description = "PO.DAAC Data Subscriber Command Line Tool"
 authors = ["PO.DAAC <podaac@podaac.jpl.nasa.gov>"]
 readme = "README.md"
