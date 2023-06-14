@@ -191,7 +191,7 @@ def run(args=None):
             ('token', token),
         ]
         #jmcnelis, 2023/06/14 - provide for wildcards in granuleur-based search
-        if '*' or '?' in cmr_granule:
+        if '*' in cmr_granule or '?' in cmr_granule:
             params.append(('options[GranuleUR][pattern]', 'true'))
         if args.verbose:
             logging.info("Granule: " + str(cmr_granule))
