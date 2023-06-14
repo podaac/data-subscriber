@@ -93,7 +93,7 @@ def create_parser():
    # Get specific granule from the search
    # https://github.com/podaac/data-subscriber/issues/109
     parser.add_argument("-gr", "--granule-name", dest="granulename",
-                        help="Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied",
+                        help="Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied. Supports wildcard search patterns allowing the user to identify multiple granules for download by using `?` for single- and `*` for multi-character expansion.",
                         default=None)
 
     parser.add_argument("--process", dest="process_cmd",
