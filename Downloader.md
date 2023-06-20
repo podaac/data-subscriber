@@ -32,7 +32,7 @@ optional arguments:
   -e EXTENSIONS, --extensions EXTENSIONS
                         Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
   -gr GRANULENAME, --granule-name GRANULENAME
-                        Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied
+                        Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied. Supports wildcard search patterns allowing the user to identify multiple granules for download by using `?` for single- and `*` for multi-character expansion.
   --process PROCESS_CMD
                         Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.
   --version             Display script version information and exit.
@@ -131,6 +131,7 @@ The `-gr` option works by taking the file name, removing the suffix and searchin
 
 Because of this behavior, granules without data suffixes and granules where the the UR does not directly follow this convention may not work as anticipated. We will be adding the ability to download by granuleUR in a future enhancement.
 
+The -gr option supports wildcard search patterns (using `?` for single- and `*` for multi-character expansion) to select and download multiple granules based on the filename pattern. This feature is supported through wildcard search functionality provided through CMR, which is described in the [CMR Search API documentation](https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#parameter-options).
 
 ### Download data by cycle
 
