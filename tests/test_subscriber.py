@@ -9,6 +9,9 @@ import shutil
 import json
 import tempfile
 from os.path import exists
+from packaging import version
+
+
 
 def test_temporal_range():
 
@@ -82,8 +85,8 @@ def test_search_after():
         'bounding_box': "-180,-90,180,90",
     }
     results = pa.get_search_results(params, True)
-    assert results['hits'] == 3748
-    assert len(results['items']) == 3748
+    assert results['hits'] == 3751
+    assert len(results['items']) == 3751
 
 def test_update_format_change(cleanup_update_test):
     print("Running Test")
@@ -210,6 +213,19 @@ def validate(args):
     pa.validate(args2)
     return args2
 
+def test_check_updates():
+    version.parse(pa.get_latest_release())
+
+def test_compare_release():
+    tag="1.11.0"
+    assert pa.release_is_current(tag,"1.11.0")
+    assert pa.release_is_current(tag,"2.10.0")
+    assert pa.release_is_current(tag,"1.11.1")
+
+    assert not pa.release_is_current(tag,"1.10.0")
+    assert not pa.release_is_current(tag,"1.10.5")
+    assert not pa.release_is_current(tag,"0.9000.5")
+
 def test_extensions():
     assert pa.search_extension('\\.tiff', "myfile.tiff") == True
     assert pa.search_extension('\\.tiff', "myfile.tif") == False
@@ -218,3 +234,10 @@ def test_extensions():
     assert pa.search_extension('PTM_\\d+', "myfile.PTM_10") == True
     assert pa.search_extension('PTM_\\d+', "myfile.PTM_09") == True
     assert pa.search_extension('PTM_\\d+', "myfile.PTM_9") == True
+
+
+def test_get_latest_release_from_json():
+    f = open('tests/releases.json')
+    release_json = json.load(f)
+    latest_release = pa.get_latest_release_from_json(release_json)
+    assert latest_release == "1.12.0"

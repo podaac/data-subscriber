@@ -10,6 +10,7 @@ from urllib.error import HTTPError
 
 from subscriber import podaac_access as pa
 from subscriber import subsetting
+from subscriber import token_formatter
 
 __version__ = pa.__version__
 
@@ -92,7 +93,7 @@ def create_parser():
    # Get specific granule from the search
    # https://github.com/podaac/data-subscriber/issues/109
     parser.add_argument("-gr", "--granule-name", dest="granulename",
-                        help="Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied",
+                        help="Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied. Supports wildcard search patterns allowing the user to identify multiple granules for download by using `?` for single- and `*` for multi-character expansion.",
                         default=None)
 
     parser.add_argument("--process", dest="process_cmd",
@@ -229,6 +230,9 @@ def cmr_downloader(args, token, data_path):
             ('GranuleUR[]', cmr_granule),
             ('token', token),
         ]
+        #jmcnelis, 2023/06/14 - provide for wildcards in granuleur-based search
+        if '*' in cmr_granule or '?' in cmr_granule:
+            params.append(('options[GranuleUR][pattern]', 'true'))
         if args.verbose:
             logging.info("Granule: " + str(cmr_granule))
 
@@ -362,10 +366,14 @@ def cmr_downloader(args, token, data_path):
 
 
 def main():
+    log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
     log_level = os.environ.get('PODAAC_LOGLEVEL', 'INFO').upper()
     logging.basicConfig(stream=sys.stdout,
-                        format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s',
+                        format=log_format,
                         level=log_level)
+
+    for handler in logging.root.handlers:
+        handler.setFormatter(token_formatter.TokenFormatter(log_format))
     logging.debug("Log level set to " + log_level)
 
     try:
@@ -376,4 +384,5 @@ def main():
 
 
 if __name__ == '__main__':
+    pa.check_for_latest()
     main()

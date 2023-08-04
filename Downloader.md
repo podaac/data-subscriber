@@ -6,8 +6,7 @@ For installation and dependency information, please see the [top-level README](R
 
 ```
 $> podaac-data-downloader -h
-usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [-gr GRANULENAME] [--process PROCESS_CMD] [--version] [--verbose]
-                                    [-p PROVIDER] [--limit LIMIT] [--dry-run]
+usage: PO.DAAC bulk-data downloader [-h] -c COLLECTION -d OUTPUTDIRECTORY [--cycle SEARCH_CYCLES] [-sd STARTDATE] [-ed ENDDATE] [-f] [-b BBOX] [-dc] [-dydoy] [-dymd] [-dy] [--offset OFFSET] [-e EXTENSIONS] [-gr GRANULENAME] [--process PROCESS_CMD] [--version] [--verbose] [-p PROVIDER] [--limit LIMIT] [--dry-run]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -33,7 +32,7 @@ optional arguments:
   -e EXTENSIONS, --extensions EXTENSIONS
                         Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
   -gr GRANULENAME, --granule-name GRANULENAME
-                        Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied
+                        Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied. Supports wildcard search patterns allowing the user to identify multiple granules for download by using `?` for single- and `*` for multi-character expansion.
   --process PROCESS_CMD
                         Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.
   --version             Display script version information and exit.
@@ -44,8 +43,6 @@ optional arguments:
   --dry-run             Search and identify files to download, but do not actually download them
 
 ```
-
-##Run the Script
 
 ## Step 2:  Run the Script
 
@@ -134,6 +131,7 @@ The `-gr` option works by taking the file name, removing the suffix and searchin
 
 Because of this behavior, granules without data suffixes and granules where the the UR does not directly follow this convention may not work as anticipated. We will be adding the ability to download by granuleUR in a future enhancement.
 
+The -gr option supports wildcard search patterns (using `?` for single- and `*` for multi-character expansion) to select and download multiple granules based on the filename pattern. This feature is supported through wildcard search functionality provided through CMR, which is described in the [CMR Search API documentation](https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#parameter-options).
 
 ### Download data by cycle
 
@@ -213,7 +211,7 @@ podaac-data-downloader -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -b="-180,-90,180,90
 
 ### Setting extensions
 
-Some collections have many files. To download a specific set of files, you can set the extensions on which downloads are filtered. By default, ".nc", ".h5", and ".zip" files are downloaded by default.
+Some collections have many files. To download a specific set of files, you can set the extensions on which downloads are filtered. By default, ".nc", ".h5", and ".zip" files are downloaded by default. The `-e` option is a regular expression check so you can do advanced things like `-e PTM_\\d+` to match `PTM_` followed by one or more digits- useful when the ending of a file has no suffix and has a number (1-12 for PTM, in this example)
 
 ```
 -e EXTENSIONS, --extensions EXTENSIONS

@@ -188,7 +188,7 @@ podaac-data-subscriber -c VIIRS_N20-OSPO-L2P-v2.61 -d ./data -b="-180,-90,180,90
 
 ### Setting extensions
 
-Some collections have many files. To download a specific set of files, you can set the extensions on which downloads are filtered. By default, ".nc", ".h5", and ".zip" files are downloaded by default.
+Some collections have many files. To download a specific set of files, you can set the extensions on which downloads are filtered. By default, ".nc", ".h5", and ".zip" files are downloaded by default. The `-e` option is a regular expression check so you can do advanced things like `-e PTM_\\d+` to match `PTM_` followed by one or more digits- useful when the ending of a file has no suffix and has a number (1-12 for PTM, in this example)
 
 ```
 -e EXTENSIONS, --extensions EXTENSIONS

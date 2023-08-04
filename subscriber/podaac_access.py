@@ -3,6 +3,7 @@ import logging
 import netrc
 import re
 from http.cookiejar import CookieJar
+import os
 from os import makedirs
 from os.path import isdir, basename, join, splitext, isfile
 from typing import Dict
@@ -19,12 +20,13 @@ import harmony
 import concurrent.futures
 from dateutil.parser import *
 import functools
+from packaging import version
 
 import requests
 import tenacity
 from datetime import datetime
 
-__version__ = "1.12.0"
+__version__ = "1.14.0"
 extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
@@ -599,6 +601,37 @@ def create_citation_file(short_name, provider, data_path, token=None, verbose=Fa
 
     with open(data_path + "/" + short_name + ".citation.txt", "w") as text_file:
         text_file.write(citation)
+
+
+def get_latest_release():
+    github_url = "https://api.github.com/repos/podaac/data-subscriber/releases"
+    headers = {}
+    ghtoken = os.environ.get('GITHUB_TOKEN', None)
+    if ghtoken is not None:
+        headers = {"Authorization": "Bearer " + ghtoken}
+
+    releases_json = requests.get(github_url, headers=headers).json()
+    latest_release = get_latest_release_from_json(releases_json)
+    return latest_release
+
+def release_is_current(latest_release, this_version):
+    return  not (version.parse(this_version) < version.parse(latest_release))
+
+def get_latest_release_from_json(releases_json):
+    releases = []
+    for x in releases_json:
+        releases.append(x['tag_name'])
+    sorted(releases, key=lambda x: version.Version(x)).reverse()
+    return releases[0]
+
+
+def check_for_latest():
+    try:
+        latest_version = get_latest_release()
+        if not release_is_current(latest_version,__version__):
+            print(f'You are currently using version {__version__} of the PO.DAAC Data Subscriber/Downloader. Please run:\n\n pip install podaac-data-subscriber --upgrade \n\n to upgrade to the latest version.')
+    except:
+        print("Error checking for new version of the po.daac data subscriber. Continuing")
 
 
 def is_collection_harmony_subsettable(concept_id, token=None):

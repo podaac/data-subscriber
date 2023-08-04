@@ -23,6 +23,7 @@ from urllib.error import HTTPError
 
 from subscriber import podaac_access as pa
 from subscriber import subsetting
+from subscriber import token_formatter
 
 __version__ = pa.__version__
 
@@ -386,10 +387,13 @@ def cmr_downloader(granules, extensions, args, data_path, file_start_times, ts_s
     return success_cnt, failure_cnt, skip_cnt
 
 def main():
+    log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
     log_level = os.environ.get('PODAAC_LOGLEVEL', 'INFO').upper()
     logging.basicConfig(stream=sys.stdout,
-                        format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s',
+                        format=log_format,
                         level=log_level)
+    for handler in logging.root.handlers:
+        handler.setFormatter(token_formatter.TokenFormatter(log_format))
     logging.debug("Log level set to " + log_level)
 
     try:
@@ -400,4 +404,5 @@ def main():
 
 
 if __name__ == '__main__':
+    pa.check_for_latest()
     main()
