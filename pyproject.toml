@@ -15,7 +15,7 @@ packages = [
 python = "^3.7"
 requests = "^2.27.1"
 tenacity = "^8.0.1"
-harmony-py = "^0.4.5"
+harmony-py = "^0.4.9"
 
 
 
