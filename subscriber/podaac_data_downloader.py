@@ -168,7 +168,7 @@ def run(args=None):
 
     logging.info("Success Count: " + str(success_cnt))
 
-    #create citation file if success > 0
+    # create citation file if success > 0
     if success_cnt > 0:
         try:
             logging.debug("Creating citation file.")
