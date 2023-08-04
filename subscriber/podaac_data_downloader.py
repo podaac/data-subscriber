@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import os, re
+import os
 import sys
 from datetime import datetime, timedelta
 from os import makedirs
 from os.path import isdir, basename, join, exists
 from urllib.error import HTTPError
-from urllib.request import urlretrieve
 
 from subscriber import podaac_access as pa
+from subscriber import subsetting
 
 __version__ = pa.__version__
 
@@ -138,32 +138,33 @@ def run(args=None):
         logging.info("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
         makedirs(data_path, exist_ok=True)
 
+    collection_id = pa.get_cmr_collection_id(
+        collection_short_name=args.collection,
+        provider=args.provider,
+        token=token,
+        verbose=args.verbose
+    )
 
     subsettable = False
     if args.subset:
-        #get the collection info
-        params = [
-            ('provider', args.provider),
-            ('ShortName', args.collection)
-        ]
-        if token is not None:
-            params.append(('token', token))
+        subsettable = subsetting.is_subsettable(
+            collection_id=collection_id,
+            token=token,
+        )
 
-        # handle errors here
-        collection_id = pa.get_cmr_collections(params, args.verbose)['items'][0]["meta"]["concept-id"]
-        subsettable = pa.is_collection_harmony_subsettable(collection_id)
-        if not subsettable:
-            logging.info("Collection is not harmony subsettable, proceeding with traditional download")
-            subsettable = False #i'll set it a 3rd time if it makes me comfortable...
-        else:
-            subsettable = True
-
-
-    # Traditional downloader
-    if not subsettable:
-        success_cnt = cmr_downloader(args, token, data_path)
+    if subsettable:
+        success_cnt, _ = subsetting.subset(
+            collection_id=collection_id,
+            start_date_time=args.startDate,
+            end_date_time=args.endDate,
+            bbox=args.bbox,
+            force=args.force,
+            data_path=data_path,
+            args=args,
+            process_cmd=args.process_cmd,
+        )
     else:
-        success_cnt = subset(collection_id, args, token, data_path)
+        success_cnt = cmr_downloader(args, token, data_path)
 
     logging.info("Success Count: " + str(success_cnt))
 
@@ -185,7 +186,7 @@ def cmr_downloader(args, token, data_path):
     short_name = args.collection
     extensions = args.extensions
     process_cmd = args.process_cmd
-    granule=args.granulename
+    granule = args.granulename
 
     download_limit = None
     if args.limit is not None and args.limit > 0:
@@ -194,11 +195,12 @@ def cmr_downloader(args, token, data_path):
 
     # Error catching for output directory specifications
     # Must specify -d output path or one time-based output directory flag
-
     if sum([args.cycle, args.dydoy, args.dymd, args.dy]) > 1:
-        parser.error('Too many output directory flags specified, '
-                     'Please specify exactly one flag '
-                     'from -dc, -dy, -dydoy, or -dymd')
+        raise ValueError(
+            'Too many output directory flags specified, '
+            'Please specify exactly one flag '
+            'from -dc, -dy, -dydoy, or -dymd'
+        )
 
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
@@ -358,30 +360,6 @@ def cmr_downloader(args, token, data_path):
     logging.info("Skipped Files:    " + str(skip_cnt))
     return success_cnt
 
-def subset(collection_id, args, token, data_path):
-    provider = args.provider
-    start_date_time = args.startDate
-    end_date_time = args.endDate
-    search_cycles = args.search_cycles
-    short_name = args.collection
-    extensions = args.extensions
-    process_cmd = args.process_cmd
-    granule=args.granulename
-
-    download_limit = None
-    if args.limit is not None and args.limit > 0:
-        download_limit = args.limit
-    success_cnt = 0
-    job_id = pa.find_harmony_runs(collection_id, args.bbox, start_date_time, end_date_time, data_path, None)
-    if not job_id:
-        job_id = pa.subset(collection_id, args.bbox, start_date_time, end_date_time, data_path)
-        pa.save_harmony_run(collection_id, args.bbox, start_date_time, end_date_time, job_id, data_path, None)
-    else:
-        logging.info("Resuming existing harmony job id...")
-
-    pa.download_subsetted_files(job_id,data_path, args.force)
-    success_cnt = 1
-    return success_cnt
 
 def main():
     log_level = os.environ.get('PODAAC_LOGLEVEL', 'INFO').upper()
