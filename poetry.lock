@@ -239,7 +239,7 @@ files = [
 name = "packaging"
 version = "23.1"
 description = "Core utilities for Python packages"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -543,4 +543,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "408b1292a8478f6220f742eecfaa1a55acc7e7584eaeb60292962af4fef3fa59"
+content-hash = "3e86d63c7fceba752c5a9abd6a6d4e868d7f1875dd37cb45db7c4c7050630298"

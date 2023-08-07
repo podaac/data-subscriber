@@ -35,6 +35,7 @@ $> podaac-data-subscriber -h
 -p PROVIDER, --provider PROVIDER
                       Specify a provider for collection search. Default is POCLOUD.
 --dry-run             Search and identify files to download, but do not actually download them
+--subset              Flag to enable subsetting on the specified collection
 ```
 
 ## Run the Script
@@ -212,6 +213,9 @@ and
 
 Using the `--process` option, you can run a simple command agaisnt the "just" downloaded file. This will take the format of "<command> <path/to/file>". This means you can run a command like `--process gzip` to gzip all downloaded files. We do not support more advanced processes at this time (piping, running a process on a directory, etc).
 
+### Granule subsetting
+
+To enable granule subsetting, include the `--subset` flag in your request. This will invoke the NASA Harmony API to subset the granules in the specified collection. The collection must have subsetting enabled for this feature to function. If it does not, the data will be downloaded normally.
 
 ### In need of Help?
 The PO.DAAC User Services Office is the primary point of contact for answering your questions concerning data and information held by the PO.DAAC. User Services staff members are knowledgeable about both the data ordering system and the data products themselves. We answer questions about data, route requests to other DAACs, and direct questions we cannot answer to the appropriate information source.
