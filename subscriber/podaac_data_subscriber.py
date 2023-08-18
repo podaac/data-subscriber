@@ -284,9 +284,9 @@ def run(args=None):
             process_cmd=process_cmd
         )
 
-    if len(granules) > 0:
+    if len(granules) > 0 and not args.dry_run:
         if not failure_cnt > 0:
-            with open(f'{data_path}/.update__{collection_id}', 'w') as f:
+            with open(f'{data_path}/.update__{args.collection}', 'w') as f:
                 f.write(datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
     if success_cnt > 0:
@@ -346,7 +346,7 @@ def cmr_downloader(granules, extensions, args, data_path, file_start_times, ts_s
         for download in downloads:
             logging.info(download)
         logging.info("Dry-run option specific. Exiting.")
-        return
+        return 0, 0, 0
 
     # NEED TO REFACTOR THIS, A LOT OF STUFF in here
     # Finish by downloading the files to the data directory in a loop.
