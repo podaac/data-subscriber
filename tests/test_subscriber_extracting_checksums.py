@@ -104,7 +104,7 @@ minimal_granule_search_results = """{
 """
 
 def test_extract_checksums():
-  checksums = extract_checksums(json.loads(minimal_granule_search_results))
+  checksums = extract_checksums(json.loads(minimal_granule_search_results)['items'])
   assert checksums["20211231000000-REMSS-L3U_GHRSST-SSTsubskin-AMSR2-f34_20211231v8-v02.0-fv01.0.nc"] == {
                 "Value": "d96387295ea979fb8f7b9aa5f231c4ab",
                 "Algorithm": "MD5"

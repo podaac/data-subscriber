@@ -284,7 +284,7 @@ def cmr_downloader(args, token, data_path):
                       results['items']]
     downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in
                           results['items']]
-    checksums = pa.extract_checksums(results)
+    checksums = pa.extract_checksums(results['items'])
 
     for f in downloads_data:
         downloads_all.append(f)
