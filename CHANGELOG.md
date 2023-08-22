@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [Unreleased]
+### Added
+- Added support for Harmony subsetting
+
 ## [1.14.0]
 ### Added
 - Added support for wildcard search patterns in podaac-data-downloader when executed with the -gr option (i.e. search/download by CMR Granule Ur/Id). Also, added usage details to Downloader.md to describe this new feature [138](https://github.com/podaac/data-subscriber/pull/138).
