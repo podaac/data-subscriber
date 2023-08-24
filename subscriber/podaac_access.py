@@ -188,10 +188,7 @@ def validate(args):
             raise ValueError(
                 "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
 
-        if num_bounds[0] > num_bounds[2]:
-            raise ValueError('Error parsing "--bounds": W Longitude must be <= E Longitude')
-
-        if num_bounds[1] > num_bounds[2]:
+        if num_bounds[1] > num_bounds[3]:
             raise ValueError('Error parsing "--bounds": S Latitude must be <= N Latitude')
 
 
