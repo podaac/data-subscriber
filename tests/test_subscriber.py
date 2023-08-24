@@ -164,6 +164,17 @@ def test_validate():
     with pytest.raises(ValueError):
         a = validate(["-c", "viirs", "-d", "/data", "-b=-180,-90,180", "-m", "100"])
 
+    # bbox crossing the IDL should not raise exception
+    validate(["-c", "viirs", "-d", "/data", "-dy", "-e", ".nc", "-m", "60", "-b=120,-60,-120,60"])
+    # valid bbox values should not raise exception
+    validate(["-c", "viirs", "-d", "/data", "-dy", "-e", ".nc", "-m", "60", "-b=-180,-60,-120,60"])
+    validate(["-c", "viirs", "-d", "/data", "-dy", "-e", ".nc", "-m", "60", "-b=-170,-20,-30,20"])
+
+    # bbox with invalid latitude values should raise an exception
+    with pytest.raises(ValueError):
+        validate(["-c", "viirs", "-d", "/data", "-b=-180,90,180,-90", "-m", "100"])
+
+
     # #don't work
     # with pytest.raises(SystemExit):
     #     a = validate([])
