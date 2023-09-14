@@ -89,5 +89,6 @@ def subset(collection_id, start_date_time, end_date_time, bbox, force, data_path
     else:
         logging.info('Resuming existing harmony job id...')
 
+    logging.info('Waiting for Harmony subsetting job to complete...')
     job_status = pa.download_subsetted_files(job_id, data_path, args, force, process_cmd)
     return 1, 1 if job_status in ('complete_with_errors', 'failed') else 0
