@@ -221,12 +221,12 @@ def validate(args):
                          'Please specify exactly one flag '
                          'from -dc, -dy, -dydoy, or -dymd')
 
-    if args.subset and args.cycle:
+    if args.subset and args.search_cycles:
         # Cycle+Subset are not supported, because Harmony does not
         # currently accept Cycle.
         raise ValueError(
-            'Error: Incompatible Parameters. You\'ve provided both cycle and subset, which is '
-            'not allowed. Please provide either cycle or subset separately, but not both.')
+            'Error: Incompatible Parameters. You\'ve provided both cycles and subset, which is '
+            'not allowed. Please provide either cycles or subset separately, but not both.')
 
 
 def check_dir(path):
