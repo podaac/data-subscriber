@@ -61,6 +61,15 @@ def subset(collection_id, start_date_time, end_date_time, bbox, force, data_path
     tuple
         (files downloaded successfully, files failed)
     """
+    if args.dry_run:
+        logging.info('Dry-run option specified. Listing Harmony subsetting parameters.')
+        logging.info(f'\tCollection ID: {collection_id}')
+        logging.info(f'\tStart Time:    {start_date_time}')
+        logging.info(f'\tEnd Time:      {end_date_time}')
+        logging.info(f'\tBBox:          {bbox}')
+        logging.info(f'\tGranules:      {granules}')
+        return 0, 0
+
     job_id = pa.find_harmony_runs(
         collection=collection_id,
         bbox=bbox,
@@ -75,7 +84,8 @@ def subset(collection_id, start_date_time, end_date_time, bbox, force, data_path
             bbox=bbox,
             start_time=start_date_time,
             stop_time=end_date_time,
-            granules=granules
+            granules=granules,
+            verbose=args.verbose
         )
         pa.save_harmony_run(
             collection=collection_id,
