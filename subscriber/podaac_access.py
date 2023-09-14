@@ -812,7 +812,7 @@ def save_harmony_run(collection, bbox, starttime, endtime, job_id, output_dir, g
 
 
 # Function to utilize Harmony for subsetting a collection
-def subset(concept_id, bbox, start_time, stop_time, granules=None):
+def subset(concept_id, bbox, start_time, stop_time, granules=None, verbose=False):
     """
     Submit Harmony subset request
 
@@ -830,6 +830,8 @@ def subset(concept_id, bbox, start_time, stop_time, granules=None):
         Optional. List of granules to explicitly provide to Harmony.
         If no list is provided, spatiotemporal bounds will be used to
         find valid granules in collection.
+    verbose: boolean
+        Optional. Default False. If True, log Harmony job details.
 
     Returns
     -------
@@ -838,19 +840,28 @@ def subset(concept_id, bbox, start_time, stop_time, granules=None):
 
     """
     harmony_client = harmony.Client()
-    bbox_ary = [float(x) for x in bbox.split(',')]
     collection = harmony.Collection(id=concept_id)
-    harmony_request = harmony.Request(
+    harmony_args = dict(
         collection=collection,
-        spatial=harmony.BBox(bbox_ary[0], bbox_ary[1], bbox_ary[2], bbox_ary[3]),
-        temporal={
-            'start': isoparse(start_time),
-            'stop': isoparse(stop_time)
-        },
         skip_preview=True,
         granule_id=granules,
-        ignore_errors=True
+        ignore_errors=True,
+        temporal={}
     )
+
+    if bbox:
+        bbox_list = [float(bound) for bound in bbox.split(',')]
+        harmony_args['spatial'] = harmony.BBox(
+            bbox_list[0], bbox_list[1], bbox_list[2], bbox_list[3]
+        )
+    if start_time:
+        harmony_args['temporal']['start'] = isoparse(start_time)
+    if stop_time:
+        harmony_args['temporal']['start'] = isoparse(stop_time)
+    if verbose:
+        logging.info(f'Submitting Harmony subsetting job with parameters {harmony_args}')
+
+    harmony_request = harmony.Request(**harmony_args)
     harmony_request.is_valid()
     job_id = harmony_client.submit(harmony_request)
     return job_id
