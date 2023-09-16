@@ -228,6 +228,14 @@ def validate(args):
             'Error: Incompatible Parameters. You\'ve provided both cycles and subset, which is '
             'not allowed. Please provide either cycles or subset separately, but not both.')
 
+    if args.subset and args.bbox:
+        bounds = list(map(float, args.bbox.split(',')))
+        if bounds[0] > bounds[2]:
+            raise ValueError(
+                'Subsetting over the international dateline is not currently supported. '
+                'Please provide a valid bbox and try again.'
+            )
+
 
 def check_dir(path):
     if not isdir(path):
@@ -857,7 +865,7 @@ def subset(concept_id, bbox, start_time, stop_time, granules=None, verbose=False
     if start_time:
         harmony_args['temporal']['start'] = isoparse(start_time)
     if stop_time:
-        harmony_args['temporal']['start'] = isoparse(stop_time)
+        harmony_args['temporal']['stop'] = isoparse(stop_time)
     if verbose:
         logging.info(f'Submitting Harmony subsetting job with parameters {harmony_args}')
 
