@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import os, re
+import os
 import sys
 from datetime import datetime, timedelta
 from os import makedirs
 from os.path import isdir, basename, join, exists
 from urllib.error import HTTPError
-from urllib.request import urlretrieve
 
 from subscriber import podaac_access as pa
+from subscriber import subsetting
 from subscriber import token_formatter
 
 __version__ = pa.__version__
@@ -108,8 +108,8 @@ def create_parser():
 
     parser.add_argument("--limit", dest="limit", default=None, type=int,
                         help="Integer limit for number of granules to download. Useful in testing. Defaults to no limit.")  # noqa E501
-    parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Search and identify files to download, but do not actually download them")  # noqa E501
-
+    parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Search and identify files to download, but do not actually download them.")  # noqa E501
+    parser.add_argument("--subset", dest="subset", action="store_true", help="Subset the data via Harmony calls.")  # noqa E501
 
     return parser
 
@@ -121,7 +121,6 @@ def run(args=None):
 
     try:
         pa.validate(args)
-
         # download specific validations
         # cannot specify all thre options (start, end, cycle)
         # must specify start/end togeher
@@ -135,6 +134,52 @@ def run(args=None):
     pa.setup_earthdata_login_auth(edl)
     token = pa.get_token(token_url)
 
+    data_path = args.outputDirectory
+    if not isdir(data_path):
+        logging.info("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
+        makedirs(data_path, exist_ok=True)
+
+    collection_id = pa.get_cmr_collection_id(
+        collection_short_name=args.collection,
+        provider=args.provider,
+        token=token,
+        verbose=args.verbose
+    )
+
+    subsettable = False
+    if args.subset:
+        subsettable = subsetting.is_subsettable(
+            collection_id=collection_id,
+            token=token,
+        )
+
+    if subsettable:
+        success_cnt, _ = subsetting.subset(
+            collection_id=collection_id,
+            start_date_time=args.startDate,
+            end_date_time=args.endDate,
+            bbox=args.bbox,
+            force=args.force,
+            data_path=data_path,
+            args=args,
+            process_cmd=args.process_cmd,
+        )
+    else:
+        success_cnt = cmr_downloader(args, token, data_path)
+
+    logging.info("Success Count: " + str(success_cnt))
+
+    # create citation file if success > 0
+    if success_cnt > 0:
+        try:
+            logging.debug("Creating citation file.")
+            pa.create_citation_file(args.collection, args.provider, data_path, token, args.verbose)
+        except:
+            logging.debug("Error generating citation",exc_info=True)
+    logging.info("END\n\n")
+
+
+def cmr_downloader(args, token, data_path):
     provider = args.provider
     start_date_time = args.startDate
     end_date_time = args.endDate
@@ -142,29 +187,24 @@ def run(args=None):
     short_name = args.collection
     extensions = args.extensions
     process_cmd = args.process_cmd
-    granule=args.granulename
-    data_path = args.outputDirectory
+    granule = args.granulename
 
     download_limit = None
     if args.limit is not None and args.limit > 0:
         download_limit = args.limit
 
-    if args.offset:
-        ts_shift = timedelta(hours=int(args.offset))
 
     # Error catching for output directory specifications
     # Must specify -d output path or one time-based output directory flag
-
     if sum([args.cycle, args.dydoy, args.dymd, args.dy]) > 1:
-        parser.error('Too many output directory flags specified, '
-                     'Please specify exactly one flag '
-                     'from -dc, -dy, -dydoy, or -dymd')
+        raise ValueError(
+            'Too many output directory flags specified, '
+            'Please specify exactly one flag '
+            'from -dc, -dy, -dydoy, or -dymd'
+        )
 
-    # This cell will replace the timestamp above with the one read from the `.update` file in the data directory, if it exists.
-
-    if not isdir(data_path):
-        logging.info("NOTE: Making new data directory at " + data_path + "(This is the first run.)")
-        makedirs(data_path, exist_ok=True)
+    if args.offset:
+        ts_shift = timedelta(hours=int(args.offset))
 
     if search_cycles is not None:
         cmr_cycles = search_cycles
@@ -244,7 +284,7 @@ def run(args=None):
                       results['items']]
     downloads_metadata = [[u['URL'] for u in r['umm']['RelatedUrls'] if u['Type'] == "EXTENDED METADATA"] for r in
                           results['items']]
-    checksums = pa.extract_checksums(results)
+    checksums = pa.extract_checksums(results['items'])
 
     for f in downloads_data:
         downloads_all.append(f)
@@ -279,9 +319,7 @@ def run(args=None):
         for download in downloads[:download_limit]:
             logging.info(download)
         logging.info("Dry-run option specific. Exiting.")
-        return
-
-
+        return 0
 
     # NEED TO REFACTOR THIS, A LOT OF STUFF in here
     # Finish by downloading the files to the data directory in a loop.
@@ -324,16 +362,7 @@ def run(args=None):
     logging.info("Downloaded Files: " + str(success_cnt))
     logging.info("Failed Files:     " + str(failure_cnt))
     logging.info("Skipped Files:    " + str(skip_cnt))
-
-    #create citation file if success > 0
-    if success_cnt > 0:
-        try:
-            pa.create_citation_file(short_name, provider, data_path, token, args.verbose)
-        except:
-            logging.debug("Error generating citation",exc_info=True)
-    logging.info("END\n\n")
-
-
+    return success_cnt
 
 
 def main():

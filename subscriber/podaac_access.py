@@ -1,14 +1,11 @@
 import json
 import logging
 import netrc
-import subprocess
 import re
-from datetime import datetime
 from http.cookiejar import CookieJar
 import os
 from os import makedirs
-from os.path import isdir, basename, join, splitext
-from urllib import request
+from os.path import isdir, basename, join, splitext, isfile
 from typing import Dict
 from urllib import request
 from urllib.error import HTTPError
@@ -17,23 +14,24 @@ import subprocess
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import hashlib
-from datetime import datetime
 import time
 from requests.auth import HTTPBasicAuth
+import harmony
+import concurrent.futures
+from dateutil.parser import *
+import functools
 from packaging import version
-
-
-
-import requests
 
 import requests
 import tenacity
 from datetime import datetime
 
-__version__ = "1.14.0"
+__version__ = "1.15.0"
 extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
+graph = "graphql.earthdata.nasa.gov"
+graph_url = "https://"+graph+"/api"
 token_url = "https://" + edl + "/api/users"
 
 
@@ -184,12 +182,15 @@ def validate(args):
         if len(bounds) != 4:
             raise ValueError(
                 "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
-        for b in bounds:
-            try:
-                float(b)
-            except ValueError:
-                raise ValueError(
-                    "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
+        try:
+            num_bounds = [float(b) for b in bounds]
+        except ValueError:
+            raise ValueError(
+                "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
+
+        if num_bounds[1] > num_bounds[3]:
+            raise ValueError('Error parsing "--bounds": S Latitude must be <= N Latitude')
+
 
     if args.startDate:
         try:
@@ -219,6 +220,21 @@ def validate(args):
         raise ValueError('Too many output directory flags specified, '
                          'Please specify exactly one flag '
                          'from -dc, -dy, -dydoy, or -dymd')
+
+    if args.subset and args.search_cycles:
+        # Cycle+Subset are not supported, because Harmony does not
+        # currently accept Cycle.
+        raise ValueError(
+            'Error: Incompatible Parameters. You\'ve provided both cycles and subset, which is '
+            'not allowed. Please provide either cycles or subset separately, but not both.')
+
+    if args.subset and args.bbox:
+        bounds = list(map(float, args.bbox.split(',')))
+        if bounds[0] > bounds[2]:
+            raise ValueError(
+                'Subsetting over the international dateline is not currently supported. '
+                'Please provide a valid bbox and try again.'
+            )
 
 
 def check_dir(path):
@@ -424,7 +440,7 @@ def parse_cycles(results):
     return cycles
 
 
-def extract_checksums(granule_results):
+def extract_checksums(granules):
     """
     Create a dictionary containing checksum information from files.
 
@@ -452,7 +468,7 @@ def extract_checksums(granule_results):
     }
     """
     checksums = {}
-    for granule in granule_results["items"]:
+    for granule in granules:
         try:
             items = granule["umm"]["DataGranule"]["ArchiveAndDistributionInformation"]
             for item in items:
@@ -522,6 +538,43 @@ def get_cmr_collections(params, verbose=False):
     return result
 
 
+def get_cmr_collection_id(collection_short_name, provider, token, verbose):
+    """
+    Retrieve collection ID from CMR given the collection short name and provider
+
+    Parameters
+    ----------
+    collection_short_name: str
+        The name of the collection
+    provider: str
+        The collection provider
+    token: str
+        The EDL token used to query CMR
+    verbose: bool
+        If true, print extra messages to stdout
+
+    Returns
+    -------
+    str
+        CMR collection concept ID
+
+    Raises
+    ------
+    ValueError
+        If no collection in CMR match the given short name and provider
+    """
+    params = {
+        'provider': provider,
+        'ShortName': collection_short_name,
+        'token': token
+    }
+    collections = get_cmr_collections(params, verbose)['items']
+
+    if not collections:
+        raise ValueError(f'No collections found in CMR for {collection_short_name}/{provider}')
+    return collections[0]['meta']['concept-id']
+
+
 def create_citation(collection_json, access_date):
     citation_template = "{creator}. {year}. {title}. Ver. {version}. PO.DAAC, CA, USA. Dataset accessed {access_date} at {doi_authority}/{doi}"
 
@@ -561,6 +614,7 @@ def create_citation_file(short_name, provider, data_path, token=None, verbose=Fa
     with open(data_path + "/" + short_name + ".citation.txt", "w") as text_file:
         text_file.write(citation)
 
+
 def get_latest_release():
     github_url = "https://api.github.com/repos/podaac/data-subscriber/releases"
     headers = {}
@@ -590,3 +644,289 @@ def check_for_latest():
             print(f'You are currently using version {__version__} of the PO.DAAC Data Subscriber/Downloader. Please run:\n\n pip install podaac-data-subscriber --upgrade \n\n to upgrade to the latest version.')
     except:
         print("Error checking for new version of the po.daac data subscriber. Continuing")
+
+
+def is_collection_harmony_subsettable(concept_id, token=None):
+    """
+    Function to determine if a collection has an applicable harmony
+    subsetter. This is accomplished by querying the CMR GraphQL API and
+    looking for the expected UMM-S association.
+
+    Parameters
+    ----------
+    concept_id: str
+        The CMR collection concept ID to search for
+    token: str
+        EDL token used to query CMR
+
+    Returns
+    -------
+    bool
+        True if the collection is Harmony subsettable
+    """
+    graph_query_template = '''
+    query Collection {
+      collection(conceptId: "$TEMPLATE_CONCEPT_ID") {
+        services{
+          items {
+            name
+            serviceKeywords
+            type
+          }
+        }
+      }
+    }
+    '''
+    query = graph_query_template.replace('$TEMPLATE_CONCEPT_ID', concept_id)
+    headers = {}
+    if token:
+        headers = {'Authorization': 'Bearer ' + token}
+    r = requests.post(graph_url, json={'query': query}, headers=headers, timeout=(10, 60))
+    collection_services = r.json()['data']['collection']['services']['items']
+    harmony_subsetter = False
+    if collection_services is None:
+        return False
+    for svc in collection_services:
+        if svc['type'] == 'Harmony':
+            for kw in svc['serviceKeywords']:
+                if kw['serviceTerm'] == 'SUBSETTING/SUPERSETTING':
+                    harmony_subsetter = True
+
+    return harmony_subsetter
+
+
+def get_harmony_file(data_dir):
+    """
+    Get Harmony statefile absolute path
+
+    Parameters
+    ----------
+    data_dir: str
+        Path to data download location
+    Returns
+    -------
+    str or None
+        If there is a Harmony statefile in the provided location,
+        return the path to the file. Otherwise, return None.
+    """
+    if isfile(data_dir + '/.harmony'):
+        return data_dir + '/.harmony'
+    return None
+
+
+def find_harmony_runs(collection, bbox, starttime, endtime, output_dir, granules=None):
+    """
+    Look for run in Harmony statefile
+
+    Parameters
+    ----------
+    collection: str
+        CMR collection ID
+    bbox: str
+        bbox string
+    starttime: str
+        Harmony request start time
+    endtime: str
+        Harmony request end time
+    output_dir: str
+        Where to download files
+    granules: list
+        Optional. List of granules provided in Harmony request
+
+    Returns
+    --------
+    str or None
+        If an existing job is found, the job ID will be returned.
+        Otherwise, return None.
+    """
+    harmony_file = get_harmony_file(output_dir)
+    if harmony_file is None:
+        return None
+    try:
+        with open(harmony_file, 'r') as f:
+            harmony_json = json.load(f)
+            for x in harmony_json:
+                if x['collection_id'] == collection and x['starttime'] == starttime and x[
+                     'endtime'] == endtime and x['bbox'] == bbox and x['granules'] == granules:
+                    return x['jobid']
+    except FileNotFoundError:
+        logging.warning('No .harmony file in the data directory. (Is this the first run?)')
+    return None
+
+
+def remove_harmony_run(job_id, output_dir):
+    """
+    In the event we need to delete a Harmony run from the save file,
+    this method can do that using a jobID. This might be used in the
+    case of Harmony failures.
+
+    Parameters
+    ----------
+    job_id: str
+        Harmony job ID
+    output_dir: str
+        Location of downloaded Harmony statefile
+    """
+    harmony_file = get_harmony_file(output_dir)
+    harmony_json = []
+    if harmony_file:
+        with open(harmony_file, 'r') as f:
+            harmony_json = json.load(f)
+    harmony_json = [x for x in harmony_json if x['jobid'] != job_id]
+
+    with open(output_dir + '/.harmony', 'w') as outfile:
+        json.dump(harmony_json, outfile)
+
+
+def save_harmony_run(collection, bbox, starttime, endtime, job_id, output_dir, granule_ids=None):
+    """
+    Save Harmony run to Harmony statefile
+
+    Parameters
+    ----------
+    collection: str
+        CMR collection ID
+    bbox: str
+        Harmony request bbox
+    starttime: str
+        Harmony request start time
+    endtime: str
+        Harmony request end time
+    job_id: str
+        Harmony job ID
+    output_dir: str
+        Harmony statefile location
+    granule_ids: list or None
+        None or list of granule IDs used in Harmony request
+    """
+    harmony_file = get_harmony_file(output_dir)
+    harmony_json = []
+    if harmony_file:
+        f = open(harmony_file, 'r')
+        harmony_json = json.load(f)
+        f.close()
+    harmony_run = {
+        'collection_id': collection,
+        'starttime': starttime,
+        'endtime': endtime,
+        'bbox': bbox,
+        'jobid': job_id,
+        'granules': granule_ids
+    }
+    harmony_json.append(harmony_run)
+
+    with open(output_dir + '/.harmony', 'w') as outfile:
+        json.dump(harmony_json, outfile)
+
+
+# Function to utilize Harmony for subsetting a collection
+def subset(concept_id, bbox, start_time, stop_time, granules=None, verbose=False):
+    """
+    Submit Harmony subset request
+
+    Parameters
+    ----------
+    concept_id: str
+        CMR collection concept ID
+    bbox: str
+        Spatial bounds to use in Harmony subset request
+    start_time: str
+        Lower temporal bound to use in Harmony subset request
+    stop_time: str
+        Upper temporal bound to use in Harmony subset request
+    granules: list or None
+        Optional. List of granules to explicitly provide to Harmony.
+        If no list is provided, spatiotemporal bounds will be used to
+        find valid granules in collection.
+    verbose: boolean
+        Optional. Default False. If True, log Harmony job details.
+
+    Returns
+    -------
+    str
+        Harmony job ID (uuid)
+
+    """
+    harmony_client = harmony.Client()
+    collection = harmony.Collection(id=concept_id)
+    harmony_args = dict(
+        collection=collection,
+        skip_preview=True,
+        granule_id=granules,
+        ignore_errors=True,
+        temporal={}
+    )
+
+    if bbox:
+        bbox_list = [float(bound) for bound in bbox.split(',')]
+        harmony_args['spatial'] = harmony.BBox(
+            bbox_list[0], bbox_list[1], bbox_list[2], bbox_list[3]
+        )
+    if start_time:
+        harmony_args['temporal']['start'] = isoparse(start_time)
+    if stop_time:
+        harmony_args['temporal']['stop'] = isoparse(stop_time)
+    if verbose:
+        logging.info(f'Submitting Harmony subsetting job with parameters {harmony_args}')
+
+    harmony_request = harmony.Request(**harmony_args)
+    harmony_request.is_valid()
+    job_id = harmony_client.submit(harmony_request)
+    return job_id
+
+
+def download_callback(process_cmd, args, future):
+    """
+    Callback which is called upon each granule after successfully
+    downloaded
+
+    Parameters
+    ----------
+    process_cmd: str
+        Command to run on each granule after successful download
+    args: argparse.Namespace
+        Script args
+    future: asyncio.Future
+        Future to extract result (download location) from when complete
+    """
+    process_file(process_cmd, future.result(), args)
+
+
+def download_subsetted_files(job_id, output_dir, args, force_download=False, process_cmd=None):
+    """
+    Download Harmony results locally
+
+    Parameters
+    ----------
+    job_id: str
+    output_dir: str
+    args: argparse.Namespace
+    force_download: bool
+    process_cmd: str
+
+    Returns
+    -------
+    str
+        Harmony job status. Will be one of:
+        - failed
+        - canceled
+        - paused
+        - complete_with_errors
+        - successful
+        - running_with_errors
+    """
+    harmony_client = harmony.Client()
+    try:
+        harmony_iterator = harmony_client.iterator(job_id, output_dir, force_download)
+        futures = list(map(lambda x: x['path'], harmony_iterator))
+        for future in futures:
+            future.add_done_callback(
+                functools.partial(download_callback, process_cmd, args)
+            )
+        (done_futures, _) = concurrent.futures.wait(futures)
+    except Exception as e:
+        logging.error(f'Error processing harmony subsetting request: {e}')
+        logging.error(f'Removing job id [{job_id}] from harmony statefile {output_dir}/.harmony')
+        remove_harmony_run(job_id, output_dir)
+    return harmony_client.status(job_id)
+    # If an error occurs, should we "retry" it? Should we remove this from the .harmony file?
