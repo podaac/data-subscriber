@@ -188,10 +188,7 @@ def validate(args):
             raise ValueError(
                 "Error parsing '--bounds': " + args.bbox + ". Format is W Longitude,S Latitude,E Longitude,N Latitude without spaces ")  # noqa E501
 
-        if num_bounds[0] > num_bounds[2]:
-            raise ValueError('Error parsing "--bounds": W Longitude must be <= E Longitude')
-
-        if num_bounds[1] > num_bounds[2]:
+        if num_bounds[1] > num_bounds[3]:
             raise ValueError('Error parsing "--bounds": S Latitude must be <= N Latitude')
 
 
@@ -223,6 +220,21 @@ def validate(args):
         raise ValueError('Too many output directory flags specified, '
                          'Please specify exactly one flag '
                          'from -dc, -dy, -dydoy, or -dymd')
+
+    if args.subset and args.search_cycles:
+        # Cycle+Subset are not supported, because Harmony does not
+        # currently accept Cycle.
+        raise ValueError(
+            'Error: Incompatible Parameters. You\'ve provided both cycles and subset, which is '
+            'not allowed. Please provide either cycles or subset separately, but not both.')
+
+    if args.subset and args.bbox:
+        bounds = list(map(float, args.bbox.split(',')))
+        if bounds[0] > bounds[2]:
+            raise ValueError(
+                'Subsetting over the international dateline is not currently supported. '
+                'Please provide a valid bbox and try again.'
+            )
 
 
 def check_dir(path):
@@ -808,7 +820,7 @@ def save_harmony_run(collection, bbox, starttime, endtime, job_id, output_dir, g
 
 
 # Function to utilize Harmony for subsetting a collection
-def subset(concept_id, bbox, start_time, stop_time, granules=None):
+def subset(concept_id, bbox, start_time, stop_time, granules=None, verbose=False):
     """
     Submit Harmony subset request
 
@@ -826,6 +838,8 @@ def subset(concept_id, bbox, start_time, stop_time, granules=None):
         Optional. List of granules to explicitly provide to Harmony.
         If no list is provided, spatiotemporal bounds will be used to
         find valid granules in collection.
+    verbose: boolean
+        Optional. Default False. If True, log Harmony job details.
 
     Returns
     -------
@@ -834,19 +848,28 @@ def subset(concept_id, bbox, start_time, stop_time, granules=None):
 
     """
     harmony_client = harmony.Client()
-    bbox_ary = [float(x) for x in bbox.split(',')]
     collection = harmony.Collection(id=concept_id)
-    harmony_request = harmony.Request(
+    harmony_args = dict(
         collection=collection,
-        spatial=harmony.BBox(bbox_ary[0], bbox_ary[1], bbox_ary[2], bbox_ary[3]),
-        temporal={
-            'start': isoparse(start_time),
-            'stop': isoparse(stop_time)
-        },
         skip_preview=True,
         granule_id=granules,
-        ignore_errors=True
+        ignore_errors=True,
+        temporal={}
     )
+
+    if bbox:
+        bbox_list = [float(bound) for bound in bbox.split(',')]
+        harmony_args['spatial'] = harmony.BBox(
+            bbox_list[0], bbox_list[1], bbox_list[2], bbox_list[3]
+        )
+    if start_time:
+        harmony_args['temporal']['start'] = isoparse(start_time)
+    if stop_time:
+        harmony_args['temporal']['stop'] = isoparse(stop_time)
+    if verbose:
+        logging.info(f'Submitting Harmony subsetting job with parameters {harmony_args}')
+
+    harmony_request = harmony.Request(**harmony_args)
     harmony_request.is_valid()
     job_id = harmony_client.submit(harmony_request)
     return job_id
