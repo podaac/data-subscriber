@@ -221,13 +221,6 @@ def validate(args):
                          'Please specify exactly one flag '
                          'from -dc, -dy, -dydoy, or -dymd')
 
-    if args.subset and args.search_cycles:
-        # Cycle+Subset are not supported, because Harmony does not
-        # currently accept Cycle.
-        raise ValueError(
-            'Error: Incompatible Parameters. You\'ve provided both cycles and subset, which is '
-            'not allowed. Please provide either cycles or subset separately, but not both.')
-
     if args.subset and args.bbox:
         bounds = list(map(float, args.bbox.split(',')))
         if bounds[0] > bounds[2]:

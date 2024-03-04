@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 ### Fixed
+- Fixed bug where --subset in combination with the subscriber caused errors
 ### Added
 
 ## [1.15.0]
