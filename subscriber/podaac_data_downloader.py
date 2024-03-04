@@ -44,6 +44,13 @@ def validate(args):
     if None in [args.endDate, args.startDate] and args.search_cycles is None and args.granulename is None:
         raise ValueError(
             "Error parsing command line arguments: Both --start-date and --end-date must be specified")  # noqa E50
+    if args.subset and args.search_cycles:
+        # Cycle+Subset are not supported, because Harmony does not
+        # currently accept Cycle.
+        raise ValueError(
+            'Error: Incompatible Parameters. You\'ve provided both cycles and subset, which is '
+            'not allowed. Please provide either cycles or subset separately, but not both.'
+        )
 
 
 def create_parser():
@@ -201,14 +208,6 @@ def cmr_downloader(args, token, data_path):
             'Too many output directory flags specified, '
             'Please specify exactly one flag '
             'from -dc, -dy, -dydoy, or -dymd'
-        )
-
-    if args.subset and args.search_cycles:
-        # Cycle+Subset are not supported, because Harmony does not
-        # currently accept Cycle.
-        raise ValueError(
-            'Error: Incompatible Parameters. You\'ve provided both cycles and subset, which is '
-            'not allowed. Please provide either cycles or subset separately, but not both.'
         )
 
     if args.offset:
