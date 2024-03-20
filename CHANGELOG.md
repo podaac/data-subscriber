@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.15.1]
+### Fixed
+- Fixed bug where --subset in combination with the subscriber caused errors
+### Added
+
 ## [1.15.0]
 ### Added
 - Added support for Harmony subsetting

@@ -152,25 +152,25 @@ pyflakes = ">=2.4.0,<2.5.0"
 
 [[package]]
 name = "harmony-py"
-version = "0.4.9"
+version = "0.4.12"
 description = "The NASA Harmony Python library"
 optional = false
 python-versions = ">=3.6, <4"
 files = [
-    {file = "harmony-py-0.4.9.tar.gz", hash = "sha256:9e72d80029e2e1708ecd40c30a2498bbdcbf406d659da8073da29c5c64fd34cd"},
-    {file = "harmony_py-0.4.9-py3-none-any.whl", hash = "sha256:a37d2226732c937c5599d5ba7e669aebc024a824bccef0cf8625346c340716b1"},
+    {file = "harmony-py-0.4.12.tar.gz", hash = "sha256:735b1410306110e6a0e76c305db98730d0060389fdc9e8403d2e4b0049143355"},
+    {file = "harmony_py-0.4.12-py3-none-any.whl", hash = "sha256:526405f0cec67a5545609e7ded56fc279b036ebd2cf08606b8e05fc5fc7f61ec"},
 ]
 
 [package.dependencies]
 curlify = ">=2.2.1,<2.3.0"
-progressbar2 = ">=3.55.0,<3.56.0"
+progressbar2 = ">=4.2.0,<4.3.0"
 python-dateutil = ">=2.8.2,<2.9.0"
 python-dotenv = ">=0.20.0,<0.21.0"
 requests = ">=2.28,<3.0"
 sphinxcontrib-napoleon = ">=0.7,<1.0"
 
 [package.extras]
-dev = ["PyYAML (>=5.4,<6.0)", "autopep8 (>=1.4,<2.0)", "camel-case-switcher (>=2.0,<3.0)", "coverage (>=5.4,<6.0)", "flake8 (>=3.8,<4.0)", "hypothesis (>=6.2,<7.0)", "importlib-metadata (<5.0)", "mypy (>=0.812,<1.0)", "nose (>=1.3,<2.0)", "pytest (>=6.2,<7.0)", "pytest-cov (>=2.11,<3.0)", "pytest-mock (>=3.5,<4.0)", "pytest-watch (>=4.2,<5.0)", "responses (>=0.12,<1.0)", "setuptools (>=54.2)", "sphinx (>=5.3.0,<5.4.0)", "wheel (>=0.36)"]
+dev = ["PyYAML (>=6.0.1,<6.1.0)", "autopep8 (>=1.4,<2.0)", "camel-case-switcher (>=2.0,<3.0)", "coverage (>=5.4,<6.0)", "flake8 (>=3.8,<4.0)", "hypothesis (>=6.2,<7.0)", "importlib-metadata (<5.0)", "mypy (>=0.812,<1.0)", "nose (>=1.3,<2.0)", "pytest (>=6.2,<7.0)", "pytest-cov (>=2.11,<3.0)", "pytest-mock (>=3.5,<4.0)", "pytest-watch (>=4.2,<5.0)", "responses (>=0.12,<1.0)", "setuptools (>=54.2)", "sphinx (>=7.1.2,<7.2.0)", "wheel (>=0.36)"]
 
 [[package]]
 name = "idna"
@@ -269,22 +269,21 @@ six = ">=1.5.2"
 
 [[package]]
 name = "progressbar2"
-version = "3.55.0"
+version = "4.2.0"
 description = "A Python Progressbar library to provide visual (yet text based) progress to long running operations."
 optional = false
-python-versions = "*"
+python-versions = ">=3.7.0"
 files = [
-    {file = "progressbar2-3.55.0-py2.py3-none-any.whl", hash = "sha256:e98fee031da31ab9138fd8dd838ac80eafba82764eb75a43d25e3ca622f47d14"},
-    {file = "progressbar2-3.55.0.tar.gz", hash = "sha256:86835d1f1a9317ab41aeb1da5e4184975e2306586839d66daf63067c102f8f04"},
+    {file = "progressbar2-4.2.0-py2.py3-none-any.whl", hash = "sha256:1a8e201211f99a85df55f720b3b6da7fb5c8cdef56792c4547205be2de5ea606"},
+    {file = "progressbar2-4.2.0.tar.gz", hash = "sha256:1393922fcb64598944ad457569fbeb4b3ac189ef50b5adb9cef3284e87e394ce"},
 ]
 
 [package.dependencies]
-python-utils = ">=2.3.0"
-six = "*"
+python-utils = ">=3.0.0"
 
 [package.extras]
-docs = ["sphinx (>=1.7.4)"]
-tests = ["flake8 (>=3.7.7)", "freezegun (>=0.3.11)", "pytest (>=4.6.9)", "pytest-cov (>=2.6.1)", "sphinx (>=1.8.5)"]
+docs = ["sphinx (>=1.8.5)"]
+tests = ["flake8 (>=3.7.7)", "freezegun (>=0.3.11)", "pytest (>=4.6.9)", "pytest-cov (>=2.6.1)", "pytest-mypy", "sphinx (>=1.8.5)"]
 
 [[package]]
 name = "pycodestyle"
@@ -513,4 +512,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "3e86d63c7fceba752c5a9abd6a6d4e868d7f1875dd37cb45db7c4c7050630298"
+content-hash = "134b9ae9f97c067afc9c98706b622285801c0690ea00ec371712797b756e5c24"

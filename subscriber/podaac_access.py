@@ -26,7 +26,7 @@ import requests
 import tenacity
 from datetime import datetime
 
-__version__ = "1.15.0"
+__version__ = "1.15.1"
 extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
@@ -220,13 +220,6 @@ def validate(args):
         raise ValueError('Too many output directory flags specified, '
                          'Please specify exactly one flag '
                          'from -dc, -dy, -dydoy, or -dymd')
-
-    if args.subset and args.search_cycles:
-        # Cycle+Subset are not supported, because Harmony does not
-        # currently accept Cycle.
-        raise ValueError(
-            'Error: Incompatible Parameters. You\'ve provided both cycles and subset, which is '
-            'not allowed. Please provide either cycles or subset separately, but not both.')
 
     if args.subset and args.bbox:
         bounds = list(map(float, args.bbox.split(',')))
