@@ -107,12 +107,15 @@ def create_parser():
                         help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.",
                         action='append')
 
+    parser.add_argument("-progress", dest="show_progress", action="store_true",
+                        help="Flag to show progress bar when downloading.")
+    
     parser.add_argument("--version", action="version", version='%(prog)s ' + __version__,
                         help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true", help="Verbose mode.")  # noqa E501
     parser.add_argument("-p", "--provider", dest="provider", default='POCLOUD',
                         help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
-
+    
     parser.add_argument("--limit", dest="limit", default=None, type=int,
                         help="Integer limit for number of granules to download. Useful in testing. Defaults to no limit.")  # noqa E501
     parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Search and identify files to download, but do not actually download them.")  # noqa E501
@@ -351,7 +354,7 @@ def cmr_downloader(args, token, data_path):
                 skip_cnt += 1
                 continue
 
-            pa.download_file(f,output_path)
+            pa.download_file(f,output_path, progress_bar=args.show_progress)
             #urlretrieve(f, output_path)
 
             pa.process_file(process_cmd, output_path, args)

@@ -2,6 +2,7 @@ import json
 import logging
 import netrc
 import re
+import tqdm
 from http.cookiejar import CookieJar
 import os
 from os import makedirs
@@ -345,26 +346,39 @@ def get_temporal_range(start, end, now):
     raise ValueError("One of start-date or end-date must be specified.")
 
 
-def download_file(remote_file, output_path, retries=3):
+def download_file(remote_file, output_path, retries=3, progress_bar=False):
     failed = False
     for r in range(retries):
         try:
-            urlretrieve(remote_file, output_path)
+            if progress_bar:
+                with open(output_path, 'wb') as f:
+                    with requests.get(remote_file, stream=True) as r:
+                        r.raise_for_status()
+                        total = int(r.headers.get('content-length', 0))
+                        tqdm_params = {
+                            'desc': os.path.split(remote_file)[-1],
+                            'total': total,
+                            'miniters': 1,
+                            'unit': 'B',
+                            'unit_scale': True,
+                            'unit_divisor': 1024,
+                        }
+                        with tqdm.tqdm(**tqdm_params) as pb:
+                            for chunk in r.iter_content(chunk_size=8192):
+                                pb.update(len(chunk))
+                                f.write(chunk)
+            else:
+                urlretrieve(remote_file, output_path)
         except HTTPError as e:
             if e.code == 503:
                 logging.warning(f'Error downloading {remote_file}. Retrying download.')
-                # back off on sleep time each error...
                 time.sleep(r)
-                # range is exclusive, so range(3): 0,1,2 so retries will
-                # never be >= 3; need to subtract 1 (doh)
                 if r >= retries-1:
                     failed = True
         else:
-            #downlaoded fie without 503
             break
-
-        if failed:
-            raise Exception("Could not download file.")
+    if failed:
+        raise Exception("Could not download file.")
 
 
 # Retry using random exponential backoff if a 500 error is raised. Maximum 10 attempts.

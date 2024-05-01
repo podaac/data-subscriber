@@ -99,6 +99,9 @@ def create_parser():
                         help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.",
                         action='append')
 
+    parser.add_argument("-progress", dest="show_progress", action="store_true",
+                        help="Flag to show progress bar when downloading.")
+
     parser.add_argument("--version", action="version", version='%(prog)s ' + __version__,
                         help="Display script version information and exit.")  # noqa E501
     parser.add_argument("--verbose", dest="verbose", action="store_true", help="Verbose mode.")  # noqa E501
@@ -372,7 +375,7 @@ def cmr_downloader(granules, extensions, args, data_path, file_start_times, ts_s
                 skip_cnt += 1
                 continue
 
-            pa.download_file(f, output_path)
+            pa.download_file(f, output_path, progress_bar=args.show_progress)
             pa.process_file(process_cmd, output_path, args)
             logging.info(str(datetime.now()) + " SUCCESS: " + f)
             success_cnt = success_cnt + 1
