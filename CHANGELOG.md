@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [1.15.3]
+## [Unreleased]
 ### Added
 - Added error messages to inform user if .harmony file is formatted incorrectly or missing a key
 
