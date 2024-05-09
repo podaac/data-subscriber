@@ -744,6 +744,10 @@ def find_harmony_runs(collection, bbox, starttime, endtime, output_dir, granules
                     return x['jobid']
     except FileNotFoundError:
         logging.warning('No .harmony file in the data directory. (Is this the first run?)')
+    except ValueError:
+        logging.error('.harmony file malformed')
+    except KeyError as key:
+        logging.error(f'.harmony file is missing {key}')
     return None
 
 
