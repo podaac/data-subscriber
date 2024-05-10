@@ -25,6 +25,7 @@ from packaging import version
 import requests
 import tenacity
 from datetime import datetime
+import getpass
 
 __version__ = "1.15.2"
 extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff"]
@@ -64,6 +65,35 @@ IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
 # notebook client in your browser.*
 
 
+def create_netrc_file(response):
+    """
+    Ask the user if they have created an Earthdata login
+    if so:
+    Prompt the user for their username and password
+    Use the credentials to create a .netrc file in the users home directory
+    if not:
+    Prompt the user to create an Earthdata login at the appropriate url
+    """
+    if response.lower() == 'y':
+        login = input('Enter your Earthdata username: ')
+        password = getpass.getpass('Enter your Earthdata password: ')
+        netrc_content = f"machine urs.earthdata.nasa.gov\n" \
+                        f"    login {login}\n" \
+                        f"    password {password}\n"
+        
+        home_dir = os.path.expanduser("~")
+        file_path = os.path.join(home_dir, ".netrc")
+        
+        with open(file_path, "w") as file:
+            file.write(netrc_content)
+        
+        # change .netrc permissions
+        subprocess.run(["chmod", "og-rw", file_path])
+
+    if response.lower() == 'n':
+        logging.info('Go to https://urs.earthdata.nasa.gov/users/new to create an Earthdata login')
+        exit()
+
 def setup_earthdata_login_auth(endpoint):
     """
     Set up the request library so that it authenticates against the given
@@ -76,11 +106,16 @@ def setup_earthdata_login_auth(endpoint):
     """
     try:
         username, _, password = netrc.netrc().authenticators(endpoint)
-    except (FileNotFoundError, TypeError):
-        # FileNotFound = There's no .netrc file
-        # TypeError = The endpoint isn't in the netrc file,
-        #  causing the above to try unpacking None
-        logging.warning("There's no .netrc file or the The endpoint isn't in the netrc file")
+    # FileNotFound = There's no .netrc file
+    except FileNotFoundError:
+        logging.warning("No .netrc file can be found. One will be attempted to be created.")
+        create_netrc_file(input('Do you have an Earthdata login? (y/n): '))
+        username, _, password = netrc.netrc().authenticators(endpoint)
+    # TypeError = The endpoint isn't in the netrc file,
+    #  causing the below to try unpacking None
+    except TypeError:
+        logging.warning("The endpoint isn't in the netrc file or is incorrect")
+
 
     manager = request.HTTPPasswordMgrWithDefaultRealm()
     manager.add_password(None, endpoint, username, password)
