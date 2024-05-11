@@ -26,6 +26,7 @@ import requests
 import tenacity
 from datetime import datetime
 import getpass
+import platform
 
 __version__ = "1.15.2"
 extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff"]
@@ -86,9 +87,11 @@ def create_netrc_file(response):
         
         with open(file_path, "w") as file:
             file.write(netrc_content)
-        
-        # change .netrc permissions
-        subprocess.run(["chmod", "og-rw", file_path])
+
+        # running this on windows will cause the program to crash and is not necessary
+        if platform.system() != 'Windows':
+            # change .netrc permissions
+            subprocess.run(["chmod", "og-rw", file_path])
 
     if response.lower() == 'n':
         logging.info('Go to https://urs.earthdata.nasa.gov/users/new to create an Earthdata login')
