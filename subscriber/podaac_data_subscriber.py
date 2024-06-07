@@ -110,7 +110,35 @@ def create_parser():
 
     return parser
 
+def netrc_file_exists():
+    # get the path for .netrc file
+    home_dir = os.path.expanduser("~")
+    netrc_path = os.path.join(home_dir, ".netrc")
 
+    return os.path.isfile(netrc_path)
+
+def create_netrc_file():
+    """
+    Prompt the user for their username and password
+    Use the credentials to create a .netrc file in the users home directory
+    """
+    login = input('Enter your Earthdata username: ')
+    password = getpass.getpass('Enter your Earthdata password: ')
+    netrc_content = f"machine urs.earthdata.nasa.gov\n" \
+                    f"    login {login}\n" \
+                    f"    password {password}\n"
+
+    # get the path for .netrc file
+    home_dir = os.path.expanduser("~")
+    netrc_path = os.path.join(home_dir, ".netrc")
+
+    # os.open netrc permissions
+    netrc_permissions = 0o600
+
+    # Create and open the .netrc file with the correct permissions
+    fd = os.open(netrc_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, netrc_permissions)
+    with os.fdopen(fd, 'w') as file:
+        file.write(netrc_content)
 
 def run(args=None):
     if args is None:
@@ -125,6 +153,13 @@ def run(args=None):
         logging.error(str(v))
         exit(1)
 
+    if not netrc_file_exists():
+        if input('Do you have an Earthdata login? (y/n): ').lower() == 'y':
+            create_netrc_file()
+        else:
+            logging.info('Go to https://urs.earthdata.nasa.gov/users/new to create an Earthdata login')
+            exit()
+            
     pa.setup_earthdata_login_auth(edl)
     token = pa.get_token(token_url)
 
