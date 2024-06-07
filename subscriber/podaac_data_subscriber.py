@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 from os import makedirs
 from os.path import isdir, basename, join, isfile, exists
 from urllib.error import HTTPError
+import getpass
 
 from subscriber import podaac_access as pa
 from subscriber import subsetting
