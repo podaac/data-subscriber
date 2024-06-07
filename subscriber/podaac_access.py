@@ -63,7 +63,6 @@ IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
 # You can log in manually by executing the cell below when running in the
 # notebook client in your browser.*
 
-
 def setup_earthdata_login_auth(endpoint):
     """
     Set up the request library so that it authenticates against the given
@@ -81,6 +80,7 @@ def setup_earthdata_login_auth(endpoint):
         # TypeError = The endpoint isn't in the netrc file,
         #  causing the above to try unpacking None
         logging.warning("There's no .netrc file or the The endpoint isn't in the netrc file")
+
 
     manager = request.HTTPPasswordMgrWithDefaultRealm()
     manager.add_password(None, endpoint, username, password)

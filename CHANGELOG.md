@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
+### Fixed
 ### Added
 - Added error messages to inform user if .harmony file is formatted incorrectly or missing a key
+- Added error message if .netrc file is not found and prompt for Earthdata login credentials to create a .netrc in the user's home directory
+- Added note about how to change permission of .netrc file for mac and linux
+### Changed
 
 ## [1.15.2]
 ### Fixed
