@@ -315,6 +315,10 @@ def cmr_downloader(args, token, data_path):
     # Make this a non-verbose message
     # if args.verbose:
     logging.info("Found " + str(len(downloads)) + " total files to download")
+
+    if granule is not None and len(downloads) == 0:
+        logging.info("** 0 granules found with -gr (granuleUR) flag; tried using wildcards (*/%)? **")
+
     if download_limit:
         logging.info("Limiting downloads to " + str(args.limit) + " total files")
 

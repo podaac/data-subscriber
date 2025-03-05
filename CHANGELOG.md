@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 ### Added
 - Added error messages to inform user if .harmony file is formatted incorrectly or missing a key
+- **PODAAC-6302 (issues/137)**
+  - Added small notification when `-gr` is being used but 0 granules are returned
 
 ## [1.15.2]
 ### Fixed
