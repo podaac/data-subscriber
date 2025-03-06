@@ -318,7 +318,6 @@ def cmr_downloader(args, token, data_path):
     # Make this a non-verbose message
     # if args.verbose:
     logging.info("Found " + str(len(downloads)) + " total files to download")
-
     if download_limit:
         logging.info("Limiting downloads to " + str(args.limit) + " total files")
 
