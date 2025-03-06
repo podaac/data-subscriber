@@ -280,8 +280,12 @@ def cmr_downloader(args, token, data_path):
     if args.verbose:
         logging.info(str(results['hits']) + " granules found for " + short_name)  # noqa E501
 
-    if granule is not None and results['hits'] == 0:
-        logging.info("** 0 granules found with -gr (granuleUR) flag; tried using wildcards (*/%)? **")
+    if granule is not None and results.get('hits', 0) == 0:
+        logging.info("** 0 granules found with -gr (granuleUR) flag.            **")
+        logging.info("** If you expected granules to be found and downloaded,   **")
+        logging.info("** please try using wildcards (*/%) in the -gr parameter. **")
+        logging.info("**    -gr=\"*data*\" for multiple characters            **")
+        logging.info("**    -gr=\"_A%T_\" for a single character              **")
 
     if any([args.dy, args.dydoy, args.dymd]):
         file_start_times = pa.parse_start_times(results)
