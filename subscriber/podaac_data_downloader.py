@@ -213,54 +213,48 @@ def cmr_downloader(args, token, data_path):
     if args.offset:
         ts_shift = timedelta(hours=int(args.offset))
 
+    # Base param values
+    params = [
+        ('page_size', page_size),
+        ('sort_key', "-start_date"),
+        ('provider', provider),
+        ('ShortName', short_name)
+    ]
+
     if search_cycles is not None:
         cmr_cycles = search_cycles
-        params = [
-            ('page_size', page_size),
-            ('provider', provider),
-            ('ShortName', short_name),
-            ('token', token),
-        ]
         for v in cmr_cycles:
             params.append(("cycle[]", v))
         if args.verbose:
             logging.info("cycles: " + str(cmr_cycles))
 
-    elif granule is not None:
-        #This line is added to strip out the extensions. Not sure if this works across the board for all collections but it seem to work on few collections that were tested.
-        cmr_granule = granule.rsplit( ".", 1 )[ 0 ]
-        params = [
-            ('page_size', page_size),
-            ('sort_key', "-start_date"),
-            ('provider', provider),
-            ('ShortName', short_name),
-            ('GranuleUR[]', cmr_granule),
-            ('token', token),
-        ]
-        #jmcnelis, 2023/06/14 - provide for wildcards in granuleur-based search
+    if granule is not None:
+        # This line is added to strip out the extensions. Not sure if this works across the board for all collections,
+        # but it seems to work on few collections that were tested.
+        # This isn't perfect, since it cannot deal with compound extensions
+        cmr_granule = granule.rsplit(".", 1)[0]
+        params.append(('GranuleUR[]', cmr_granule))
+        # jmcnelis, 2023/06/14 - provide for wildcards in granuleur-based search
         if '*' in cmr_granule or '?' in cmr_granule:
             params.append(('options[GranuleUR][pattern]', 'true'))
         if args.verbose:
             logging.info("Granule: " + str(cmr_granule))
 
-    else:
+    if start_date_time is not None and end_date_time is not None:
         temporal_range = pa.get_temporal_range(start_date_time, end_date_time,
                                                datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))  # noqa E501
-        params = [
-            ('page_size', page_size),
-            ('sort_key', "-start_date"),
-            ('provider', provider),
-            ('ShortName', short_name),
-            ('temporal', temporal_range),
-            ('token', token),
-        ]
+        params.append(('temporal', temporal_range))
         if args.verbose:
             logging.info("Temporal Range: " + temporal_range)
 
-    if args.verbose:
-        logging.info("Provider: " + provider)
     if args.bbox is not None:
         params.append(('bounding_box', args.bbox))
+
+    if args.verbose:
+        logging.info("Provider: " + provider)
+
+    # Final token appending; seems to bug urlencode(params) when it's not last
+    params.append(('token', token))
 
     # If 401 is raised, refresh token and try one more time
     try:
@@ -270,7 +264,7 @@ def cmr_downloader(args, token, data_path):
             token = pa.refresh_token(token)
             # Updated: This is not always a dictionary...
             # in fact, here it's always a list of tuples
-            for  i, p in enumerate(params) :
+            for i, p in enumerate(params):
                 if p[1] == "token":
                     params[i] = ("token", token)
             results = pa.get_search_results(params, args.verbose)

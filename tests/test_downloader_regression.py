@@ -109,3 +109,18 @@ def test_downloader_GRACE_with_SHA_512(tmpdir):
     modified_time_2 = os.path.getmtime(filename)
     print( modified_time_2 )
     assert modified_time_1 == modified_time_2
+
+@pytest.mark.regression
+def test_downloader_temporal_and_granule_together():
+    # Command: podaac-data-downloader -c TRPSDL2ALLCRSMGLOS -d data -p GES_DISC -sd 2020-01-01T00:00:00Z -ed 2020-01-02T23:59:59Z -gr *NH3*
+    shutil.rmtree('./TMP', ignore_errors=True)
+    args2 = create_downloader_args(
+        '-c TRPSDL2ALLCRSMGLOS -d ./TMP -p GES_DISC -sd 2020-01-01T00:00:00Z -ed 2020-01-02T23:59:59Z -gr *NH3*'
+        .split())
+    pdd.run(args2)
+    # So running the test in parallel, sometimes we get a 401 on the token...
+    # Let's ensure we're only looking for data files here
+    assert len([name for name in os.listdir('./TMP') if
+                os.path.isfile('./TMP/' + name) and "citation.txt" not in name]) == 2
+    shutil.rmtree('./TMP')
+    assert True
