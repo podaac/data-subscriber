@@ -280,6 +280,9 @@ def cmr_downloader(args, token, data_path):
     if args.verbose:
         logging.info(str(results['hits']) + " granules found for " + short_name)  # noqa E501
 
+    if granule is not None and results['hits'] == 0:
+        logging.info("** 0 granules found with -gr (granuleUR) flag; tried using wildcards (*/%)? **")
+
     if any([args.dy, args.dydoy, args.dymd]):
         file_start_times = pa.parse_start_times(results)
     elif args.cycle:
@@ -315,9 +318,6 @@ def cmr_downloader(args, token, data_path):
     # Make this a non-verbose message
     # if args.verbose:
     logging.info("Found " + str(len(downloads)) + " total files to download")
-
-    if granule is not None and len(downloads) == 0:
-        logging.info("** 0 granules found with -gr (granuleUR) flag; tried using wildcards (*/%)? **")
 
     if download_limit:
         logging.info("Limiting downloads to " + str(args.limit) + " total files")
