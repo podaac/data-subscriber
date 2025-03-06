@@ -284,8 +284,8 @@ def cmr_downloader(args, token, data_path):
         logging.info("** 0 granules found with -gr (granuleUR) flag.            **")
         logging.info("** If you expected granules to be found and downloaded,   **")
         logging.info("** please try using wildcards (*/%) in the -gr parameter. **")
-        logging.info("**    -gr=\"*data*\" for multiple characters              **")
-        logging.info("**    -gr=\"_A%T_\" for a single character                **")
+        logging.info("**    -gr=\"*data*\" for multiple characters                **")
+        logging.info("**    -gr=\"_A%T_\" for a single character                  **")
 
     if any([args.dy, args.dydoy, args.dymd]):
         file_start_times = pa.parse_start_times(results)
