@@ -293,7 +293,7 @@ def prepare_time_output(times, prefix, file, args, ts_shift):
 
 
 def prepare_cycles_output(data_cycles, prefix, file):
-    """"
+    """
     Create output directory using OUTPUT_DIR/CYCLE_NUMBER
     .update stored in OUTPUT_DIR/
 
@@ -301,7 +301,7 @@ def prepare_cycles_output(data_cycles, prefix, file):
     ----------
     data_cycles : list
         list of tuples consisting of granule names and cycle numbers
-        prefix : string
+    prefix : string
         prefix for output path, either custom output -d or short name
     file : string
         granule file name
@@ -311,8 +311,12 @@ def prepare_cycles_output(data_cycles, prefix, file):
     write_path : string
         string path to where granules will be written
     """
+    '''
+    for each 'data_cycles', build a list that contains the substring 'file' in the granule column, 
+    and get the first tuple
+    '''
     cycle_match = [
-        cycle for cycle in data_cycles if cycle[0] == splitext(basename(file))[0]
+        cycle for cycle in data_cycles if splitext(basename(file))[0] in cycle[0]
     ][0]
     cycle_dir = "c" + cycle_match[1].zfill(4)
     check_dir(join(prefix, cycle_dir))
