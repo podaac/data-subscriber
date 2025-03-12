@@ -139,7 +139,7 @@ def run(args=None):
         exit(1)
 
     pa.setup_earthdata_login_auth(edl)
-    token = pa.get_token(token_url)
+    token = pa.get_token()
 
     data_path = args.outputDirectory
     if not isdir(data_path):

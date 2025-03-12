@@ -21,6 +21,7 @@ import concurrent.futures
 from dateutil.parser import *
 import functools
 from packaging import version
+import earthaccess
 
 import requests
 import tenacity
@@ -93,46 +94,15 @@ def setup_earthdata_login_auth(endpoint):
     request.install_opener(opener)
 
 
-
-def get_token(url: str) -> str:
-    tokens = list_tokens(url)
-    if len(tokens) == 0 :
-        return create_token(url)
+def get_token() -> str:
+    earthaccess.login()
+    token_obj = earthaccess.get_edl_token()
+    if isinstance(token_obj, dict) and 'access_token' in token_obj:
+        access_token = token_obj.get('access_token')
     else:
-        return tokens[0]
-
-###############################################################################
-# GET TOKEN FROM CMR
-###############################################################################
-@tenacity.retry(wait=tenacity.wait_random_exponential(multiplier=1, max=60),
-                stop=tenacity.stop_after_attempt(3),
-                reraise=True,
-                retry=(tenacity.retry_if_result(lambda x: x == ''))
-                )
-def create_token(url: str) -> str:
-    try:
-        token: str = ''
-        username, _, password = netrc.netrc().authenticators(edl)
-        headers: Dict = {'Accept': 'application/json'}  # noqa E501
-
-
-        resp = requests.post(url+"/token", headers=headers, auth=HTTPBasicAuth(username, password))
-        response_content: Dict = json.loads(resp.content)
-        if "error" in response_content:
-            if response_content["error"] == "max_token_limit":
-                logging.error("Max tokens acquired from URS. Using existing token")
-                tokens=list_tokens(url)
-                return tokens[0]
-        token = response_content['access_token']
-
-    # Add better error handling there
-    # Max tokens
-    # Wrong Username/Passsword
-    # Other
-    except:  # noqa E722
-        logging.warning("Error getting the token - check user name and password", exc_info=True)
-    return token
-
+        raise KeyError(f'Issue with getting `access_token` from earthaccess.get_edl_token()\n'
+                       f'token_obj = {token_obj}')
+    return access_token
 
 ###############################################################################
 # DELETE TOKEN FROM CMR
@@ -172,8 +142,8 @@ def list_tokens(url: str):
 
 def refresh_token(old_token: str):
     setup_earthdata_login_auth(edl)
-    delete_token(token_url,old_token)
-    return get_token(token_url)
+    delete_token(token_url, old_token)
+    return get_token()
 
 
 def validate(args):
