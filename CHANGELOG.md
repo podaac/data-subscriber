@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
 - **PODAAC-6303 (issues/167)**
   - Fixed issue where -gr and -sd/-ed (temporal) cannot be used together as a query
+### Changed
+- **PODAAC-6307 (issues/175)**
+  - Changed token generation to come from earthaccess
+  - removed unit test that becomes obsolete
 
 ## [1.15.2]
 ### Fixed
