@@ -44,7 +44,7 @@ jobs:
       run: |
         poetry run pytest -m "not regression and not token"
     - name: netrc-gen
-      uses: extractions/netrc@v1
+      uses: extractions/netrc@v2
       with:
        machine: urs.earthdata.nasa.gov
        username: ${{ secrets.EDL_OPS_USERNAME }}
