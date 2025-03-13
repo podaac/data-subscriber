@@ -11,5 +11,3 @@ def test_edl_getToken():
     assert token != ""
     token = pa.refresh_token(token)
     assert token != ""
-
-    assert True is pa.delete_token(pa.token_url, token)

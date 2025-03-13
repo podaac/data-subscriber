@@ -103,26 +103,6 @@ def get_token() -> str:
                        f'token_obj = {token_obj}')
     return access_token
 
-###############################################################################
-# DELETE TOKEN FROM CMR
-###############################################################################
-def delete_token(url: str, token: str) -> bool:
-    try:
-        username, _, password = netrc.netrc().authenticators(edl)
-        headers: Dict = {'Accept': 'application/json'}
-        resp = requests.post(url+"/revoke_token",params={"token":token}, headers=headers, auth=HTTPBasicAuth(username, password))
-
-        if resp.status_code == 200:
-            logging.info("EDL token successfully deleted")
-            return True
-        else:
-            logging.info("EDL token deleting failed.")
-
-    except:  # noqa E722
-        logging.warning("Error deleting the token", exc_info=True)
-
-    return False
-
 
 def refresh_token(old_token: str):
     # Directly calling get_token to refresh the token since earthAccess internally can refresh tokens
