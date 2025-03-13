@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 ### Added
 - Added error messages to inform user if .harmony file is formatted incorrectly or missing a key
+- **PODAAC-6302 (issues/137)**
+  - Added small notification when `-gr` is being used but 0 granules are returned
+- Added python versions 3.11 to supported builds
 ### Fixed
 - **PODAAC-6303 (issues/167)**
   - Fixed issue where -gr and -sd/-ed (temporal) cannot be used together as a query
@@ -13,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - **PODAAC-6307 (issues/175)**
   - Changed token generation to come from earthaccess
   - Remove token listing test and function since it has become obsolete
+### Removed
+- Removed python 3.7 from supported builds
 
 ## [1.15.2]
 ### Fixed
