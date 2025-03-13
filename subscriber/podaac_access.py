@@ -95,6 +95,7 @@ def setup_earthdata_login_auth(endpoint):
 
 
 def get_token() -> str:
+    earthaccess.login()
     token_obj = earthaccess.get_edl_token()
     if isinstance(token_obj, dict) and 'access_token' in token_obj:
         access_token = token_obj.get('access_token')
