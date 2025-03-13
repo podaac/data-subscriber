@@ -123,4 +123,3 @@ def test_downloader_temporal_and_granule_together():
     assert len([name for name in os.listdir('./TMP') if
                 os.path.isfile('./TMP/' + name) and "citation.txt" not in name]) == 2
     shutil.rmtree('./TMP')
-    assert True
