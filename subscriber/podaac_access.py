@@ -95,7 +95,6 @@ def setup_earthdata_login_auth(endpoint):
 
 
 def get_token() -> str:
-    earthaccess.login()
     token_obj = earthaccess.get_edl_token()
     if isinstance(token_obj, dict) and 'access_token' in token_obj:
         access_token = token_obj.get('access_token')
@@ -123,21 +122,6 @@ def delete_token(url: str, token: str) -> bool:
         logging.warning("Error deleting the token", exc_info=True)
 
     return False
-
-def list_tokens(url: str):
-    try:
-        tokens = []
-        username, _, password = netrc.netrc().authenticators(edl)
-        headers: Dict = {'Accept': 'application/json'}  # noqa E501
-        resp = requests.get(url+"/tokens", headers=headers, auth=HTTPBasicAuth(username, password))
-        response_content = json.loads(resp.content)
-
-        for x in response_content:
-            tokens.append(x['access_token'])
-
-    except:  # noqa E722
-        logging.warning("Error getting the token - check user name and password", exc_info=True)
-    return tokens
 
 
 def refresh_token(old_token: str):
