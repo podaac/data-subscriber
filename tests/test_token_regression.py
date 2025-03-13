@@ -1,10 +1,6 @@
 import pytest
-import os
-from os.path import exists
 
 from subscriber import podaac_access as pa
-import shutil
-from pathlib import Path
 
 @pytest.mark.token
 def setup_function(method):

@@ -141,8 +141,9 @@ def list_tokens(url: str):
 
 
 def refresh_token(old_token: str):
-    setup_earthdata_login_auth(edl)
-    delete_token(token_url, old_token)
+    # Directly calling get_token to refresh the token since earthAccess internally can refresh tokens
+    # https://github.com/nsidc/earthaccess/commit/be1ec48a213cd9158c7d6a7542a56477cfc14d3e
+    # https://github.com/nsidc/earthaccess/pull/782
     return get_token()
 
 
