@@ -12,7 +12,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8.1,<4.0"
+python = ">=3.10,<4.0"
 requests = "^2.27.1"
 tenacity = "^8.0.1"
 packaging = "^23.0"
