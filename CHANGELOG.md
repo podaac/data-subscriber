@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - **PODAAC-6302 (issues/137)**
   - Added small notification when `-gr` is being used but 0 granules are returned
 - Added python versions 3.11 to supported builds
+- **PODAAC-6756 (issues/181)**
+  - Validate and added support for 3.12 and 3.13
+  - Remove support for 3.8 and 3.9
 ### Fixed
 - **PODAAC-6303 (issues/167)**
   - Fixed issue where -gr and -sd/-ed (temporal) cannot be used together as a query
