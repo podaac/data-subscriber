@@ -1,0 +1,127 @@
+name: Add to Project
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add to project
+        uses: actions/add-to-project@v0.5.0
+        with:
+          project-url: https://github.com/orgs/podaac/projects/75
+          github-token: ${{ secrets.PROJECTS_PAT }}
+
+      - name: Set status to needs:triage
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECTS_PAT }}
+          script: |
+            const projectNumber = 75; // Update this with your actual project number
+            const org = 'podaac';
+
+            // Get the project ID
+            const projectQuery = `
+              query($org: String!, $number: Int!) {
+                organization(login: $org) {
+                  projectV2(number: $number) {
+                    id
+                    fields(first: 20) {
+                      nodes {
+                        ... on ProjectV2SingleSelectField {
+                          id
+                          name
+                          options {
+                            id
+                            name
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const projectData = await github.graphql(projectQuery, {
+              org: org,
+              number: projectNumber
+            });
+
+            const project = projectData.organization.projectV2;
+            const statusField = project.fields.nodes.find(field => field.name === 'Status');
+            const triageOption = statusField?.options.find(option => option.name === 'needs:triage');
+
+            if (!triageOption) {
+              core.warning('Could not find "needs:triage" status option');
+              return;
+            }
+
+            // Get the item ID that was just added
+            const itemType = context.eventName === 'issues' ? 'Issue' : 'PullRequest';
+            const itemNumber = context.payload.issue?.number || context.payload.pull_request?.number;
+
+            const itemQuery = `
+              query($org: String!, $repo: String!, $number: Int!) {
+                repository(owner: $org, name: $repo) {
+                  ${itemType === 'Issue' ? 'issue' : 'pullRequest'}(number: $number) {
+                    projectItems(first: 10) {
+                      nodes {
+                        id
+                        project {
+                          id
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const itemData = await github.graphql(itemQuery, {
+              org: org,
+              repo: context.repo.repo,
+              number: itemNumber
+            });
+
+            const items = itemType === 'Issue'
+              ? itemData.repository.issue.projectItems.nodes
+              : itemData.repository.pullRequest.projectItems.nodes;
+
+            const projectItem = items.find(item => item.project.id === project.id);
+
+            if (!projectItem) {
+              core.warning('Could not find project item');
+              return;
+            }
+
+            // Update the status field
+            const updateMutation = `
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
+                updateProjectV2ItemFieldValue(
+                  input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: { singleSelectOptionId: $value }
+                  }
+                ) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+            `;
+
+            await github.graphql(updateMutation, {
+              projectId: project.id,
+              itemId: projectItem.id,
+              fieldId: statusField.id,
+              value: triageOption.id
+            });
+
+            core.info('Successfully set status to needs:triage');
