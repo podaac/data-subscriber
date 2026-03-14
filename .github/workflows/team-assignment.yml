@@ -86,6 +86,9 @@ jobs:
             const podaacStatusField = podaacProject.fields.nodes.find(field => field.name === 'Status');
             const triagedOption = podaacStatusField?.options.find(option => option.name === 'triaged');
 
+            let podaacProjectItem = null;
+            let podaacStatusUpdated = false;
+
             if (!triagedOption) {
               core.warning('Could not find "triaged" status option in podaac project');
             } else {
@@ -115,7 +118,7 @@ jobs:
               });
 
               const projectItems = issueData.repository.issue.projectItems.nodes;
-              const podaacProjectItem = projectItems.find(item => item.project.id === podaacProject.id);
+              podaacProjectItem = projectItems.find(item => item.project.id === podaacProject.id);
 
               if (!podaacProjectItem) {
                 core.warning('Issue is not in podaac project, cannot update status');
@@ -128,6 +131,7 @@ jobs:
                   value: triagedOption.id
                 });
 
+                podaacStatusUpdated = true;
                 console.log('✅ Successfully updated status to "triaged" in podaac project');
               }
             }
@@ -181,75 +185,82 @@ jobs:
 
             console.log(`Found team project: ${teamProject.title} (number: ${teamProject.number})`);
 
-            // Add issue to team project
-            const addToProjectMutation = `
-              mutation($projectId: ID!, $contentId: ID!) {
-                addProjectV2ItemById(input: {
-                  projectId: $projectId
-                  contentId: $contentId
-                }) {
-                  item {
-                    id
-                  }
-                }
-              }
-            `;
-
-            const issueNodeIdQuery = `
+            // Check if issue is already in the team project
+            const issueWithProjectsQuery = `
               query($org: String!, $repo: String!, $number: Int!) {
                 repository(owner: $org, name: $repo) {
                   issue(number: $number) {
                     id
+                    projectItems(first: 20) {
+                      nodes {
+                        id
+                        project {
+                          id
+                        }
+                      }
+                    }
                   }
                 }
               }
             `;
 
-            const issueNodeData = await github.graphql(issueNodeIdQuery, {
+            const issueWithProjects = await github.graphql(issueWithProjectsQuery, {
               org: org,
               repo: repo,
               number: issueNumber
             });
 
-            const issueNodeId = issueNodeData.repository.issue.id;
+            const issueNodeId = issueWithProjects.repository.issue.id;
+            const existingTeamProjectItem = issueWithProjects.repository.issue.projectItems.nodes.find(
+              item => item.project.id === teamProject.id
+            );
 
-            const addResult = await github.graphql(addToProjectMutation, {
-              projectId: teamProject.id,
-              contentId: issueNodeId
-            });
+            let teamProjectItemId;
+            let wasAlreadyInProject = false;
 
-            const teamProjectItemId = addResult.addProjectV2ItemById.item.id;
-            console.log(`✅ Successfully added issue to team project "${teamName}"`);
-
-            // ========================================
-            // Step 3: Set status to "New" in team project
-            // ========================================
-
-            console.log('Step 3: Setting status to "New" in team project...');
-
-            const teamStatusField = teamProject.fields.nodes.find(field => field.name === 'Status');
-            const newStatusOption = teamStatusField?.options.find(option => option.name === '🆕 New');
-
-            if (!teamStatusField || !newStatusOption) {
-              core.warning(`Could not find "Status" field or "New" option in team project "${teamName}"`);
-              console.log(`⚠️  Team project "${teamName}" does not have a Status field with "🆕 New" option`);
+            if (existingTeamProjectItem) {
+              // Issue is already in team project
+              teamProjectItemId = existingTeamProjectItem.id;
+              wasAlreadyInProject = true;
+              console.log(`ℹ️  Issue is already in team project "${teamName}"`);
             } else {
-              await github.graphql(updateStatusMutation, {
+              // Add issue to team project
+              const addToProjectMutation = `
+                mutation($projectId: ID!, $contentId: ID!) {
+                  addProjectV2ItemById(input: {
+                    projectId: $projectId
+                    contentId: $contentId
+                  }) {
+                    item {
+                      id
+                    }
+                  }
+                }
+              `;
+
+              const addResult = await github.graphql(addToProjectMutation, {
                 projectId: teamProject.id,
-                itemId: teamProjectItemId,
-                fieldId: teamStatusField.id,
-                value: newStatusOption.id
+                contentId: issueNodeId
               });
 
-              console.log('✅ Successfully set status to "🆕 New" in team project');
+              teamProjectItemId = addResult.addProjectV2ItemById.item.id;
+              console.log(`✅ Successfully added issue to team project "${teamName}"`);
             }
 
             // Summary
+            const summaryItems = [`Processed team label: ${teamName}`];
+
+            if (podaacStatusUpdated) {
+              summaryItems.push(`Updated podaac project status to "triaged"`);
+            }
+
+            if (wasAlreadyInProject) {
+              summaryItems.push(`Issue was already in team project "${teamName}"`);
+            } else {
+              summaryItems.push(`Added issue to team project "${teamName}"`);
+            }
+
             core.summary
               .addHeading(`Team Assignment Complete: ${teamName}`)
-              .addList([
-                `Updated podaac project status to "triaged"`,
-                `Added issue to team project "${teamName}"`,
-                `Set status to "🆕 New" in team project`
-              ])
+              .addList(summaryItems)
               .write();
