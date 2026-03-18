@@ -107,6 +107,7 @@ def create_parser():
                         help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
     parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Search and identify files to download, but do not actually download them")  # noqa E501
     parser.add_argument("--subset", dest="subset", action="store_true", help="Subset the data via Harmony calls.")  # noqa E501
+    parser.add_argument("--collection-version",dest="collection_version", help="Restrict download to files within a specific collection version")
 
     return parser
 
@@ -136,6 +137,7 @@ def run(args=None):
     extensions = args.extensions
     process_cmd = args.process_cmd
     data_path = args.outputDirectory
+    collection_version = args.collection_version
 
     defined_time_range = False
     if start_date_time or end_date_time:
@@ -281,7 +283,8 @@ def run(args=None):
             file_start_times=file_start_times,
             ts_shift=ts_shift,
             cycles=cycles,
-            process_cmd=process_cmd
+            process_cmd=process_cmd,
+            collection_version=collection_version
         )
 
     if len(granules) > 0 and not args.dry_run:
@@ -298,8 +301,17 @@ def run(args=None):
     logging.info('END\n\n')
 
 
-def cmr_downloader(granules, extensions, args, data_path, file_start_times, ts_shift, cycles, process_cmd):
+def cmr_downloader(granules, extensions, args, data_path, file_start_times, ts_shift, cycles, process_cmd, collection_version):
     downloads_all = []
+
+    if collection_version:
+        granules = list(
+            filter(
+                lambda g: "Version" in g["umm"]["CollectionReference"]
+                and g["umm"]["CollectionReference"]["Version"] == collection_version,
+                granules,
+            )
+        )
 
     downloads_data = [
         [
@@ -316,10 +328,8 @@ def cmr_downloader(granules, extensions, args, data_path, file_start_times, ts_s
     ]
     checksums = pa.extract_checksums(granules)
 
-    for f in downloads_data:
-        downloads_all.append(f)
-    for f in downloads_metadata:
-        downloads_all.append(f)
+    downloads_all.extend(downloads_data)
+    downloads_all.extend(downloads_metadata)
 
     downloads = [item for sublist in downloads_all for item in sublist]
 
