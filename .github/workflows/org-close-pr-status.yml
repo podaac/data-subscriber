@@ -1,0 +1,127 @@
+# Directly move the closed PR to a close status in the PODAAC project
+# to avoid unnecessary clutter and manual triage in the "needs:triage" column.
+name: Update Closed PR Status in PODAAC project
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  update-pr-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set status to closed
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECTS_PAT }}
+          script: |
+            const projectNumber = 75;
+            const org = 'podaac';
+            const prNumber = context.payload.pull_request.number;
+            const isMerged = context.payload.pull_request.merged;
+
+            console.log(`PR #${prNumber} was ${isMerged ? 'merged' : 'closed without merging'}`);
+
+            // Get the project ID and status field information
+            const projectQuery = `
+              query($org: String!, $number: Int!) {
+                organization(login: $org) {
+                  projectV2(number: $number) {
+                    id
+                    fields(first: 20) {
+                      nodes {
+                        ... on ProjectV2SingleSelectField {
+                          id
+                          name
+                          options {
+                            id
+                            name
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const projectData = await github.graphql(projectQuery, {
+              org: org,
+              number: projectNumber
+            });
+
+            const project = projectData.organization.projectV2;
+            const statusField = project.fields.nodes.find(field => field.name === 'Status');
+            const closedOption = statusField?.options.find(option => option.name === 'closed');
+
+            if (!closedOption) {
+              core.warning('Could not find "closed" status option in project');
+              return;
+            }
+
+            // Get the PR's project item
+            const itemQuery = `
+              query($org: String!, $repo: String!, $number: Int!) {
+                repository(owner: $org, name: $repo) {
+                  pullRequest(number: $number) {
+                    projectItems(first: 10) {
+                      nodes {
+                        id
+                        project {
+                          id
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const itemData = await github.graphql(itemQuery, {
+              org: org,
+              repo: context.repo.repo,
+              number: prNumber
+            });
+
+            const items = itemData.repository.pullRequest.projectItems.nodes;
+            const projectItem = items.find(item => item.project.id === project.id);
+
+            if (!projectItem) {
+              console.log('PR is not in the project, skipping status update');
+              return;
+            }
+
+            // Update the status field to "closed"
+            const updateMutation = `
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
+                updateProjectV2ItemFieldValue(
+                  input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: { singleSelectOptionId: $value }
+                  }
+                ) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+            `;
+
+            await github.graphql(updateMutation, {
+              projectId: project.id,
+              itemId: projectItem.id,
+              fieldId: statusField.id,
+              value: closedOption.id
+            });
+
+            console.log(`✅ Successfully set status to "closed" for PR #${prNumber}`);
+
+            core.summary
+              .addHeading(`PR Status Updated`)
+              .addList([
+                `PR #${prNumber} was ${isMerged ? 'merged' : 'closed'}`,
+                `Project status updated to "closed"`
+              ])
+              .write();
