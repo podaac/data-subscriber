@@ -8,6 +8,7 @@ from os import makedirs
 from os.path import isdir, basename, join, exists
 from urllib.error import HTTPError
 
+import earthaccess
 from subscriber import podaac_access as pa
 from subscriber import subsetting
 from subscriber import token_formatter
@@ -15,9 +16,9 @@ from subscriber import token_formatter
 __version__ = pa.__version__
 
 page_size = 2000
-edl = pa.edl
+# edl = pa.edl
 cmr = pa.cmr
-token_url = pa.token_url
+# token_url = pa.token_url
 
 # The lines below are to get the IP address. You can make this static and
 # assign a fixed value to the IPAddr variable
@@ -138,8 +139,8 @@ def run(args=None):
         logging.error(str(v))
         exit(1)
 
-    pa.setup_earthdata_login_auth(edl)
-    token = pa.get_token(token_url)
+    earthaccess.login(strategy="netrc")
+    token = earthaccess.get_edl_token()["access_token"]
 
     data_path = args.outputDirectory
     if not isdir(data_path):
@@ -261,12 +262,13 @@ def cmr_downloader(args, token, data_path):
         results = pa.get_search_results(params, args.verbose)
     except HTTPError as e:
         if e.code == 401:
-            token = pa.refresh_token(token)
-            # Updated: This is not always a dictionary...
-            # in fact, here it's always a list of tuples
-            for i, p in enumerate(params):
-                if p[1] == "token":
-                    params[i] = ("token", token)
+            # token = pa.refresh_token(token)
+            # # Updated: This is not always a dictionary...
+            # # in fact, here it's always a list of tuples
+            # for i, p in enumerate(params):
+            #     if p[1] == "token":
+            #         params[i] = ("token", token)
+            token = earthaccess.get_edl_token()["access_token"]
             results = pa.get_search_results(params, args.verbose)
         else:
             raise e
@@ -294,10 +296,8 @@ def cmr_downloader(args, token, data_path):
                           results['items']]
     checksums = pa.extract_checksums(results['items'])
 
-    for f in downloads_data:
-        downloads_all.append(f)
-    for f in downloads_metadata:
-        downloads_all.append(f)
+    downloads_all.extend(downloads_data)
+    downloads_all.extend(downloads_metadata)
 
     downloads = [item for sublist in downloads_all for item in sublist]
 
