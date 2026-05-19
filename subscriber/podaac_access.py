@@ -15,6 +15,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import hashlib
 import time
+import earthaccess
 from requests.auth import HTTPBasicAuth
 import harmony
 import concurrent.futures
@@ -89,6 +90,14 @@ def validate(args):
                 'Subsetting over the international dateline is not currently supported. '
                 'Please provide a valid bbox and try again.'
             )
+
+
+def refresh_token(params: list=None ) -> tuple[str, list] | str:
+    earthaccess.login(strategy="netrc")
+    token = earthaccess.get_edl_token()["access_token"]
+    if params:
+        return token, [('token', token) if param[0] == 'token' else param for param in params]
+    return token
 
 
 def check_dir(path):
@@ -384,14 +393,20 @@ def make_checksum(file_path, algorithm):
     return hash_alg.hexdigest()
 
 def get_cmr_collections(params, verbose=False):
-    query = urlencode(params)
-    url = "https://" + cmr + "/search/collections.umm_json?" + query
+    url = f"https://{cmr}/search/collections.umm_json?{urlencode(params)}"
     if verbose:
         logging.info(url)
 
     # Build the request, add the search after header to it if it's not None (e.g. after the first iteration)
-    req = Request(url)
-    response = urlopen(req)
+    try:
+        response = urlopen(Request(url))
+    except HTTPError as e:
+        if e.code == 401:
+            # try to refresh the token in params
+            _, params = refresh_token(params)
+            response = urlopen(Request(f"https://{cmr}/search/collections.umm_json?{urlencode(params)}"))
+        else:
+            raise e
     result = json.loads(response.read().decode())
     return result
 
