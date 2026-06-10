@@ -250,8 +250,7 @@ def download_file(remote_file, output_path, retries=3):
                 )
 def get_search_results(params, verbose=False):
     # Get the query parameters as a string and then the complete search url:
-    query = urlencode(params)
-    url = "https://" + cmr + "/search/granules.umm_json?" + query
+    url = f"https://{cmr}/search/collections.umm_json?{urlencode(params)}"
     if verbose:
         logging.info(url)
 
@@ -265,7 +264,17 @@ def get_search_results(params, verbose=False):
         req = Request(url)
         if search_after_header is not None:
             req.add_header('CMR-Search-After', search_after_header)
-        response = urlopen(req)
+        try:
+            response = urlopen(req)
+        except HTTPError as e:
+            if e.code == 401:
+                _, params = refresh_token(params)
+                req = Request(f"https://{cmr}/search/collections.umm_json?{urlencode(params)}")
+                if search_after_header:
+                    req.add_header('CMR-Search-After', search_after_header)
+                response = urlopen(req)
+            else:
+                raise e
 
         # Build the results object, load entire result if it's the first time.
         if results is None:

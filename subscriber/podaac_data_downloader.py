@@ -255,15 +255,7 @@ def cmr_downloader(args, token, data_path):
     # Final token appending; seems to bug urlencode(params) when it's not last
     params.append(('token', token))
 
-    # If 401 is raised, refresh token and try one more time
-    try:
-        results = pa.get_search_results(params, args.verbose)
-    except HTTPError as e:
-        if e.code == 401:
-            token, params = pa.refresh_token(params)
-            results = pa.get_search_results(params, args.verbose)
-        else:
-            raise e
+    results = pa.get_search_results(params, args.verbose)
 
     if args.verbose:
         logging.info(str(results['hits']) + " granules found for " + short_name)  # noqa E501
