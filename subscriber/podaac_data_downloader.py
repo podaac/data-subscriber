@@ -15,9 +15,9 @@ from subscriber import token_formatter
 __version__ = pa.__version__
 
 page_size = 2000
-edl = pa.edl
+# edl = pa.edl
 cmr = pa.cmr
-token_url = pa.token_url
+# token_url = pa.token_url
 
 # The lines below are to get the IP address. You can make this static and
 # assign a fixed value to the IPAddr variable
@@ -138,8 +138,7 @@ def run(args=None):
         logging.error(str(v))
         exit(1)
 
-    pa.setup_earthdata_login_auth(edl)
-    token = pa.get_token(token_url)
+    token = pa.refresh_token()
 
     data_path = args.outputDirectory
     if not isdir(data_path):
@@ -256,20 +255,7 @@ def cmr_downloader(args, token, data_path):
     # Final token appending; seems to bug urlencode(params) when it's not last
     params.append(('token', token))
 
-    # If 401 is raised, refresh token and try one more time
-    try:
-        results = pa.get_search_results(params, args.verbose)
-    except HTTPError as e:
-        if e.code == 401:
-            token = pa.refresh_token(token)
-            # Updated: This is not always a dictionary...
-            # in fact, here it's always a list of tuples
-            for i, p in enumerate(params):
-                if p[1] == "token":
-                    params[i] = ("token", token)
-            results = pa.get_search_results(params, args.verbose)
-        else:
-            raise e
+    results = pa.get_search_results(params, args.verbose)
 
     if args.verbose:
         logging.info(str(results['hits']) + " granules found for " + short_name)  # noqa E501
@@ -294,10 +280,8 @@ def cmr_downloader(args, token, data_path):
                           results['items']]
     checksums = pa.extract_checksums(results['items'])
 
-    for f in downloads_data:
-        downloads_all.append(f)
-    for f in downloads_metadata:
-        downloads_all.append(f)
+    downloads_all.extend(downloads_data)
+    downloads_all.extend(downloads_metadata)
 
     downloads = [item for sublist in downloads_all for item in sublist]
 

@@ -15,6 +15,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import hashlib
 import time
+import earthaccess
 from requests.auth import HTTPBasicAuth
 import harmony
 import concurrent.futures
@@ -36,145 +37,6 @@ token_url = "https://" + edl + "/api/users"
 
 
 IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
-
-
-# ## Authentication setup
-#
-# The function below will allow Python scripts to log into any Earthdata Login
-#  application programmatically.  To avoid being prompted for
-# credentials every time you run and also allow clients such as curl to log in,
-#  you can add the following to a `.netrc` (`_netrc` on Windows) file in
-#  your home directory:
-#
-# ```
-# machine urs.earthdata.nasa.gov
-#     login <your username>
-#     password <your password>
-# ```
-#
-# Make sure that this file is only readable by the current user
-# or you will receive an error stating
-# "netrc access too permissive."
-#
-# `$ chmod 0600 ~/.netrc`
-#
-# You'll need to authenticate using the netrc method when running from
-# command line with [`papermill`](https://papermill.readthedocs.io/en/latest/).
-# You can log in manually by executing the cell below when running in the
-# notebook client in your browser.*
-
-
-def setup_earthdata_login_auth(endpoint):
-    """
-    Set up the request library so that it authenticates against the given
-    Earthdata Login endpoint and is able to track cookies between requests.
-    This looks in the .netrc file first and if no credentials are found,
-    it prompts for them.
-
-    Valid endpoints include:
-        urs.earthdata.nasa.gov - Earthdata Login production
-    """
-    try:
-        username, _, password = netrc.netrc().authenticators(endpoint)
-    except (FileNotFoundError, TypeError):
-        # FileNotFound = There's no .netrc file
-        # TypeError = The endpoint isn't in the netrc file,
-        #  causing the above to try unpacking None
-        logging.warning("There's no .netrc file or the The endpoint isn't in the netrc file")
-
-    manager = request.HTTPPasswordMgrWithDefaultRealm()
-    manager.add_password(None, endpoint, username, password)
-    auth = request.HTTPBasicAuthHandler(manager)
-
-    jar = CookieJar()
-    processor = request.HTTPCookieProcessor(jar)
-    opener = request.build_opener(auth, processor)
-    opener.addheaders = [('User-agent', 'podaac-subscriber-' + __version__)]
-    request.install_opener(opener)
-
-
-
-def get_token(url: str) -> str:
-    tokens = list_tokens(url)
-    if len(tokens) == 0 :
-        return create_token(url)
-    else:
-        return tokens[0]
-
-###############################################################################
-# GET TOKEN FROM CMR
-###############################################################################
-@tenacity.retry(wait=tenacity.wait_random_exponential(multiplier=1, max=60),
-                stop=tenacity.stop_after_attempt(3),
-                reraise=True,
-                retry=(tenacity.retry_if_result(lambda x: x == ''))
-                )
-def create_token(url: str) -> str:
-    try:
-        token: str = ''
-        username, _, password = netrc.netrc().authenticators(edl)
-        headers: Dict = {'Accept': 'application/json'}  # noqa E501
-
-
-        resp = requests.post(url+"/token", headers=headers, auth=HTTPBasicAuth(username, password))
-        response_content: Dict = json.loads(resp.content)
-        if "error" in response_content:
-            if response_content["error"] == "max_token_limit":
-                logging.error("Max tokens acquired from URS. Using existing token")
-                tokens=list_tokens(url)
-                return tokens[0]
-        token = response_content['access_token']
-
-    # Add better error handling there
-    # Max tokens
-    # Wrong Username/Passsword
-    # Other
-    except:  # noqa E722
-        logging.warning("Error getting the token - check user name and password", exc_info=True)
-    return token
-
-
-###############################################################################
-# DELETE TOKEN FROM CMR
-###############################################################################
-def delete_token(url: str, token: str) -> bool:
-    try:
-        username, _, password = netrc.netrc().authenticators(edl)
-        headers: Dict = {'Accept': 'application/json'}
-        resp = requests.post(url+"/revoke_token",params={"token":token}, headers=headers, auth=HTTPBasicAuth(username, password))
-
-        if resp.status_code == 200:
-            logging.info("EDL token successfully deleted")
-            return True
-        else:
-            logging.info("EDL token deleting failed.")
-
-    except:  # noqa E722
-        logging.warning("Error deleting the token", exc_info=True)
-
-    return False
-
-def list_tokens(url: str):
-    try:
-        tokens = []
-        username, _, password = netrc.netrc().authenticators(edl)
-        headers: Dict = {'Accept': 'application/json'}  # noqa E501
-        resp = requests.get(url+"/tokens", headers=headers, auth=HTTPBasicAuth(username, password))
-        response_content = json.loads(resp.content)
-
-        for x in response_content:
-            tokens.append(x['access_token'])
-
-    except:  # noqa E722
-        logging.warning("Error getting the token - check user name and password", exc_info=True)
-    return tokens
-
-
-def refresh_token(old_token: str):
-    setup_earthdata_login_auth(edl)
-    delete_token(token_url,old_token)
-    return get_token(token_url)
-
 
 def validate(args):
     if args.bbox is not None:
@@ -228,6 +90,14 @@ def validate(args):
                 'Subsetting over the international dateline is not currently supported. '
                 'Please provide a valid bbox and try again.'
             )
+
+
+def refresh_token(params: list=None ) -> tuple[str, list] | str:
+    earthaccess.login(strategy="netrc")
+    token = earthaccess.get_edl_token()["access_token"]
+    if params:
+        return token, [('token', token) if param[0] == 'token' else param for param in params]
+    return token
 
 
 def check_dir(path):
@@ -380,8 +250,7 @@ def download_file(remote_file, output_path, retries=3):
                 )
 def get_search_results(params, verbose=False):
     # Get the query parameters as a string and then the complete search url:
-    query = urlencode(params)
-    url = "https://" + cmr + "/search/granules.umm_json?" + query
+    url = f"https://{cmr}/search/collections.umm_json?{urlencode(params)}"
     if verbose:
         logging.info(url)
 
@@ -395,7 +264,17 @@ def get_search_results(params, verbose=False):
         req = Request(url)
         if search_after_header is not None:
             req.add_header('CMR-Search-After', search_after_header)
-        response = urlopen(req)
+        try:
+            response = urlopen(req)
+        except HTTPError as e:
+            if e.code == 401:
+                _, params = refresh_token(params)
+                req = Request(f"https://{cmr}/search/collections.umm_json?{urlencode(params)}")
+                if search_after_header:
+                    req.add_header('CMR-Search-After', search_after_header)
+                response = urlopen(req)
+            else:
+                raise e
 
         # Build the results object, load entire result if it's the first time.
         if results is None:
@@ -523,14 +402,20 @@ def make_checksum(file_path, algorithm):
     return hash_alg.hexdigest()
 
 def get_cmr_collections(params, verbose=False):
-    query = urlencode(params)
-    url = "https://" + cmr + "/search/collections.umm_json?" + query
+    url = f"https://{cmr}/search/collections.umm_json?{urlencode(params)}"
     if verbose:
         logging.info(url)
 
     # Build the request, add the search after header to it if it's not None (e.g. after the first iteration)
-    req = Request(url)
-    response = urlopen(req)
+    try:
+        response = urlopen(Request(url))
+    except HTTPError as e:
+        if e.code == 401:
+            # try to refresh the token in params
+            _, params = refresh_token(params)
+            response = urlopen(Request(f"https://{cmr}/search/collections.umm_json?{urlencode(params)}"))
+        else:
+            raise e
     result = json.loads(response.read().decode())
     return result
 

@@ -36,6 +36,7 @@ $> podaac-data-subscriber -h
                       Specify a provider for collection search. Default is POCLOUD.
 --dry-run             Search and identify files to download, but do not actually download them
 --subset              Flag to enable subsetting on the specified collection
+--collection-version  Restrict download to files within a specific collection version
 ```
 
 ## Run the Script

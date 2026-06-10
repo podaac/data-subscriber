@@ -29,9 +29,9 @@ __version__ = pa.__version__
 
 page_size = 2000
 
-edl = pa.edl
+# edl = pa.edl
 cmr = pa.cmr
-token_url = pa.token_url
+# token_url = pa.token_url
 
 
 def get_update_file(data_dir, collection_name):
@@ -50,7 +50,6 @@ def validate(args):
     if args.minutes is None and args.startDate is False and args.endDate is False:
         raise ValueError(
             "Error parsing command line arguments: one of --start-date, --end-date or --minutes are required")
-
 
 def create_parser():
     # Initialize parser
@@ -126,8 +125,7 @@ def run(args=None):
         logging.error(str(v))
         exit(1)
 
-    pa.setup_earthdata_login_auth(edl)
-    token = pa.get_token(token_url)
+    token = pa.refresh_token()
 
     mins = args.minutes  # In this case download files ingested in the last 60 minutes -- change this to whatever setting is needed
     provider = args.provider
@@ -218,21 +216,7 @@ def run(args=None):
         logging.info("Provider: " + provider)
         logging.info("Updated Since: " + data_within_last_timestamp)
 
-    # If 401 is raised, refresh token and try one more time
-    try:
-        results = pa.get_search_results(params, args.verbose)
-    except HTTPError as e:
-        if e.code == 401:
-            token = pa.refresh_token(token)
-            # Updated: This is not always a dictionary...
-            # in fact, here it's always a list of tuples
-            for  i, p in enumerate(params) :
-                if p[1] == "token":
-                    params[i] = ("token", token)
-            #params['token'] = token
-            results = pa.get_search_results(params, args.verbose)
-        else:
-            raise e
+    results = pa.get_search_results(params, args.verbose)
 
     if args.verbose:
         logging.info(str(results[
