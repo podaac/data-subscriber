@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [Unreleased]
+### Fixed
+- Raise a clear error when --start-date is later than --end-date instead of an opaque HTTP 400 from CMR [145](https://github.com/podaac/data-subscriber/issues/145)
+
 ## [1.15.2]
 ### Fixed
 - Fixed bug where --subset in combination with the subscriber caused errors

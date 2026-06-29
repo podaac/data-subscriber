@@ -146,6 +146,13 @@ def test_validate():
     assert a.endDate == '2021-01-01T00:00:00Z'
     assert a.provider == "POCLOUD"
 
+    # start date equal to end date is allowed
+    validate(["-c", "dataset", "-d", "/data", "-sd", "2021-01-01T00:00:00Z", "-ed", "2021-01-01T00:00:00Z"])
+
+    # start date after end date should raise a clear error
+    with pytest.raises(ValueError):
+        validate(["-c", "dataset", "-d", "/data", "-sd", "2021-01-01T00:00:00Z", "-ed", "2020-01-01T00:00:00Z"])
+
     a = validate(["-c", "dataset", "-d", "/data", "-p", "ANEWCLOUD"])
     assert a.provider == 'ANEWCLOUD'
 
