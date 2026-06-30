@@ -211,7 +211,7 @@ def validate(args):
 
     if start is not None and end is not None and start > end:
         raise ValueError(
-            "Start date and end date are out of order. End date needs to be a later time than start date.")  # noqa E501
+            "--end-date must be greater than or equal to --start-date.")
 
     if 'minutes' in args:
         if args.minutes:
