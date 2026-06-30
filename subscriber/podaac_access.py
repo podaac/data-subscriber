@@ -192,19 +192,26 @@ def validate(args):
             raise ValueError('Error parsing "--bounds": S Latitude must be <= N Latitude')
 
 
+    start = None
+    end = None
+
     if args.startDate:
         try:
-            datetime.strptime(args.startDate, '%Y-%m-%dT%H:%M:%SZ')
+            start = datetime.strptime(args.startDate, '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
             raise ValueError(
                 "Error parsing '--start-date' date: " + args.startDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
 
     if args.endDate:
         try:
-            datetime.strptime(args.endDate, '%Y-%m-%dT%H:%M:%SZ')
+            end = datetime.strptime(args.endDate, '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
             raise ValueError(
                 "Error parsing '--end-date' date: " + args.endDate + ". Format must be like 2021-01-14T00:00:00Z")  # noqa E501
+
+    if start is not None and end is not None and start > end:
+        raise ValueError(
+            "--end-date must be greater than or equal to --start-date.")
 
     if 'minutes' in args:
         if args.minutes:
