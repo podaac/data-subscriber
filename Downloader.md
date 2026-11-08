@@ -30,7 +30,7 @@ optional arguments:
   -dy                   Flag to use start time (Year) of downloaded data for directory where data products will be downloaded.
   --offset OFFSET       Flag used to shift timestamp. Units are in hours, e.g. 10 or -10.
   -e EXTENSIONS, --extensions EXTENSIONS
-                        Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
+                        Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff, .tif]
   -gr GRANULENAME, --granule-name GRANULENAME
                         Flag to download specific granule from a collection. This parameter can only be used if you know the granule name. Only one granule name can be supplied. Supports wildcard search patterns allowing the user to identify multiple granules for download by using `?` for single- and `*` for multi-character expansion.
   --process PROCESS_CMD
@@ -216,7 +216,7 @@ Some collections have many files. To download a specific set of files, you can s
 
 ```
 -e EXTENSIONS, --extensions EXTENSIONS
-                      Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
+                      Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff, .tif]
 ```
 
 An example of the -e usage- note the -e option is additive:

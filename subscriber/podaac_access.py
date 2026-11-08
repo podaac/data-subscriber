@@ -27,7 +27,7 @@ import tenacity
 from datetime import datetime
 
 __version__ = "1.15.2"
-extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff"]
+extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff", "\\.tif"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
 graph = "graphql.earthdata.nasa.gov"

@@ -27,7 +27,7 @@ $> podaac-data-subscriber -h
 -m MINUTES, --minutes MINUTES
                       How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs.
 -e EXTENSIONS, --extensions EXTENSIONS
-                      Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
+                      Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff, .tif]
 --process PROCESS_CMD
                       Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.
 --version             Display script version information and exit.
@@ -194,7 +194,7 @@ Some collections have many files. To download a specific set of files, you can s
 
 ```
 -e EXTENSIONS, --extensions EXTENSIONS
-                      Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]
+                      Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff, .tif]
 ```
 
 An example of the -e usage- note the -e option is additive:

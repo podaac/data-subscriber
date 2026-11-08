@@ -92,7 +92,7 @@ def create_parser():
                         help="How far back in time, in minutes, should the script look for data. If running this script as a cron, this value should be equal to or greater than how often your cron runs.",
                         type=int, default=None)  # noqa E501
     parser.add_argument("-e", "--extensions", dest="extensions",
-                        help="Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff]", default=None,
+                        help="Regexps of extensions of products to download. Default is [.nc, .h5, .zip, .tar.gz, .tiff, .tif]", default=None,
                         action='append')  # noqa E501
     parser.add_argument("--process", dest="process_cmd",
                         help="Processing command to run on each downloaded file (e.g., compression). Can be specified multiple times.",

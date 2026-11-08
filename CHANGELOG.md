@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - **(issues/175)**
   - Changed authentication flow to use earthaccess module
   - Remove support for 3.10
+- Added .tif to the default download extensions, alongside .tiff
 ### Fixed
 - **PODAAC-6303 (issues/167)**
   - Fixed issue where -gr and -sd/-ed (temporal) cannot be used together as a query

@@ -246,11 +246,17 @@ def test_extensions():
     assert pa.search_extension('\\.tiff', "myfile.tiff") == True
     assert pa.search_extension('\\.tiff', "myfile.tif") == False
     assert pa.search_extension('\\.tiff', "myfile.gtiff") == False
+    assert pa.search_extension('\\.tif', "myfile.tif") == True
+    assert pa.search_extension('\\.tif', "myfile.tiff") == False
     assert pa.search_extension('PTM_\\d+', "myfile.PTM_1") == True
     assert pa.search_extension('PTM_\\d+', "myfile.PTM_10") == True
     assert pa.search_extension('PTM_\\d+', "myfile.PTM_09") == True
     assert pa.search_extension('PTM_\\d+', "myfile.PTM_9") == True
 
+
+def test_default_extensions_include_tif():
+    assert any(pa.search_extension(ext, "myfile.tif") for ext in pa.extensions)
+    assert any(pa.search_extension(ext, "myfile.tiff") for ext in pa.extensions)
 
 def test_get_latest_release_from_json():
     f = open('tests/releases.json')
