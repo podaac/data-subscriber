@@ -33,6 +33,7 @@ cmr = "cmr.earthdata.nasa.gov"
 graph = "graphql.earthdata.nasa.gov"
 graph_url = "https://"+graph+"/api"
 token_url = "https://" + edl + "/api/users"
+HARMONY_RUN_FIELDS = ('collection_id', 'starttime', 'endtime', 'bbox', 'jobid', 'granules')
 
 
 IPAddr = "127.0.0.1"  # socket.gethostbyname(hostname)
@@ -602,6 +603,47 @@ def get_harmony_file(data_dir):
     return None
 
 
+def load_harmony_file(harmony_file):
+    """
+    Read and check the Harmony statefile
+
+    Parameters
+    ----------
+    harmony_file: str
+        Path to the Harmony statefile
+
+    Returns
+    -------
+    list
+        The Harmony runs saved in the statefile
+
+    Raises
+    ------
+    ValueError
+        If the statefile is not a JSON list of complete Harmony runs
+    """
+    fix = 'Fix or delete the file, then run again. If you delete it, ' \
+          'any unfinished Harmony job will be submitted again.'
+    try:
+        with open(harmony_file, 'r') as f:
+            harmony_json = json.load(f)
+    except ValueError as e:
+        raise ValueError(f'The Harmony statefile {harmony_file} is malformed: '
+                         f'it is not valid JSON ({e}). {fix}') from e
+    if not isinstance(harmony_json, list):
+        raise ValueError(f'The Harmony statefile {harmony_file} is malformed: '
+                         f'expected a list of runs. {fix}')
+    for index, run in enumerate(harmony_json):
+        if not isinstance(run, dict):
+            raise ValueError(f'The Harmony statefile {harmony_file} is malformed: '
+                             f'entry {index} is not a run. {fix}')
+        missing = [field for field in HARMONY_RUN_FIELDS if field not in run]
+        if missing:
+            raise ValueError(f'The Harmony statefile {harmony_file} is malformed: '
+                             f'entry {index} is missing {", ".join(missing)}. {fix}')
+    return harmony_json
+
+
 def find_harmony_runs(collection, bbox, starttime, endtime, output_dir, granules=None):
     """
     Look for run in Harmony statefile
@@ -631,18 +673,12 @@ def find_harmony_runs(collection, bbox, starttime, endtime, output_dir, granules
     if harmony_file is None:
         return None
     try:
-        with open(harmony_file, 'r') as f:
-            harmony_json = json.load(f)
-            for x in harmony_json:
-                if x['collection_id'] == collection and x['starttime'] == starttime and x[
-                     'endtime'] == endtime and x['bbox'] == bbox and x['granules'] == granules:
-                    return x['jobid']
+        for x in load_harmony_file(harmony_file):
+            if x['collection_id'] == collection and x['starttime'] == starttime and x[
+                 'endtime'] == endtime and x['bbox'] == bbox and x['granules'] == granules:
+                return x['jobid']
     except FileNotFoundError:
         logging.warning('No .harmony file in the data directory. (Is this the first run?)')
-    except ValueError:
-        logging.error('.harmony file malformed')
-    except KeyError as key:
-        logging.error(f'.harmony file is missing {key}')
     return None
 
 
@@ -662,8 +698,7 @@ def remove_harmony_run(job_id, output_dir):
     harmony_file = get_harmony_file(output_dir)
     harmony_json = []
     if harmony_file:
-        with open(harmony_file, 'r') as f:
-            harmony_json = json.load(f)
+        harmony_json = load_harmony_file(harmony_file)
     harmony_json = [x for x in harmony_json if x['jobid'] != job_id]
 
     with open(output_dir + '/.harmony', 'w') as outfile:
@@ -694,9 +729,7 @@ def save_harmony_run(collection, bbox, starttime, endtime, job_id, output_dir, g
     harmony_file = get_harmony_file(output_dir)
     harmony_json = []
     if harmony_file:
-        f = open(harmony_file, 'r')
-        harmony_json = json.load(f)
-        f.close()
+        harmony_json = load_harmony_file(harmony_file)
     harmony_run = {
         'collection_id': collection,
         'starttime': starttime,

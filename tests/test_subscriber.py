@@ -257,3 +257,43 @@ def test_get_latest_release_from_json():
     release_json = json.load(f)
     latest_release = pa.get_latest_release_from_json(release_json)
     assert latest_release == "1.12.0"
+
+
+def _harmony_run(job_id='job-1'):
+    return {'collection_id': 'C1', 'starttime': 's', 'endtime': 'e', 'bbox': 'b',
+            'jobid': job_id, 'granules': None}
+
+
+def _harmony_calls(output_dir):
+    return [
+        lambda: pa.find_harmony_runs('C1', 'b', 's', 'e', output_dir),
+        lambda: pa.remove_harmony_run('job-1', output_dir),
+        lambda: pa.save_harmony_run('C1', 'b', 's', 'e', 'job-2', output_dir),
+    ]
+
+
+@pytest.mark.parametrize('content, reason', [
+    ('{not json', 'not valid JSON'),
+    ('', 'not valid JSON'),
+    ('{"jobid": "job-1"}', 'expected a list'),
+    ('["job-1"]', 'entry 0 is not a run'),
+    ('[{"jobid": "job-1"}]', 'entry 0 is missing collection_id'),
+])
+def test_malformed_harmony_file_gives_clear_error(tmp_path, content, reason):
+    statefile = tmp_path / '.harmony'
+    statefile.write_text(content)
+    for call in _harmony_calls(str(tmp_path)):
+        with pytest.raises(ValueError, match=reason) as error:
+            call()
+        assert str(tmp_path) + '/.harmony' in str(error.value)
+    assert statefile.read_text() == content
+
+
+def test_valid_harmony_file_still_works(tmp_path):
+    output_dir = str(tmp_path)
+    assert pa.find_harmony_runs('C1', 'b', 's', 'e', output_dir) is None
+    pa.save_harmony_run('C1', 'b', 's', 'e', 'job-1', output_dir)
+    assert json.loads((tmp_path / '.harmony').read_text()) == [_harmony_run()]
+    assert pa.find_harmony_runs('C1', 'b', 's', 'e', output_dir) == 'job-1'
+    pa.remove_harmony_run('job-1', output_dir)
+    assert pa.find_harmony_runs('C1', 'b', 's', 'e', output_dir) is None
