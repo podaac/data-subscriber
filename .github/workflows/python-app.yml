@@ -49,6 +49,10 @@ jobs:
        machine: urs.earthdata.nasa.gov
        username: ${{ secrets.EDL_OPS_USERNAME }}
        password: ${{ secrets.EDL_OPS_PASSWORD }}
+    - name: netrc-gen (windows copy)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: cp "$HOME/.netrc" "$HOME/_netrc"
     - name: Regression Test with pytest
       env:
         PODAAC_LOGLEVEL: "DEBUG"
@@ -85,6 +89,10 @@ jobs:
        machine: urs.earthdata.nasa.gov
        username: ${{ secrets.EDL_OPS_USERNAME }}
        password: ${{ secrets.EDL_OPS_PASSWORD }}
+    - name: netrc-gen (windows copy)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: cp "$HOME/.netrc" "$HOME/_netrc"
     - name: Regression Test with pytest
       env:
         PODAAC_LOGLEVEL: "DEBUG"

@@ -9,7 +9,6 @@ from os.path import isdir, basename, join, splitext, isfile
 from typing import Dict
 from urllib import request
 from urllib.error import HTTPError
-from urllib.request import urlretrieve
 import subprocess
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -223,9 +222,14 @@ def download_file(remote_file, output_path, retries=3):
     failed = False
     for r in range(retries):
         try:
-            urlretrieve(remote_file, output_path)
-        except HTTPError as e:
-            if e.code == 503:
+            session = earthaccess.get_requests_https_session()
+            with session.get(remote_file, stream=True) as response:
+                response.raise_for_status()
+                with open(output_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        f.write(chunk)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 503:
                 logging.warning(f'Error downloading {remote_file}. Retrying download.')
                 # back off on sleep time each error...
                 time.sleep(r)
@@ -233,6 +237,8 @@ def download_file(remote_file, output_path, retries=3):
                 # never be >= 3; need to subtract 1 (doh)
                 if r >= retries-1:
                     failed = True
+            else:
+                raise
         else:
             #downlaoded fie without 503
             break
@@ -250,7 +256,7 @@ def download_file(remote_file, output_path, retries=3):
                 )
 def get_search_results(params, verbose=False):
     # Get the query parameters as a string and then the complete search url:
-    url = f"https://{cmr}/search/collections.umm_json?{urlencode(params)}"
+    url = f"https://{cmr}/search/granules.umm_json?{urlencode(params)}"
     if verbose:
         logging.info(url)
 
@@ -269,7 +275,7 @@ def get_search_results(params, verbose=False):
         except HTTPError as e:
             if e.code == 401:
                 _, params = refresh_token(params)
-                req = Request(f"https://{cmr}/search/collections.umm_json?{urlencode(params)}")
+                req = Request(f"https://{cmr}/search/granules.umm_json?{urlencode(params)}")
                 if search_after_header:
                     req.add_header('CMR-Search-After', search_after_header)
                 response = urlopen(req)
