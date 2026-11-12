@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Fixed issue where -gr and -sd/-ed (temporal) cannot be used together as a query
 - **PODAAC-6305 (issues/160)**
   - Fixed issue when -gr and cycle are used together, and when sometimes the granule name is a subset of what's found in CMR (`SWOT_GPR_2PfP474_001_20230328_220206_20230328_225311` in `SWOT_GPR_2PfP474_002_20230328_225311_20230328_234417_swot`)
+- Raise a clear error when the .harmony statefile is malformed or missing fields, instead of a JSONDecodeError or KeyError
 ### Removed
 - Removed python 3.7 from supported builds
 
