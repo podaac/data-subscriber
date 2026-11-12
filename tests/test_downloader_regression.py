@@ -93,7 +93,7 @@ def test_downloader_GRACE_with_SHA_512(tmpdir):
     assert len( os.listdir(directory_str) ) == 0
 
     # run the command once -> should download the file. Note the modified time for the file
-    args = create_downloader_args(f"-c GRACEFO_L2_CSR_MONTHLY_0060 -sd 2020-01-01T00:00:00Z -ed 2020-01-02T00:00:01Z -d {str(tmpdir)} --limit 1 --verbose -e 00".split())
+    args = create_downloader_args(f"-c TELLUS_GRAC-GRFO_MASCON_CRI_GRID_RL06.3_V4 -sd 2020-01-01T00:00:00Z -ed 2020-01-02T00:00:01Z -d {str(tmpdir)} --limit 1 --verbose".split())
     pdd.run(args)
     assert len( os.listdir(directory_str) ) > 0
     filename = directory_str + "/" + os.listdir(directory_str)[0]

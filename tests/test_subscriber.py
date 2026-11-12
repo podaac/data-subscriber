@@ -2,6 +2,7 @@ from subscriber import podaac_data_subscriber as pds
 from subscriber import podaac_access as pa
 
 from urllib.error import HTTPError
+import requests
 import pytest
 import os
 from pathlib import Path
@@ -212,7 +213,10 @@ def test_param_update():
             assert p[2] == "newToken"
 
 def test_downloader_retry(mocker):
-    mck = mocker.patch('subscriber.podaac_access.urlretrieve', side_effect=HTTPError("url", 503, "msg", None, None))
+    response = requests.Response()
+    response.status_code = 503
+    error = requests.exceptions.HTTPError(response=response)
+    mck = mocker.patch('subscriber.podaac_access.earthaccess.get_requests_https_session', side_effect=error)
     try:
         pa.download_file("myUrl", "outputPath")
     except Exception:
