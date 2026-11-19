@@ -468,7 +468,7 @@ def create_citation(collection_json, access_date):
 
     # Better error handling here may be needed...
     doi = collection_json['DOI']["DOI"]
-    doi_authority = collection_json['DOI']["Authority"]
+    doi_authority = collection_json['DOI']["Authority"].rstrip('/')
     citation = collection_json["CollectionCitations"][0]
     creator = citation["Creator"]
     release_date = citation["ReleaseDate"]
