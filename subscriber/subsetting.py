@@ -67,7 +67,8 @@ def subset(collection_id, start_date_time, end_date_time, bbox, force, data_path
         logging.info(f'\tStart Time:    {start_date_time}')
         logging.info(f'\tEnd Time:      {end_date_time}')
         logging.info(f'\tBBox:          {bbox}')
-        logging.info(f'\tGranules:      {granules}')
+        logging.info('\tGranule lookup was not performed in dry-run mode.')
+        logging.info('\tSuccess Count was not performed in dry-run mode.')
         return 0, 0
 
     job_id = pa.find_harmony_runs(

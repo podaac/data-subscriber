@@ -2,6 +2,7 @@
 import argparse
 import logging
 import os
+import re
 import sys
 from datetime import datetime, timedelta
 from os import makedirs
@@ -53,9 +54,18 @@ def validate(args):
         )
 
 
+class _BboxFriendlyParser(argparse.ArgumentParser):
+    """Argument parser that treats comma-separated negative numbers (e.g. a
+    bounding box such as -10,-10,10,10) as values rather than options."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._negative_number_matcher = re.compile(
+            r'^-\d+$|^-\d*\.\d+$|^-?\d*\.?\d+(,-?\d*\.?\d+){3}$')
+
+
 def create_parser():
     # Initialize parser
-    parser = argparse.ArgumentParser(prog='PO.DAAC bulk-data downloader')
+    parser = _BboxFriendlyParser(prog='PO.DAAC bulk-data downloader')
 
     # Adding Required arguments
     parser.add_argument("-c", "--collection-shortname", dest="collection", required=True,
@@ -173,7 +183,10 @@ def run(args=None):
     else:
         success_cnt = cmr_downloader(args, token, data_path)
 
-    logging.info("Success Count: " + str(success_cnt))
+    if args.dry_run and subsettable:
+        logging.info("Dry-run mode: no downloads or subsets were performed.")
+    else:
+        logging.info("Success Count: " + str(success_cnt))
 
     # create citation file if success > 0
     if success_cnt > 0:
