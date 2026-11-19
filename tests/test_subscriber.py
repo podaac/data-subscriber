@@ -73,6 +73,42 @@ def test_citation_creation():
     citation = pa.create_citation(collection_umm_json, "2022-07-21")
     assert citation == "SWOT. 2022. SWOT Level-2 Simulated SSH from MITgcm LLC4320 Science Quality Version 1.0. Ver. 1.0. PO.DAAC, CA, USA. Dataset accessed 2022-07-21 at https://doi.org/10.5067/KARIN-2GLC1"
 
+def _swot_nalt_collection_umm(authority):
+    return {
+        "DOI": {
+            "DOI": "10.5067/SWOT-NALT-IGDR-1.0",
+            "Authority": authority
+        },
+        "CollectionCitations": [
+            {
+                "Creator": "SWOT",
+                "ReleasePlace": "PO.DAAC",
+                "Title": "SWOT Level-2 Nadir Altimeter IGDR",
+                "Publisher": "PO.DAAC",
+                "ReleaseDate": "2023-01-01T00:00:00.000Z",
+                "Version": "1.0"
+            }
+        ]
+    }
+
+
+@pytest.mark.parametrize("authority", [
+    "https://www.doi.org/",
+    "https://www.doi.org//",
+    "https://www.doi.org///",
+])
+def test_citation_doi_authority_trailing_slash_no_double_slash(authority):
+    citation = pa.create_citation(_swot_nalt_collection_umm(authority), "2024-01-01")
+    assert "at https://www.doi.org/10.5067/SWOT-NALT-IGDR-1.0" in citation
+    assert "//10.5067" not in citation
+    assert citation.endswith("at https://www.doi.org/10.5067/SWOT-NALT-IGDR-1.0")
+
+
+def test_citation_doi_authority_without_trailing_slash_unchanged():
+    citation = pa.create_citation(_swot_nalt_collection_umm("https://doi.org"), "2024-01-01")
+    assert citation.endswith("Dataset accessed 2024-01-01 at https://doi.org/10.5067/SWOT-NALT-IGDR-1.0")
+
+
 def test_search_after():
     # cmr query: https://cmr.earthdata.nasa.gov/search/granules.umm_json?page_size=2000&sort_key=-start_date&provider=POCLOUD&ShortName=JASON_CS_S6A_L2_ALT_LR_STD_OST_NRT_F&temporal=2000-01-01T10%3A00%3A00Z%2C2022-04-15T00%3A00%3A00Z&bounding_box=-180%2C-90%2C180%2C90
     # requires page-After
