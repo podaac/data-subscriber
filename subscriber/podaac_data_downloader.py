@@ -173,7 +173,10 @@ def run(args=None):
     else:
         success_cnt = cmr_downloader(args, token, data_path)
 
-    logging.info("Success Count: " + str(success_cnt))
+    if args.dry_run and subsettable:
+        logging.info("Success Count: not applicable in dry-run mode (no downloads or subsetting performed)")
+    else:
+        logging.info("Success Count: " + str(success_cnt))
 
     # create citation file if success > 0
     if success_cnt > 0:
