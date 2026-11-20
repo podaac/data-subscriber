@@ -35,3 +35,51 @@ def test_subset_MUR_by_name():
     # Let's ensure we're only looking for data files here
     assert len([name for name in os.listdir('./MUR25-JPL-L4-GLOB-v04.2') if os.path.isfile('./MUR25-JPL-L4-GLOB-v04.2/' + name) and "citation.txt" not in name ])==1
     shutil.rmtree('./MUR25-JPL-L4-GLOB-v04.2')
+
+
+# ---------------------------------------------------------------------------
+# Dry-run + subset logging (no network required)
+# ---------------------------------------------------------------------------
+import logging
+from types import SimpleNamespace
+from subscriber import subsetting
+
+
+def _dry_run_subset_logs(caplog, granules=None):
+    args = SimpleNamespace(dry_run=True, verbose=False)
+    caplog.set_level(logging.INFO)
+    result = subsetting.subset(
+        collection_id='C1234-PROV',
+        start_date_time='2020-01-01T00:00:00Z',
+        end_date_time='2020-01-02T00:00:00Z',
+        bbox='-180,-90,180,90',
+        force=False,
+        data_path='./unused',
+        args=args,
+        process_cmd=None,
+        granules=granules,
+    )
+    return result, [r.getMessage() for r in caplog.records]
+
+
+def test_dry_run_subset_still_logs_harmony_parameters(caplog):
+    # Criterion 0: Collection ID, Start Time, End Time, BBox lines are still logged.
+    _, messages = _dry_run_subset_logs(caplog)
+    joined = "\n".join(messages)
+    assert "Collection ID: C1234-PROV" in joined
+    assert "Start Time:    2020-01-01T00:00:00Z" in joined
+    assert "End Time:      2020-01-02T00:00:00Z" in joined
+    assert "BBox:          -180,-90,180,90" in joined
+
+
+def test_dry_run_subset_granules_line_is_explicit_not_bare_none(caplog):
+    # Criterion 1: Granules line explains dry-run rather than showing bare "None".
+    _, messages = _dry_run_subset_logs(caplog, granules=None)
+    granule_lines = [m for m in messages if "Granules" in m]
+    assert granule_lines, "expected a Granules line in dry-run output"
+    line = granule_lines[0]
+    assert not line.rstrip().endswith("None"), f"bare None shown: {line!r}"
+    lowered = line.lower()
+    assert "dry-run" in lowered or "dry run" in lowered
+    assert "not searched" in lowered
+    assert "subsetted" in lowered

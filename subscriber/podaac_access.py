@@ -30,6 +30,7 @@ __version__ = "1.15.2"
 extensions = ["\\.nc", "\\.h5", "\\.zip", "\\.tar.gz", "\\.tiff"]
 edl = "urs.earthdata.nasa.gov"
 cmr = "cmr.earthdata.nasa.gov"
+cmr_uat = "cmr.uat.earthdata.nasa.gov"
 graph = "graphql.earthdata.nasa.gov"
 graph_url = "https://"+graph+"/api"
 token_url = "https://" + edl + "/api/users"
@@ -254,9 +255,10 @@ def download_file(remote_file, output_path, retries=3):
                 retry=(tenacity.retry_if_exception_type(HTTPError) & tenacity.retry_if_exception(
                     lambda exc: exc.code == 500))
                 )
-def get_search_results(params, verbose=False):
+def get_search_results(params, verbose=False, uat=False):
+    host = cmr_uat if uat else cmr
     # Get the query parameters as a string and then the complete search url:
-    url = f"https://{cmr}/search/granules.umm_json?{urlencode(params)}"
+    url = f"https://{host}/search/granules.umm_json?{urlencode(params)}"
     if verbose:
         logging.info(url)
 
@@ -275,7 +277,7 @@ def get_search_results(params, verbose=False):
         except HTTPError as e:
             if e.code == 401:
                 _, params = refresh_token(params)
-                req = Request(f"https://{cmr}/search/granules.umm_json?{urlencode(params)}")
+                req = Request(f"https://{host}/search/granules.umm_json?{urlencode(params)}")
                 if search_after_header:
                     req.add_header('CMR-Search-After', search_after_header)
                 response = urlopen(req)
@@ -291,7 +293,7 @@ def get_search_results(params, verbose=False):
 
         # get the new Search After header, if it's not set, we have all the results and we're done.
         search_after_header = None
-        search_after_header = response.info()['CMR-Search-After']
+        search_after_header = response.info().get('CMR-Search-After')
         if search_after_header is not None:
             logging.debug("Search After response header defined, paging CMR for more data.")
         else:
@@ -407,8 +409,9 @@ def make_checksum(file_path, algorithm):
             hash_alg.update(chunk)
     return hash_alg.hexdigest()
 
-def get_cmr_collections(params, verbose=False):
-    url = f"https://{cmr}/search/collections.umm_json?{urlencode(params)}"
+def get_cmr_collections(params, verbose=False, uat=False):
+    host = cmr_uat if uat else cmr
+    url = f"https://{host}/search/collections.umm_json?{urlencode(params)}"
     if verbose:
         logging.info(url)
 
@@ -418,15 +421,17 @@ def get_cmr_collections(params, verbose=False):
     except HTTPError as e:
         if e.code == 401:
             # try to refresh the token in params
+            if isinstance(params, dict):
+                params = list(params.items())
             _, params = refresh_token(params)
-            response = urlopen(Request(f"https://{cmr}/search/collections.umm_json?{urlencode(params)}"))
+            response = urlopen(Request(f"https://{host}/search/collections.umm_json?{urlencode(params)}"))
         else:
             raise e
     result = json.loads(response.read().decode())
     return result
 
 
-def get_cmr_collection_id(collection_short_name, provider, token, verbose):
+def get_cmr_collection_id(collection_short_name, provider, token, verbose, uat=False):
     """
     Retrieve collection ID from CMR given the collection short name and provider
 
@@ -456,7 +461,7 @@ def get_cmr_collection_id(collection_short_name, provider, token, verbose):
         'ShortName': collection_short_name,
         'token': token
     }
-    collections = get_cmr_collections(params, verbose)['items']
+    collections = get_cmr_collections(params, verbose, uat=uat)['items']
 
     if not collections:
         raise ValueError(f'No collections found in CMR for {collection_short_name}/{provider}')
@@ -468,7 +473,7 @@ def create_citation(collection_json, access_date):
 
     # Better error handling here may be needed...
     doi = collection_json['DOI']["DOI"]
-    doi_authority = collection_json['DOI']["Authority"]
+    doi_authority = collection_json['DOI']["Authority"].rstrip('/')
     citation = collection_json["CollectionCitations"][0]
     creator = citation["Creator"]
     release_date = citation["ReleaseDate"]

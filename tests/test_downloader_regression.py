@@ -123,3 +123,47 @@ def test_downloader_temporal_and_granule_together():
     assert len([name for name in os.listdir('./TMP') if
                 os.path.isfile('./TMP/' + name) and "citation.txt" not in name]) == 2
     shutil.rmtree('./TMP')
+
+
+# ---------------------------------------------------------------------------
+# Dry-run + subset output (mocked, no network required)
+# ---------------------------------------------------------------------------
+import logging
+
+
+def _run_dry_run_subset(monkeypatch, tmp_path, caplog):
+    from subscriber import subsetting as sub
+
+    monkeypatch.setattr(pdd.pa, 'validate', lambda args: None)
+    monkeypatch.setattr(pdd.pa, 'refresh_token', lambda: 'token')
+    monkeypatch.setattr(pdd.pa, 'get_cmr_collection_id', lambda **kw: 'C1234-PROV')
+    monkeypatch.setattr(sub, 'is_subsettable', lambda **kw: True)
+    monkeypatch.setattr(pdd.pa, 'create_citation_file', lambda *a, **k: None)
+
+    args = create_downloader_args(
+        f'-c SOME_COLL -d {tmp_path} --dry-run --subset '
+        '-sd 2020-01-01T00:00:00Z -ed 2020-01-02T00:00:00Z -b=-180,-90,180,90'.split())
+    caplog.set_level(logging.INFO)
+    pdd.run(args)
+    return [r.getMessage() for r in caplog.records]
+
+
+def test_dry_run_subset_success_count_not_bare_zero(monkeypatch, tmp_path, caplog):
+    # Criterion 2: Success Count line states count not applicable in dry-run.
+    messages = _run_dry_run_subset(monkeypatch, tmp_path, caplog)
+    success_lines = [m for m in messages if "Success Count" in m]
+    assert success_lines, "expected a Success Count line"
+    line = success_lines[0]
+    assert line.strip() != "Success Count: 0"
+    assert not line.rstrip().endswith(": 0")
+    lowered = line.lower()
+    assert "not applicable" in lowered or "dry-run" in lowered or "dry run" in lowered
+
+
+def test_dry_run_subset_no_zero_granules_or_failure_wording(monkeypatch, tmp_path, caplog):
+    # Criterion 3: no message implies zero granules found or subset failure.
+    messages = _run_dry_run_subset(monkeypatch, tmp_path, caplog)
+    joined = "\n".join(messages).lower()
+    assert "found 0" not in joined
+    assert "no granules" not in joined
+    assert "fail" not in joined
