@@ -50,6 +50,8 @@ def validate(args):
     if args.minutes is None and args.startDate is False and args.endDate is False:
         raise ValueError(
             "Error parsing command line arguments: one of --start-date, --end-date or --minutes are required")
+    if getattr(args, 'uat', False) and args.subset:
+        raise ValueError("Error parsing command line arguments: --uat cannot be used with --subset")
 
 def create_parser():
     # Initialize parser
@@ -106,6 +108,7 @@ def create_parser():
                         help="Specify a provider for collection search. Default is POCLOUD.")  # noqa E501
     parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Search and identify files to download, but do not actually download them")  # noqa E501
     parser.add_argument("--subset", dest="subset", action="store_true", help="Subset the data via Harmony calls.")  # noqa E501
+    parser.add_argument("--uat", dest="uat", action="store_true", help="Query the UAT CMR environment instead of production.")  # noqa E501
     parser.add_argument("--collection-version",dest="collection_version", help="Restrict download to files within a specific collection version")
 
     return parser
@@ -216,7 +219,7 @@ def run(args=None):
         logging.info("Provider: " + provider)
         logging.info("Updated Since: " + data_within_last_timestamp)
 
-    results = pa.get_search_results(params, args.verbose)
+    results = pa.get_search_results(params, args.verbose, uat=args.uat)
 
     if args.verbose:
         logging.info(str(results[
@@ -236,7 +239,8 @@ def run(args=None):
         collection_short_name=args.collection,
         provider=args.provider,
         token=token,
-        verbose=args.verbose
+        verbose=args.verbose,
+        uat=args.uat
     )
 
     subsettable = False
