@@ -293,3 +293,132 @@ def test_get_latest_release_from_json():
     release_json = json.load(f)
     latest_release = pa.get_latest_release_from_json(release_json)
     assert latest_release == "1.12.0"
+
+
+# ---------------------------------------------------------------------------
+# UAT / production CMR endpoint selection tests
+# ---------------------------------------------------------------------------
+
+PROD_CMR_HOST = "https://cmr.earthdata.nasa.gov"
+UAT_CMR_HOST = "https://cmr.uat.earthdata.nasa.gov"
+
+
+class _FakeResponse:
+    def __init__(self, body=None):
+        self._body = body if body is not None else {"items": [{"meta": {"concept-id": "C1-TEST"}}], "hits": 0}
+
+    def read(self):
+        return json.dumps(self._body).encode()
+
+    def info(self):
+        return {}
+
+
+def _capture_urlopen(monkeypatch, body=None):
+    captured = []
+
+    def fake_urlopen(req, *args, **kwargs):
+        url = req.full_url if hasattr(req, "full_url") else req
+        captured.append(url)
+        return _FakeResponse(body)
+
+    monkeypatch.setattr(pa, "urlopen", fake_urlopen)
+    return captured
+
+
+def test_uat_flag_parsed_by_create_parser():
+    parser = pds.create_parser()
+    args = parser.parse_args(["-c", "dataset", "-d", "/data", "-m", "60", "--uat"])
+    assert args.uat is True
+
+
+def test_no_uat_flag_defaults_to_production():
+    parser = pds.create_parser()
+    args = parser.parse_args(["-c", "dataset", "-d", "/data", "-m", "60"])
+    assert getattr(args, "uat", False) is False
+
+
+def test_granule_search_targets_uat_host_when_uat(monkeypatch):
+    captured = _capture_urlopen(monkeypatch)
+    params = [('provider', 'POCLOUD'), ('ShortName', 'dataset'), ('token', 'abc')]
+    pa.get_search_results(params, False, uat=True)
+    assert captured, "no CMR request was made"
+    assert all(u.startswith(UAT_CMR_HOST) for u in captured)
+
+
+def test_collection_search_targets_uat_host_when_uat(monkeypatch):
+    captured = _capture_urlopen(monkeypatch)
+    params = {'provider': 'POCLOUD', 'ShortName': 'dataset', 'token': 'abc'}
+    pa.get_cmr_collections(params, False, uat=True)
+    assert captured, "no CMR request was made"
+    assert all(u.startswith(UAT_CMR_HOST) for u in captured)
+
+
+def test_granule_search_targets_production_host_without_uat(monkeypatch):
+    captured = _capture_urlopen(monkeypatch)
+    params = [('provider', 'POCLOUD'), ('ShortName', 'dataset'), ('token', 'abc')]
+    pa.get_search_results(params, False)
+    assert captured, "no CMR request was made"
+    assert all(u.startswith(PROD_CMR_HOST) for u in captured)
+    assert not any("uat" in u for u in captured)
+
+
+def test_collection_search_targets_production_host_without_uat(monkeypatch):
+    captured = _capture_urlopen(monkeypatch)
+    params = {'provider': 'POCLOUD', 'ShortName': 'dataset', 'token': 'abc'}
+    pa.get_cmr_collections(params, False)
+    assert captured, "no CMR request was made"
+    assert all(u.startswith(PROD_CMR_HOST) for u in captured)
+    assert not any("uat" in u for u in captured)
+
+
+def test_uat_and_subset_rejected_during_validation():
+    parser = pds.create_parser()
+    args = parser.parse_args(["-c", "dataset", "-d", "/data", "-m", "60", "--uat", "--subset"])
+    with pytest.raises(ValueError):
+        pa.validate(args)
+        pds.validate(args)
+
+
+def test_uat_cmr_http_error_propagates(monkeypatch):
+    def fake_urlopen(req, *args, **kwargs):
+        url = req.full_url if hasattr(req, "full_url") else req
+        assert url.startswith(UAT_CMR_HOST)
+        raise HTTPError(url, 500, "Server Error", {}, None)
+
+    monkeypatch.setattr(pa, "urlopen", fake_urlopen)
+    params = {'provider': 'POCLOUD', 'ShortName': 'dataset', 'token': 'abc'}
+    with pytest.raises(HTTPError):
+        pa.get_cmr_collections(params, False, uat=True)
+
+
+def test_uat_collection_lookup_empty_raises_value_error(monkeypatch):
+    monkeypatch.setattr(pa, "get_cmr_collections",
+                        lambda *a, **k: {"items": []})
+    with pytest.raises(ValueError):
+        pa.get_cmr_collection_id("dataset", "POCLOUD", "abc", False, uat=True)
+
+
+def test_uat_401_retry_targets_uat_host(monkeypatch):
+    captured = []
+    calls = {"n": 0}
+
+    def fake_urlopen(req, *args, **kwargs):
+        url = req.full_url if hasattr(req, "full_url") else req
+        captured.append(url)
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise HTTPError(url, 401, "Unauthorized", {}, None)
+        return _FakeResponse({"items": []})
+
+    def fake_refresh_token(params=None):
+        new_params = [(k, "newtoken" if k == "token" else v) for k, v in params]
+        return "newtoken", new_params
+
+    monkeypatch.setattr(pa, "urlopen", fake_urlopen)
+    monkeypatch.setattr(pa, "refresh_token", fake_refresh_token)
+
+    params = {'provider': 'POCLOUD', 'ShortName': 'dataset', 'token': 'abc'}
+    pa.get_cmr_collections(params, False, uat=True)
+    assert len(captured) >= 2
+    assert all(u.startswith(UAT_CMR_HOST) for u in captured)
