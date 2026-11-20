@@ -3,8 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
+## [1.16.0]
+
 ### Added
+- **(issues/171)** - updated dry-run information to be less confusing.
+- **(issues/158)**
+  - Added UAT Flag for interacting with cmr UAT. Harmony UAT is not supported, and calls to "--subset" in UAT will not be executed.
+- **(issues/144)** - fixed typo in DOI generation when CMR "Authority" field ended with a "/" character.
 - Added error messages to inform user if .harmony file is formatted incorrectly or missing a key
 - **PODAAC-6302 (issues/137)**
   - Added small notification when `-gr` is being used but 0 granules are returned
